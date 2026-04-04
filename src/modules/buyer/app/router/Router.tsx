@@ -79,36 +79,36 @@ function CrawlerRedirect() {
 	return <Navigate to={`/listings/${id}`} replace />;
 }
 
+const FullScreenFallback = <LoadingOverlay visible />;
+
 export function BuyerRouter() {
 	return (
-		<Suspense fallback={<LoadingOverlay visible />}>
-			<Routes>
-				{/* Routes with bottom navigation (BuyerLayout) */}
-				<Route element={<Layout />}>
-					<Route path="/" element={<HomePage />} />
-					<Route path="/search" element={<SearchPage />} />
-					<Route path="/preferences" element={<PreferencesPage />} />
-					<Route path="/listings" element={<ListingsPage />} />
-					<Route path="/crawler/telegram/:id" element={<CrawlerRedirect />} />
-					<Route path="/crawler/olx/:id" element={<CrawlerRedirect />} />
-					<Route path="/notifications" element={<NotificationsPage />} />
-					<Route path="/profile" element={<SettingsPage />} />
-					<Route path="/become-seller" element={<BecomeSellerPage />} />
-					<Route path="/favorites" element={<FavoritesPage />} />
-				</Route>
+		<Routes>
+			{/* Routes with bottom navigation — Suspense is inside BuyerLayout wrapping <Outlet /> */}
+			<Route element={<Layout />}>
+				<Route path="/" element={<HomePage />} />
+				<Route path="/search" element={<SearchPage />} />
+				<Route path="/preferences" element={<PreferencesPage />} />
+				<Route path="/listings" element={<ListingsPage />} />
+				<Route path="/crawler/telegram/:id" element={<CrawlerRedirect />} />
+				<Route path="/crawler/olx/:id" element={<CrawlerRedirect />} />
+				<Route path="/notifications" element={<NotificationsPage />} />
+				<Route path="/profile" element={<SettingsPage />} />
+				<Route path="/become-seller" element={<BecomeSellerPage />} />
+				<Route path="/favorites" element={<FavoritesPage />} />
+			</Route>
 
-				{/* Full-screen pages (no bottom nav) */}
-				<Route path="/about" element={<AboutPage />} />
-				<Route path="/for-realtors" element={<ForRealtorsPage />} />
-				<Route path="/faq" element={<FAQPage />} />
-				<Route path="/support" element={<SupportPage />} />
-				<Route path="/privacy" element={<PrivacyPage />} />
-				<Route path="/terms" element={<TermsPage />} />
-				<Route path="/edit-profile" element={<EditProfilePage />} />
-				<Route path="/listings/:id" element={<ListingDetailPage />} />
-				<Route path="/seller/:id" element={<SellerProfilePage />} />
-				<Route path="/browse" element={<BrowsePage />} />
-			</Routes>
-		</Suspense>
+			{/* Full-screen pages (no bottom nav) — own Suspense per route */}
+			<Route path="/about" element={<Suspense fallback={FullScreenFallback}><AboutPage /></Suspense>} />
+			<Route path="/for-realtors" element={<Suspense fallback={FullScreenFallback}><ForRealtorsPage /></Suspense>} />
+			<Route path="/faq" element={<Suspense fallback={FullScreenFallback}><FAQPage /></Suspense>} />
+			<Route path="/support" element={<Suspense fallback={FullScreenFallback}><SupportPage /></Suspense>} />
+			<Route path="/privacy" element={<Suspense fallback={FullScreenFallback}><PrivacyPage /></Suspense>} />
+			<Route path="/terms" element={<Suspense fallback={FullScreenFallback}><TermsPage /></Suspense>} />
+			<Route path="/edit-profile" element={<Suspense fallback={FullScreenFallback}><EditProfilePage /></Suspense>} />
+			<Route path="/listings/:id" element={<Suspense fallback={FullScreenFallback}><ListingDetailPage /></Suspense>} />
+			<Route path="/seller/:id" element={<Suspense fallback={FullScreenFallback}><SellerProfilePage /></Suspense>} />
+			<Route path="/browse" element={<Suspense fallback={FullScreenFallback}><BrowsePage /></Suspense>} />
+		</Routes>
 	);
 }

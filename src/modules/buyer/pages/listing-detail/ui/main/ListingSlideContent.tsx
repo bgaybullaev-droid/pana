@@ -264,26 +264,25 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 			</Box>
 
 			{/* ── Back button ── */}
-			<Box
+			<ActionIcon
+				variant="transparent"
+				size={56}
+				onClick={() => navigate(-1)}
 				style={{
-					zIndex: 50,
 					position: "absolute",
-					bottom: "calc(5.5rem * var(--mantine-scale))",
-					right: "calc(0.5rem * var(--mantine-scale))",
+					bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+					right: 12,
+					zIndex: 50,
+					backgroundColor: "rgba(255, 255, 255, 0.65)",
+					backdropFilter: "blur(20px) saturate(180%)",
+					WebkitBackdropFilter: "blur(20px) saturate(180%)",
+					border: "1px solid rgba(255, 255, 255, 0.5)",
+					boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+					borderRadius: "50%",
 				}}
 			>
-				<ActionIcon
-					variant="transparent"
-					size={48}
-					onClick={() => navigate(-1)}
-					style={{
-						backgroundColor: "rgba(0,0,0,0.35)",
-						borderRadius: "50%",
-					}}
-				>
-					<IconArrowLeft size={26} color="white" />
-				</ActionIcon>
-			</Box>
+				<IconArrowLeft size={26} color="#868e96" />
+			</ActionIcon>
 
 			{/* ── Bottom-left — Product Info ── */}
 			<Box

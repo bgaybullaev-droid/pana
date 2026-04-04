@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState } from "react";
 import { TextInput, ActionIcon } from "@mantine/core";
 import { IconArrowLeft, IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -19,22 +19,28 @@ export const SearchInput: FC<SearchInputProps> = ({
 	onSubmit,
 }) => {
 	const { t } = useTranslation("buyer");
+	const [focused, setFocused] = useState(false);
 	return (
 		<TextInput
-			placeholder={t("home.searchPlaceholder")}
+			placeholder={focused ? "" : t("search.title")}
 			value={value}
 			onChange={(e) => onChange(e.currentTarget.value)}
+			onFocus={() => setFocused(true)}
+			onBlur={() => setFocused(false)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter") {
 					onSubmit();
 				}
 			}}
-			radius={10}
+			radius={22}
 			styles={{
 				input: {
-					height: 39,
-					backgroundColor: "#FFFFFF",
+					height: 45,
+					backgroundColor: focused ? "#f8f9fa" : "#f1f3f5",
+					border: focused ? "1px solid #dee2e6" : "none",
 					paddingLeft: 42,
+					fontSize: 16,
+					transition: "background-color 0.15s ease, border-color 0.15s ease",
 				},
 			}}
 			leftSection={

@@ -79,6 +79,7 @@ function Page() {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
 
+	const [searchFocused, setSearchFocused] = useState(false);
 	const [sortBy, setSortBy] = useState<SortOption>("recommended");
 	const [filters, setFilters] = useState<ListingFilters>({
 		type: "sell",
@@ -210,7 +211,7 @@ function Page() {
 						}}
 					>
 						<TextInput
-							placeholder={t("search.placeholder")}
+							placeholder={searchFocused ? "" : t("search.title")}
 							leftSection={<IconSearch size={18} color="#adb5bd" />}
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.currentTarget.value)}
@@ -227,13 +228,16 @@ function Page() {
 									</ActionIcon>
 								)
 							}
-							radius={12}
+							radius={22}
+							onFocus={() => setSearchFocused(true)}
+							onBlur={() => setSearchFocused(false)}
 							styles={{
 								input: {
-									backgroundColor: "#f1f3f5",
-									border: "none",
-									height: 44,
-									fontSize: 14,
+									backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
+									border: searchFocused ? "1px solid #dee2e6" : "none",
+									height: 45,
+									fontSize: 16,
+									transition: "background-color 0.15s ease, border-color 0.15s ease",
 								},
 							}}
 						/>

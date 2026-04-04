@@ -10,6 +10,7 @@ import {
 	TextInput,
 	Button,
 	LoadingOverlay,
+	ActionIcon,
 } from "@mantine/core";
 import {
 	IconBuildingStore,
@@ -110,18 +111,25 @@ function Page() {
 				}}
 			>
 				{/* Back button */}
-				<Box style={{ position: "absolute", top: 16, left: 16 }}>
-					<Button
-						variant="subtle"
-						color="white"
-						size="compact-sm"
-						leftSection={<IconArrowLeft size={16} />}
-						onClick={() => navigate("/profile")}
-						styles={{ root: { color: "white" } }}
-					>
-						{""}
-					</Button>
-				</Box>
+				<ActionIcon
+					variant="transparent"
+					size={56}
+					onClick={() => navigate("/profile")}
+					style={{
+						position: "absolute",
+						top: 12,
+						left: 12,
+						zIndex: 2,
+						backgroundColor: "rgba(255, 255, 255, 0.65)",
+						backdropFilter: "blur(20px) saturate(180%)",
+						WebkitBackdropFilter: "blur(20px) saturate(180%)",
+						border: "1px solid rgba(255, 255, 255, 0.5)",
+						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+						borderRadius: "50%",
+					}}
+				>
+					<IconArrowLeft size={24} color="#868e96" />
+				</ActionIcon>
 
 				{/* Decorative circles */}
 				<Box

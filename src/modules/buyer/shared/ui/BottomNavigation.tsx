@@ -83,13 +83,10 @@ export function BottomNavigation({
 		if (!pill || !tab || activeIndex < 0) return;
 
 		const pillRect = pill.getBoundingClientRect();
-		const tabRect = tab.getBoundingClientRect();
-		// Fixed width for all tabs, centered on the tab
-		const fixedWidth = Math.round(pillRect.width / PILL_ITEMS.length);
-		const tabCenter = tabRect.left - pillRect.left + tabRect.width / 2;
+		const slotWidth = pillRect.width / PILL_ITEMS.length;
 		setIndicator({
-			left: Math.round(tabCenter - fixedWidth / 2),
-			width: fixedWidth,
+			left: Math.round(activeIndex * slotWidth) + 2,
+			width: Math.round(slotWidth) - 4,
 		});
 	}, [activeIndex]);
 
@@ -133,7 +130,7 @@ export function BottomNavigation({
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "space-between",
-					padding: "4px 12px 8px",
+					padding: "4px 12px 12px",
 					maxWidth: 500,
 					margin: "0 auto",
 				}}
@@ -144,13 +141,13 @@ export function BottomNavigation({
 					style={{
 						display: "flex",
 						alignItems: "center",
-						justifyContent: "space-around",
 						flex: 1,
+						height: 56,
 						backgroundColor: "rgba(255, 255, 255, 0.65)",
 						backdropFilter: "blur(20px) saturate(180%)",
 						WebkitBackdropFilter: "blur(20px) saturate(180%)",
 						borderRadius: 50,
-						padding: "5px 6px",
+						padding: "5px 0",
 						border: "1px solid rgba(255, 255, 255, 0.5)",
 						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
 						pointerEvents: "auto",
@@ -164,10 +161,10 @@ export function BottomNavigation({
 						<Box
 							style={{
 								position: "absolute",
-
+								top: 2,
 								left: indicator.left,
 								width: indicator.width,
-								height: "calc(100% - 0px)",
+								height: "calc(100% - 4px)",
 								borderRadius: 30,
 								backgroundColor: "rgba(34, 139, 230, 0.1)",
 								transition: "0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",

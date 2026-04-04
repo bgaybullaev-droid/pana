@@ -71,24 +71,25 @@ function Page() {
   return (
     <Box h="100vh" w="100%" pos="relative" style={{ overflow: 'hidden' }}>
       {/* Back Button */}
-      <Box pos="fixed" top={12} left={14} style={{ zIndex: 99 }}>
-        <ActionIcon
-          variant="filled"
-          color="white"
-          size={34}
-          radius={23}
-          onClick={handleBack}
-          styles={{
-            root: {
-              width: 34,
-              height: 32,
-              color: 'black',
-            },
-          }}
-        >
-          <IconArrowLeft size={26} />
-        </ActionIcon>
-      </Box>
+      <ActionIcon
+        variant="transparent"
+        size={56}
+        onClick={handleBack}
+        style={{
+          position: "fixed",
+          top: 12,
+          left: 12,
+          zIndex: 99,
+          backgroundColor: "rgba(255, 255, 255, 0.65)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          border: "1px solid rgba(255, 255, 255, 0.5)",
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+          borderRadius: "50%",
+        }}
+      >
+        <IconArrowLeft size={24} color="#868e96" />
+      </ActionIcon>
 
       {/* TikTok Slider */}
       <TikTokSlider
