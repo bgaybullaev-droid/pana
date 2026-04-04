@@ -71,7 +71,6 @@ import {
 	$favoritedIds,
 	$searchQuery,
 	$filters,
-	$total,
 	pageOpened,
 	loadMore,
 	toggleFavorite,
@@ -100,7 +99,6 @@ function Page() {
 		favoritedIds,
 		searchQuery,
 		filters,
-		total,
 		userStats,
 	] = useUnit([
 		$listings,
@@ -109,7 +107,6 @@ function Page() {
 		$favoritedIds,
 		$searchQuery,
 		$filters,
-		$total,
 		$userStats,
 	]);
 	const observerRef = useRef<IntersectionObserver | null>(null);
@@ -431,14 +428,6 @@ function Page() {
 				</Box>
 			</ScrollArea>
 
-			{/* Results count */}
-			{(searchQuery || activeFilterCount > 0) && (
-				<Box px="md" pb={8}>
-					<Text size="xs" c="dimmed" fw={500}>
-						{t("home.found", { total })}
-					</Text>
-				</Box>
-			)}
 		</Box>
 	);
 

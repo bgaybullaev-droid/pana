@@ -16,6 +16,7 @@ import {
 	Text,
 	TextInput,
 	ThemeIcon,
+	ThemeIcon,
 	UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -139,6 +140,8 @@ export function Layout() {
 		);
 		return () => timers.forEach(clearTimeout);
 	}, [searchOpen]);
+
+
 
 	// iOS keyboard: resize the drawer to match the visual viewport.
 	// On iOS, the layout viewport stays full-size when the keyboard opens,
@@ -405,73 +408,13 @@ export function Layout() {
 							</Box>
 						)}
 
-						{/* Onboarding — shown only when no history and no query */}
-						{!searchQuery && searchHistory.length === 0 && (
-							<Stack gap="md" pt="sm">
-								<Box ta="center" px="md">
-									<Text fw={700} size="xl" c="dark" mb={6}>
-										{t("search.onboarding.title")}
-									</Text>
-									<Text size="sm" c="dimmed" lh={1.5}>
-										{t("search.onboarding.subtitle")}
-									</Text>
-								</Box>
-
-								<Stack gap={10}>
-									{(["market", "nodup", "alerts"] as const).map((key) => (
-										<Box
-											key={key}
-											style={{
-												backgroundColor: "#f8f9fa",
-												borderRadius: 14,
-												padding: "14px 16px",
-												display: "flex",
-												alignItems: "center",
-												gap: 14,
-											}}
-										>
-											<ThemeIcon
-												size={32}
-												radius="50%"
-												variant="light"
-												color="blue"
-												style={{ flexShrink: 0 }}
-											>
-												<IconCheck size={16} />
-											</ThemeIcon>
-											<Box>
-												<Text size="sm" fw={700} c="dark">
-													{t(`search.onboarding.features.${key}.title`)}
-												</Text>
-												<Text size="xs" c="dimmed" mt={2}>
-													{t(`search.onboarding.features.${key}.desc`)}
-												</Text>
-											</Box>
-										</Box>
-									))}
-								</Stack>
-
-								<Box
-									style={{
-										backgroundColor: "#fff9db",
-										borderRadius: 12,
-										padding: "12px 14px",
-										display: "flex",
-										alignItems: "flex-start",
-										gap: 10,
-										border: "1px solid #ffe066",
-									}}
-								>
-									<IconBulb
-										size={16}
-										color="#f59f00"
-										style={{ marginTop: 2, flexShrink: 0 }}
-									/>
-									<Text size="xs" c="dark.4" lh={1.5}>
-										{t("search.onboarding.tip")}
-									</Text>
-								</Box>
-							</Stack>
+						{searchHistory.length === 0 && (
+							<Box ta="center" py={48}>
+								<IconSearch size={36} color="#dee2e6" stroke={1.5} />
+								<Text size="sm" c="dimmed" mt={12}>
+									{t("search.emptyHistory")}
+								</Text>
+							</Box>
 						)}
 					</Box>
 
