@@ -5,7 +5,12 @@
       "Bash(git merge:*)",
       "Bash(git commit -m ':*)",
       "Bash(npm run:*)",
-      "Bash(taskkill //F //IM node.exe)"
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(netlify --version)",
+      "Bash(npm install:*)",
+      "Bash(netlify login:*)",
+      "Bash(netlify sites:create --name ucharmarket-frontend)",
+      "Bash(netlify deploy:*)"
     ],
     "additionalDirectories": [
       "c:\\coding\\ucharmarket-frontend\\node_modules\\.vite"
