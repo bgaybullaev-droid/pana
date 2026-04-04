@@ -1,0 +1,1 @@
+export { SellerDashboard } from './Page';

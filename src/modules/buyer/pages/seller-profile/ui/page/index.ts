@@ -1,0 +1,1 @@
+export { SellerProfile } from './Page';

@@ -1,0 +1,1 @@
+export { SellerRegister } from './Page';

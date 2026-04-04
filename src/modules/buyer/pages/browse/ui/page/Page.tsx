@@ -1,0 +1,109 @@
+import { useEffect, useCallback, useRef } from 'react';
+import { useUnit } from 'effector-react';
+import { Box, LoadingOverlay, ActionIcon } from '@mantine/core';
+import { IconArrowLeft } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
+import { useTelegram } from '@app/providers/useTelegram';
+import { getListingShareUrl } from '@shared/lib/constants';
+import { TikTokSlider } from '@modules/buyer/pages/listing-detail/ui/main/Sliders';
+import {
+  $listings,
+  $isLoading,
+  $hasMore,
+  pageOpened,
+  loadMore,
+  likeToggled,
+  shareClicked,
+  messageClicked,
+} from '../../model';
+
+function Page() {
+  const navigate = useNavigate();
+  const { webApp } = useTelegram();
+  const [listings, isLoading, hasMore] = useUnit([$listings, $isLoading, $hasMore]);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    // Prevent double call in React StrictMode
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    pageOpened();
+  }, []);
+
+  const handleLike = useCallback(
+    (id: string) => {
+      webApp?.HapticFeedback.impactOccurred('light');
+      likeToggled(id);
+    },
+    [webApp]
+  );
+
+  const handleMessage = useCallback(
+    (id: string) => {
+      webApp?.HapticFeedback.impactOccurred('light');
+      messageClicked(id);
+      // Find listing and open Telegram link
+      const listing = listings.find((l) => l.id === id);
+      if (listing?.sellerUserName) {
+        webApp?.openTelegramLink(`https://t.me/${listing.sellerUserName}`);
+      }
+    },
+    [webApp, listings]
+  );
+
+  const handleShare = useCallback(
+    (id: string) => {
+      webApp?.HapticFeedback.impactOccurred('light');
+      shareClicked(id);
+      webApp?.openTelegramLink(getListingShareUrl(id));
+    },
+    [webApp]
+  );
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  if (isLoading && listings.length === 0) {
+    return <LoadingOverlay visible />;
+  }
+
+  return (
+    <Box h="100vh" w="100%" pos="relative" style={{ overflow: 'hidden' }}>
+      {/* Back Button */}
+      <Box pos="fixed" top={12} left={14} style={{ zIndex: 99 }}>
+        <ActionIcon
+          variant="filled"
+          color="white"
+          size={34}
+          radius={23}
+          onClick={handleBack}
+          styles={{
+            root: {
+              width: 34,
+              height: 32,
+              color: 'black',
+            },
+          }}
+        >
+          <IconArrowLeft size={26} />
+        </ActionIcon>
+      </Box>
+
+      {/* TikTok Slider */}
+      <TikTokSlider
+        listings={listings}
+        onLoadMore={loadMore}
+        hasMore={hasMore}
+        onLike={handleLike}
+        onMessage={handleMessage}
+        onShare={handleShare}
+      />
+    </Box>
+  );
+}
+
+export const Browse = {
+  route: '/browse',
+  Page,
+};

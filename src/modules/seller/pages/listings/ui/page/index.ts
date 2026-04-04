@@ -1,0 +1,1 @@
+export { SellerListings } from './Page';

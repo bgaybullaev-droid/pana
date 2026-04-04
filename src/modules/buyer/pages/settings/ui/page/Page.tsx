@@ -1,0 +1,529 @@
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@app/providers/useAuth";
+import { useTelegram } from "@app/providers/useTelegram";
+import {
+	Box,
+	Text,
+	Drawer,
+	UnstyledButton,
+	Modal,
+	Button,
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import {
+	IconBuildingStore,
+	IconClipboardList,
+	IconWallet,
+	IconBell,
+	IconSparkles,
+	IconWorld,
+	IconInfoCircle,
+	IconBuilding,
+	IconHelpCircle,
+	IconHeadphones,
+	IconShare2,
+	IconFileText,
+	IconFileCheck,
+	IconCheck,
+} from "@tabler/icons-react";
+import { UnauthScreen } from "@shared/ui/UnauthScreen";
+import { IconUser } from "@tabler/icons-react";
+import { ProfileCard } from "./ProfileCard";
+import { CTAButton } from "./CTAButton";
+import { SectionCard } from "./SectionCard";
+import { SettingsRow } from "./SettingsRow";
+import { DestructiveBlock } from "./DestructiveBlock";
+
+// Global style for row tap feedback
+const TAP_STYLE = `
+  .settings-row:active {
+    background-color: #F5F5F7 !important;
+  }
+`;
+
+function Page() {
+	const { t, i18n } = useTranslation("buyer");
+	const { user, isAuthenticated, logout } = useAuth();
+	const { webApp } = useTelegram();
+	const navigate = useNavigate();
+
+	// Drawer / modal state
+	const [soonOpened, soonHandlers] = useDisclosure(false);
+	const [langOpened, langHandlers] = useDisclosure(false);
+	const [logoutOpened, logoutHandlers] = useDisclosure(false);
+	const [deleteOpened, deleteHandlers] = useDisclosure(false);
+
+	const currentLang = i18n.language === "uz" ? "O'zbekcha" : "Русский";
+
+	if (!isAuthenticated) {
+		return (
+			<UnauthScreen
+				icon={IconUser}
+				title={t("settings.title")}
+				subtitle={t("settings.loginSubtitle")}
+				loginPrompt={t("settings.loginPrompt")}
+				loginLabel={t("common.login")}
+				onLogin={() => navigate("/auth")}
+				onBack={() => navigate(-1)}
+			/>
+		);
+	}
+
+	const userName =
+		[user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+		user?.username ||
+		"";
+	const initials =
+		(user?.first_name?.[0] || "") + (user?.last_name?.[0] || "") ||
+		user?.username?.[0]?.toUpperCase() ||
+		"U";
+	const phone = user?.phone || "";
+
+	const handleLogout = () => {
+		logoutHandlers.close();
+		try {
+			webApp?.showConfirm(t("settings.logoutConfirm"), (confirmed: boolean) => {
+				if (confirmed) logout();
+			});
+		} catch {
+			logout();
+		}
+	};
+
+	const handleDelete = () => {
+		deleteHandlers.close();
+		// TODO: implement account deletion API
+	};
+
+	const handleShare = async () => {
+		const shareData = {
+			title: "UcharMarket",
+			text: t("settings.shareText"),
+			url: "https://ucharmarket.uz",
+		};
+		try {
+			if (navigator.share) {
+				await navigator.share(shareData);
+			}
+		} catch {
+			// User cancelled share
+		}
+	};
+
+	return (
+		<Box mih="100vh" style={{ backgroundColor: "#F5F5F7", paddingBottom: 32 }}>
+			<style>{TAP_STYLE}</style>
+
+			{/* ─── Top Bar (sticky) ─── */}
+			<Box
+				style={{
+					position: "sticky",
+					top: 0,
+					zIndex: 100,
+					height: 56,
+					backgroundColor: "#FFFFFF",
+					borderBottom: "1px solid #E8E8ED",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+			>
+				<Text
+					style={{
+						fontSize: 17,
+						fontWeight: 600,
+						color: "#1C1C1E",
+					}}
+				>
+					{t("settings.title")}
+				</Text>
+			</Box>
+
+			{/* ─── Profile Card ─── */}
+			<ProfileCard
+				name={userName}
+				phone={phone}
+				avatarUrl={user?.avatar_url}
+				initials={initials}
+				onEdit={() => navigate("/edit-profile")}
+				editLabel={t("settings.edit")}
+			/>
+
+			{/* ─── CTA Button ─── */}
+			<CTAButton
+				label={t("settings.addListing")}
+				onClick={() => navigate("/seller/create")}
+			/>
+
+			{/* ─── Seller Tools ─── */}
+			<SectionCard label={t("settings.sections.sellerTools")}>
+				<SettingsRow
+					icon={IconBuildingStore}
+					label={t("settings.sellerPanel")}
+					onClick={() => navigate("/seller/dashboard")}
+				/>
+				<SettingsRow
+					icon={IconClipboardList}
+					label={t("settings.myListings")}
+					onClick={() => navigate("/seller/listings")}
+				/>
+				<SettingsRow
+					icon={IconWallet}
+					label={t("settings.myBalance")}
+					onClick={soonHandlers.open}
+					variant="soon"
+					showDivider={false}
+				/>
+			</SectionCard>
+
+			{/* ─── Preferences ─── */}
+			<SectionCard label={t("settings.sections.preferences")}>
+				<SettingsRow
+					icon={IconBell}
+					label={t("settings.notifications")}
+					onClick={() => navigate("/notifications")}
+				/>
+				<SettingsRow
+					icon={IconSparkles}
+					label={t("settings.recommendations")}
+					onClick={() => navigate("/preferences")}
+				/>
+				<SettingsRow
+					icon={IconWorld}
+					label={t("settings.language")}
+					onClick={langHandlers.open}
+					rightValue={currentLang}
+					showDivider={false}
+				/>
+			</SectionCard>
+
+			{/* ─── About & Help ─── */}
+			<SectionCard label={t("settings.sections.aboutHelp")}>
+				<SettingsRow
+					icon={IconInfoCircle}
+					label={t("settings.about")}
+					onClick={() => navigate("/about")}
+				/>
+				<SettingsRow
+					icon={IconBuilding}
+					label={t("settings.forRealtors")}
+					onClick={() => navigate("/for-realtors")}
+				/>
+				<SettingsRow
+					icon={IconHelpCircle}
+					label={t("settings.faq")}
+					onClick={() => navigate("/faq")}
+				/>
+				<SettingsRow
+					icon={IconHeadphones}
+					label={t("settings.support")}
+					onClick={() => navigate("/support")}
+					showDivider={false}
+				/>
+			</SectionCard>
+
+			{/* ─── Share ─── */}
+			<SectionCard label={t("settings.sections.share")}>
+				<SettingsRow
+					icon={IconShare2}
+					label={t("settings.shareWithFriend")}
+					onClick={handleShare}
+					showDivider={false}
+				/>
+			</SectionCard>
+
+			{/* ─── Legal ─── */}
+			<SectionCard label={t("settings.sections.legal")}>
+				<SettingsRow
+					icon={IconFileText}
+					label={t("settings.privacy")}
+					onClick={() => navigate("/privacy")}
+				/>
+				<SettingsRow
+					icon={IconFileCheck}
+					label={t("settings.terms")}
+					onClick={() => navigate("/terms")}
+					showDivider={false}
+				/>
+			</SectionCard>
+
+			{/* ─── Destructive Zone ─── */}
+			<DestructiveBlock
+				logoutLabel={t("settings.logout")}
+				deleteLabel={t("settings.deleteAccount")}
+				onLogout={logoutHandlers.open}
+				onDelete={deleteHandlers.open}
+			/>
+
+			{/* ─── Version Footer ─── */}
+			<Text
+				ta="center"
+				style={{
+					fontSize: 12,
+					fontWeight: 400,
+					color: "#C7C7CC",
+					marginTop: 20,
+				}}
+			>
+				v1.0.0
+			</Text>
+
+			{/* ─── "Coming Soon" Bottom Sheet ─── */}
+			<Drawer
+				opened={soonOpened}
+				onClose={soonHandlers.close}
+				position="bottom"
+				size="auto"
+				withCloseButton={false}
+				radius="16 16 0 0"
+				padding="xl"
+				styles={{
+					body: { textAlign: "center", paddingBottom: 32 },
+				}}
+			>
+				<Text
+					style={{
+						fontSize: 20,
+						fontWeight: 600,
+						color: "#1C1C1E",
+						marginBottom: 8,
+					}}
+				>
+					{t("settings.soonTitle")}
+				</Text>
+				<Text
+					style={{
+						fontSize: 15,
+						color: "#8E8E93",
+						marginBottom: 24,
+					}}
+				>
+					{t("settings.soonMessage")}
+				</Text>
+				<Button
+					fullWidth
+					radius={12}
+					size="md"
+					onClick={soonHandlers.close}
+					styles={{
+						root: {
+							backgroundColor: "#1A73E8",
+							"&:hover": { backgroundColor: "#1557B0" },
+						},
+					}}
+				>
+					{t("settings.gotIt")}
+				</Button>
+			</Drawer>
+
+			{/* ─── Language Bottom Sheet ─── */}
+			<Drawer
+				opened={langOpened}
+				onClose={langHandlers.close}
+				position="bottom"
+				size="auto"
+				withCloseButton={false}
+				radius="16 16 0 0"
+				padding="xl"
+			>
+				<Text
+					style={{
+						fontSize: 18,
+						fontWeight: 600,
+						color: "#1C1C1E",
+						marginBottom: 16,
+					}}
+				>
+					{t("settings.language")}
+				</Text>
+
+				{[
+					{ value: "ru", label: "Русский" },
+					{ value: "uz", label: "O'zbekcha" },
+				].map((lang, index) => (
+					<UnstyledButton
+						key={lang.value}
+						onClick={() => {
+							i18n.changeLanguage(lang.value);
+							langHandlers.close();
+						}}
+						style={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							width: "100%",
+							height: 52,
+							paddingLeft: 16,
+							paddingRight: 16,
+							borderTop: index > 0 ? "0.5px solid #E8E8ED" : "none",
+						}}
+					>
+						<Text
+							style={{
+								fontSize: 16,
+								fontWeight: 400,
+								color: i18n.language === lang.value ? "#1A73E8" : "#3C3C43",
+							}}
+						>
+							{lang.label}
+						</Text>
+						{i18n.language === lang.value && (
+							<IconCheck size={20} color="#1A73E8" stroke={2.5} />
+						)}
+					</UnstyledButton>
+				))}
+
+				<Box style={{ height: 16 }} />
+			</Drawer>
+
+			{/* ─── Logout Confirmation ─── */}
+			<Modal
+				opened={logoutOpened}
+				onClose={logoutHandlers.close}
+				withCloseButton={false}
+				centered
+				radius={14}
+				padding="lg"
+				size="sm"
+				styles={{
+					content: { margin: "0 16px" },
+				}}
+			>
+				<Text
+					ta="center"
+					style={{
+						fontSize: 17,
+						fontWeight: 600,
+						color: "#1C1C1E",
+						marginBottom: 20,
+					}}
+				>
+					{t("settings.logoutConfirm")}
+				</Text>
+				<Box
+					style={{
+						display: "flex",
+						gap: 12,
+					}}
+				>
+					<Button
+						variant="default"
+						radius={10}
+						size="md"
+						onClick={logoutHandlers.close}
+						style={{ flex: 1 }}
+						styles={{
+							root: {
+								borderColor: "#E8E8ED",
+								color: "#3C3C43",
+							},
+							label: {
+								whiteSpace: "nowrap",
+								overflow: "visible",
+							},
+						}}
+					>
+						{t("settings.cancel")}
+					</Button>
+					<Button
+						radius={10}
+						size="md"
+						onClick={handleLogout}
+						style={{ flex: 1 }}
+						styles={{
+							root: {
+								backgroundColor: "#FF3B30",
+								"&:hover": { backgroundColor: "#E0322B" },
+							},
+							label: {
+								whiteSpace: "nowrap",
+								overflow: "visible",
+							},
+						}}
+					>
+						{t("settings.logout")}
+					</Button>
+				</Box>
+			</Modal>
+
+			{/* ─── Delete Account Confirmation ─── */}
+			<Modal
+				opened={deleteOpened}
+				onClose={deleteHandlers.close}
+				withCloseButton={false}
+				centered
+				radius={14}
+				padding="lg"
+				size="sm"
+				styles={{
+					content: { margin: "0 16px" },
+				}}
+			>
+				<Text
+					ta="center"
+					style={{
+						fontSize: 17,
+						fontWeight: 600,
+						color: "#1C1C1E",
+						marginBottom: 8,
+					}}
+				>
+					{t("settings.deleteConfirmTitle")}
+				</Text>
+				<Text
+					ta="center"
+					style={{
+						fontSize: 14,
+						color: "#8E8E93",
+						marginBottom: 20,
+					}}
+				>
+					{t("settings.deleteConfirmMessage")}
+				</Text>
+				<Box
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						gap: 10,
+					}}
+				>
+					<Button
+						fullWidth
+						radius={10}
+						size="md"
+						onClick={handleDelete}
+						styles={{
+							root: {
+								backgroundColor: "#FF3B30",
+								"&:hover": { backgroundColor: "#E0322B" },
+							},
+						}}
+					>
+						{t("settings.deleteAccount")}
+					</Button>
+					<Button
+						fullWidth
+						variant="default"
+						radius={10}
+						size="md"
+						onClick={deleteHandlers.close}
+						styles={{
+							root: {
+								borderColor: "#E8E8ED",
+								color: "#3C3C43",
+							},
+						}}
+					>
+						{t("settings.cancel")}
+					</Button>
+				</Box>
+			</Modal>
+		</Box>
+	);
+}
+
+export const Settings = {
+	route: "/settings",
+	Page,
+};

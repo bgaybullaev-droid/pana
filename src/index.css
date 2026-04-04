@@ -1,0 +1,239 @@
+/* Global styles */
+:root {
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #F8F9FA;
+  color: #1A1B1E;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Global transitions */
+button,
+a {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Safe area utilities */
+.safe-area-pt {
+  padding-top: var(--safe-area-inset-top);
+}
+
+.safe-area-pb {
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+
+/* Touch optimizations */
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent pull-to-refresh */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Full screen container */
+.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Telegram WebApp specific styles */
+.tg-main-button {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: var(--tg-theme-button-color, #228be6);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Swiper customizations */
+.swiper {
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-slide {
+  overflow: hidden;
+}
+
+.listings-container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 10px 10px;
+  background-color: transparent;
+}
+
+.listings-masonry-grid {
+  display: flex;
+  margin-left: -10px;
+  width: auto;
+  gap: 10px;
+}
+
+.listings-masonry-column {
+  background-clip: padding-box;
+}
+
+.listings-masonry-column>div {
+  margin-bottom: 10px;
+}
+
+.listings-uniform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Leaflet zoom controls */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(240, 240, 240, 0.95) !important;
+}
+
+.listings-masonry-grid {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.listings-masonry-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* TikTok scroll container — hide scrollbar */
+.tiktok-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.swiper-container {
+  position: unset;
+}
+
+/* Prevent horizontal Swiper from capturing vertical swipes */
+.listing-detail-swiper {
+  touch-action: pan-y;
+}
+
+/* Listing Detail Swiper Customization */
+.listing-detail-swiper {
+  width: 100%;
+  height: 100%;
+  z-index: unset !important;
+}
+
+.listing-detail-swiper .swiper-pagination {
+  bottom: calc(5rem * var(--mantine-scale, 1)) !important;
+  z-index: 55 !important;
+}
+
+.listing-detail-swiper .swiper-pagination-bullet {
+  background: rgb(127, 133, 158);
+  border: 1px solid rgb(219, 219, 219) !important;
+  opacity: 1 !important;
+}
+
+.listing-detail-swiper .swiper-pagination-bullet-active {
+  background: rgb(64, 167, 227) !important;
+}
+
+.listing-detail-swiper .swiper-slide {
+  text-align: center;
+  font-size: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: hsl(300, 100%, 0%);
+}
+
+.listing-detail-swiper .swiper-slide img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.listing-detail-swiper .swiper-pagination,
+.listing-detail-swiper .swiper-pagination-bullet {
+  z-index: 55 !important;
+}
+
+/* Safe area insets for mobile */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}

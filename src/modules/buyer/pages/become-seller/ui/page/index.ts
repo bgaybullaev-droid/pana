@@ -1,0 +1,1 @@
+export { BecomeSeller } from './Page';

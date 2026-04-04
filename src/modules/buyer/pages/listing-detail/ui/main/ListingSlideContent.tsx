@@ -1,0 +1,440 @@
+import { FC, useState, useCallback, useEffect } from "react";
+import {
+	Box,
+	Text,
+	ActionIcon,
+	Stack,
+	Badge,
+	Group,
+	Transition,
+	Avatar,
+} from "@mantine/core";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination } from "swiper/modules";
+import {
+	IconHeart,
+	IconMessageCircle,
+	IconShare,
+	IconUser,
+	IconArrowLeft,
+	IconEye,
+	IconMapPin,
+	IconPhone,
+} from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
+import type { UnifiedListing } from "@shared/api/types";
+import { useNavigate } from "react-router-dom";
+import { formatPrice } from "@app/styles/theme";
+import { translateDistrict } from "@shared/lib/regions";
+import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
+import { MapDrawer } from "../dialogs/MapDrawer";
+import { commentAdded } from "../../model";
+
+import "swiper/css";
+import "swiper/css/pagination";
+
+interface ListingSlideContentProps {
+	listing: UnifiedListing;
+	isActive: boolean;
+	onLike: (id: string) => void;
+	onShare: (id: string) => void;
+}
+
+const shadow = "0 1px 4px rgba(0,0,0,0.6)";
+
+export const ListingSlideContent: FC<ListingSlideContentProps> = ({
+	listing,
+	isActive,
+	onLike,
+	onShare,
+}) => {
+	const { t } = useTranslation("buyer");
+	const navigate = useNavigate();
+	const [showInfo, setShowInfo] = useState(
+		() => sessionStorage.getItem("slide_show_info") !== "false",
+	);
+	const [descriptionOpen, setDescriptionOpen] = useState(false);
+	const [mapOpen, setMapOpen] = useState(false);
+	const [titleExpanded, setTitleExpanded] = useState(false);
+
+	const handleTitleTap = () => {
+		if (!titleExpanded) {
+			setTitleExpanded(true);
+		} else {
+			setDescriptionOpen(true);
+			setTitleExpanded(false);
+		}
+	};
+
+	useEffect(() => {
+		const handler = (e: Event) => setShowInfo((e as CustomEvent).detail);
+		window.addEventListener("slide-show-info", handler);
+		return () => window.removeEventListener("slide-show-info", handler);
+	}, []);
+
+	const toggleShowInfo = useCallback(() => {
+		setShowInfo((prev) => {
+			const next = !prev;
+			sessionStorage.setItem("slide_show_info", String(next));
+			window.dispatchEvent(
+				new CustomEvent("slide-show-info", { detail: next }),
+			);
+			return next;
+		});
+	}, []);
+
+	const formattedPrice = formatPrice(listing.price, listing.currency);
+	const districtLabel =
+		translateDistrict(listing.district, t) || t("listing.defaultDistrict");
+	const sellerDisplayName = listing.seller_name || null;
+
+	return (
+		<Box
+			style={{
+				height: "100%",
+				width: "100%",
+				position: "relative",
+				background: "#000",
+			}}
+		>
+			{/* ── Horizontal Image Swiper (full screen background) ── */}
+			{listing.images.length > 0 ? (
+				<Swiper
+					pagination={{ dynamicBullets: true }}
+					modules={[Pagination]}
+					style={{ height: "100%", width: "100%" }}
+					className="listing-detail-swiper"
+				>
+					{listing.images.map((image, index) => (
+						<SwiperSlide key={index}>
+							<img
+								src={image.url}
+								alt={listing.title || listing.description || "Listing image"}
+								loading={isActive && index === 0 ? "eager" : "lazy"}
+								decoding="async"
+								style={{ width: "100%", height: "100%", objectFit: "cover" }}
+							/>
+						</SwiperSlide>
+					))}
+				</Swiper>
+			) : (
+				<Box
+					style={{
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						background: "#333",
+					}}
+				>
+					<Text c="white">{t("listing.noImages")}</Text>
+				</Box>
+			)}
+
+			{/* ── Gradient Overlay ── */}
+			<Transition mounted={showInfo} transition="fade" duration={300}>
+				{(styles) => (
+					<Box
+						pos="absolute"
+						bottom={0}
+						left={0}
+						right={0}
+						w="100%"
+						h="50vh"
+						style={{
+							...styles,
+							pointerEvents: "none",
+							background:
+								"linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 65%)",
+							zIndex: 9,
+						}}
+					/>
+				)}
+			</Transition>
+
+			{/* ── Right side action buttons (TikTok-style) ── */}
+			<Box
+				style={{
+					zIndex: 50,
+					position: "absolute",
+					bottom: "calc(10rem * var(--mantine-scale))",
+					right: "calc(0.5rem * var(--mantine-scale))",
+				}}
+			>
+				<Stack gap={18} align="center">
+					{/* Like */}
+					<Stack gap={1} align="center">
+						<ActionIcon
+							variant="transparent"
+							size={36}
+							onClick={() => onLike(listing.id)}
+						>
+							<IconHeart
+								size={30}
+								fill={listing.is_favorited ? "red" : "none"}
+								color={listing.is_favorited ? "red" : "white"}
+								style={{ filter: `drop-shadow(${shadow})` }}
+							/>
+						</ActionIcon>
+						<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
+							{listing.favorites_count || 0}
+						</Text>
+					</Stack>
+
+					{/* Description (comment icon opens details) */}
+					<Stack gap={1} align="center">
+						<ActionIcon
+							variant="transparent"
+							size={36}
+							onClick={() => setDescriptionOpen(true)}
+						>
+							<IconMessageCircle
+								size={30}
+								color="white"
+								style={{ filter: `drop-shadow(${shadow})` }}
+							/>
+						</ActionIcon>
+					</Stack>
+
+					{/* Views */}
+					<Stack gap={1} align="center">
+						<ActionIcon
+							variant="transparent"
+							size={36}
+							onClick={toggleShowInfo}
+						>
+							<IconEye
+								size={30}
+								color="white"
+								style={{ filter: `drop-shadow(${shadow})` }}
+							/>
+						</ActionIcon>
+					</Stack>
+
+					{/* Map */}
+					<Stack gap={1} align="center">
+						<ActionIcon
+							variant="transparent"
+							size={36}
+							onClick={() => setMapOpen(true)}
+						>
+							<IconMapPin
+								size={28}
+								color="white"
+								style={{ filter: `drop-shadow(${shadow})` }}
+							/>
+						</ActionIcon>
+					</Stack>
+
+					{/* Phone */}
+					{listing.contact_phone && (
+						<Stack gap={1} align="center">
+							<ActionIcon
+								variant="transparent"
+								size={36}
+								onClick={() => {
+									window.location.href = `tel:${listing.contact_phone}`;
+								}}
+							>
+								<IconPhone
+									size={28}
+									color="white"
+									style={{ filter: `drop-shadow(${shadow})` }}
+								/>
+							</ActionIcon>
+						</Stack>
+					)}
+
+					{/* Share */}
+					<Stack gap={1} align="center">
+						<ActionIcon
+							variant="transparent"
+							size={36}
+							onClick={() => onShare(listing.id)}
+						>
+							<IconShare
+								size={28}
+								color="white"
+								style={{ filter: `drop-shadow(${shadow})` }}
+							/>
+						</ActionIcon>
+					</Stack>
+				</Stack>
+			</Box>
+
+			{/* ── Back button ── */}
+			<Box
+				style={{
+					zIndex: 50,
+					position: "absolute",
+					bottom: "calc(5.5rem * var(--mantine-scale))",
+					right: "calc(0.5rem * var(--mantine-scale))",
+				}}
+			>
+				<ActionIcon
+					variant="transparent"
+					size={48}
+					onClick={() => navigate(-1)}
+					style={{
+						backgroundColor: "rgba(0,0,0,0.35)",
+						borderRadius: "50%",
+					}}
+				>
+					<IconArrowLeft size={26} color="white" />
+				</ActionIcon>
+			</Box>
+
+			{/* ── Bottom-left — Product Info ── */}
+			<Box
+				pos="absolute"
+				left={0}
+				right={60}
+				style={{ zIndex: 10, bottom: "calc(7rem * var(--mantine-scale))" }}
+				px={12}
+			>
+				<Transition mounted={showInfo} transition="fade" duration={300}>
+					{(styles) => (
+						<Stack gap={6} style={styles}>
+							{/* Seller avatar + name row */}
+							<Group
+								gap={8}
+								align="center"
+								style={{ cursor: listing.seller_id ? "pointer" : "default" }}
+								onClick={() => {
+									if (listing.seller_id)
+										navigate(`/seller/${listing.seller_id}`);
+								}}
+							>
+								<Avatar
+									src={listing.seller_avatar_url}
+									size={36}
+									radius={18}
+									color="gray.7"
+									styles={{
+										root: {
+											border: "2px solid #fff",
+											backgroundColor: "rgba(0,0,0,0.3)",
+										},
+										image: { objectFit: "cover" },
+									}}
+								>
+									<IconUser size={18} color="white" />
+								</Avatar>
+								{sellerDisplayName && (
+									<Text
+										size="sm"
+										fw={700}
+										c="white"
+										style={{ textShadow: shadow }}
+									>
+										@{sellerDisplayName}
+									</Text>
+								)}
+							</Group>
+
+							{/* Badges row 1 — property type, listing type, area, rooms, floor */}
+							<Group gap={4} wrap="wrap">
+								<Badge
+									size="xs"
+									variant="filled"
+									color={listing.type === "sell" ? "blue" : "green"}
+									radius="sm"
+								>
+									{listing.property_type === "apartment"
+										? t("common.propertyType.apartment").toUpperCase()
+										: listing.property_type === "house"
+											? t("common.propertyType.house").toUpperCase()
+											: listing.property_type === "commercial"
+												? t("common.propertyType.commercial").toUpperCase()
+												: t("common.propertyType.land").toUpperCase()}
+								</Badge>
+								<Badge
+									size="xs"
+									variant="filled"
+									color={listing.type === "sell" ? "blue" : "green"}
+									radius="sm"
+								>
+									{listing.type === "sell"
+										? t("listing.typeSell").toUpperCase()
+										: t("listing.typeRent").toUpperCase()}
+								</Badge>
+								{listing.area != null && (
+									<Badge size="xs" variant="filled" color="gray" radius="sm">
+										{listing.area} {t("listing.area")}
+									</Badge>
+								)}
+								{listing.rooms != null && (
+									<Badge size="xs" variant="filled" color="gray" radius="sm">
+										{listing.rooms} {t("listing.rooms")}
+									</Badge>
+								)}
+								{listing.floor != null && (
+									<Badge size="xs" variant="filled" color="gray" radius="sm">
+										{listing.floor}/{listing.total_floors || "?"}
+									</Badge>
+								)}
+							</Group>
+
+							{/* Badges row 2 — location */}
+							<Group gap={4}>
+								<Badge size="xs" variant="filled" color="gray" radius="sm">
+									{districtLabel.toUpperCase()}
+								</Badge>
+								{listing.address && (
+									<Badge size="xs" variant="filled" color="gray" radius="sm">
+										{listing.address.toUpperCase()}
+									</Badge>
+								)}
+							</Group>
+
+							{/* Description text */}
+							<Text
+								size="sm"
+								fw={500}
+								c="white"
+								lineClamp={titleExpanded ? 5 : 3}
+								onClick={handleTitleTap}
+								style={{
+									cursor: "pointer",
+									zIndex: 20,
+									textShadow: shadow,
+									lineHeight: 1.5,
+								}}
+							>
+								{listing.description?.slice(0, 400) ||
+									listing.title ||
+									`${listing.property_type}, ${districtLabel}`}
+							</Text>
+
+							{/* Price */}
+							<Text
+								size="xl"
+								fw={800}
+								c="white"
+								style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
+							>
+								{formattedPrice}
+							</Text>
+						</Stack>
+					)}
+				</Transition>
+			</Box>
+
+			{/* ── Description Drawer ── */}
+			<DescriptionDrawer
+				opened={descriptionOpen}
+				onClose={() => setDescriptionOpen(false)}
+				listing={listing}
+				onCommentAdded={() => commentAdded(listing.id)}
+			/>
+
+			{/* ── Map Drawer ── */}
+			<MapDrawer
+				opened={mapOpen}
+				onClose={() => setMapOpen(false)}
+				listing={listing}
+			/>
+		</Box>
+	);
+};

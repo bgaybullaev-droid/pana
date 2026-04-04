@@ -1,0 +1,98 @@
+import { createEffect } from "effector";
+import { apiClient, stopTokenRefreshTimer } from "@shared/api/client";
+import type { AuthResponse, UserMeResponse } from "@shared/api/types";
+import { clearStoredTokens } from "@shared/lib/auth-tokens";
+
+export const authenticateWithTelegramFx = createEffect(
+	async (initData: string) => {
+		const response = await apiClient.post<AuthResponse>("/auth/telegram", {
+			init_data: initData,
+		});
+		return response.data;
+	},
+);
+
+export const checkSessionFx = createEffect(async () => {
+	const response = await apiClient.get<UserMeResponse>("/auth/me");
+	return response.data;
+});
+
+export const logoutFx = createEffect(async () => {
+	stopTokenRefreshTimer();
+	clearStoredTokens();
+	// Clear any user-specific data from localStorage
+	localStorage.removeItem("uchar_preferences");
+	await apiClient.post("/auth/logout");
+});
+
+export const loginWithOLXPhoneFx = createEffect(async (phone: string) => {
+	const response = await apiClient.post<AuthResponse>("/auth/olx-phone", {
+		phone,
+	});
+	return response.data;
+});
+
+export const loginWithTelegramChannelFx = createEffect(
+	async (channelName: string) => {
+		const response = await apiClient.post<AuthResponse>(
+			"/auth/telegram-channel",
+			{
+				channel_name: channelName,
+			},
+		);
+		return response.data;
+	},
+);
+
+export const loginWithBuyerPhoneFx = createEffect(
+	async (params: { phone: string; first_name: string; last_name?: string }) => {
+		const response = await apiClient.post<AuthResponse>(
+			"/auth/buyer-phone",
+			params,
+		);
+		return response.data;
+	},
+);
+
+export const loginAsAdminFx = createEffect(
+	async (params: { username: string; password: string }) => {
+		const response = await apiClient.post<AuthResponse>(
+			"/auth/admin-login",
+			params,
+		);
+		return response.data;
+	},
+);
+
+export const requestSellerOTPFx = createEffect(async (phone: string) => {
+	// Include Telegram initData if available, so backend can auto-link telegram_id
+	const initData = window.Telegram?.WebApp?.initData || undefined;
+	const response = await apiClient.post<{
+		message: string;
+		expires_in: number;
+		_dev_otp?: string;
+	}>("/auth/seller-otp", { phone, init_data: initData });
+	return response.data;
+});
+
+export const verifySellerOTPFx = createEffect(
+	async (params: { phone: string; otp_code: string }) => {
+		const response = await apiClient.post<AuthResponse>(
+			"/auth/seller-otp/verify",
+			params,
+		);
+		return response.data;
+	},
+);
+
+export const devLoginFx = createEffect(async () => {
+	const response = await apiClient.post<AuthResponse>("/auth/dev-login");
+	return response.data;
+});
+
+export const updateProfileFx = createEffect(
+	async (data: { first_name?: string; last_name?: string }) => {
+		const response = await apiClient.patch<UserMeResponse>("/auth/me", data);
+		return response.data;
+	},
+);
