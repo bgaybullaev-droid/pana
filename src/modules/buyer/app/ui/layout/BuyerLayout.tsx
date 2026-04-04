@@ -15,7 +15,7 @@ import {
 	Stack,
 	Text,
 	TextInput,
-	ThemeIcon,
+
 	ThemeIcon,
 	UnstyledButton,
 } from "@mantine/core";
@@ -43,7 +43,7 @@ interface LayoutContext {
 }
 
 const LayoutCtx = createContext<LayoutContext>({
-	openSearch: () => {},
+	openSearch: () => { },
 	searchOpen: false,
 	scrollRef: { current: null },
 });
