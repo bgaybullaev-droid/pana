@@ -225,6 +225,7 @@ function Page() {
 										size={18}
 										radius="50%"
 										color="gray.5"
+										onMouseDown={(e) => e.preventDefault()}
 										onClick={() => setSearchQuery("")}
 									>
 										<IconX size={10} color="white" />

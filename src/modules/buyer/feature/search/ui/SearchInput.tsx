@@ -55,6 +55,7 @@ export const SearchInput: FC<SearchInputProps> = ({
 						size={18}
 						radius="50%"
 						color="gray.5"
+						onMouseDown={(e) => e.preventDefault()}
 						onClick={onClear}
 					>
 						<IconX size={10} color="white" />
