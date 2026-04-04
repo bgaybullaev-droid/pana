@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(npm run:*)",
+      "Bash(taskkill //F //IM node.exe)"
+    ],
+    "additionalDirectories": [
+      "c:\\coding\\ucharmarket-frontend\\node_modules\\.vite"
+    ]
+  }
+}
