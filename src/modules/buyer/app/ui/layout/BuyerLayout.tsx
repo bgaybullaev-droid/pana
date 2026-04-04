@@ -5,7 +5,6 @@ import {
 	useEffect,
 	createContext,
 	useContext,
-	Suspense,
 } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -16,12 +15,19 @@ import {
 	Stack,
 	Text,
 	TextInput,
+	ThemeIcon,
 	UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { useUnit } from "effector-react";
-import { IconSearch, IconX, IconClock, IconTrash } from "@tabler/icons-react";
+import {
+	IconSearch,
+	IconX,
+	IconClock,
+	IconCheck,
+	IconBulb,
+} from "@tabler/icons-react";
 import { BottomNavigation } from "@modules/buyer/shared/ui/BottomNavigation";
 import {
 	searchQueryChanged,
@@ -134,28 +140,39 @@ export function Layout() {
 		return () => timers.forEach(clearTimeout);
 	}, [searchOpen]);
 
-	// Track keyboard height — only on iOS where the viewport doesn't resize
-	// for fixed/flex elements. Android handles this via 100dvh automatically.
+	// iOS keyboard: resize the drawer to match the visual viewport.
+	// On iOS, the layout viewport stays full-size when the keyboard opens,
+	// but the visual viewport shrinks. We track it and set the drawer
+	// height + offset so the content (and bottom input) stay visible.
+	// Android handles this via 100dvh automatically.
 	const isIOS =
 		typeof navigator !== "undefined" &&
 		/iPhone|iPad|iPod/.test(navigator.userAgent);
-	const [kbHeight, setKbHeight] = useState(0);
+	const [vvStyle, setVvStyle] = useState<React.CSSProperties>({});
 	useEffect(() => {
 		if (!searchOpen || !isIOS) {
-			setKbHeight(0);
+			setVvStyle({});
 			return;
 		}
 		const vv = window.visualViewport;
 		if (!vv) return;
 
-		const fullHeight = window.innerHeight;
-		const onResize = () => {
-			const diff = Math.round(fullHeight - vv.height);
-			setKbHeight(diff > 50 ? diff : 0);
+		const update = () => {
+			setVvStyle({
+				height: `${vv.height}px`,
+				transform: `translateY(${vv.offsetTop}px)`,
+			});
 		};
 
-		vv.addEventListener("resize", onResize);
-		return () => vv.removeEventListener("resize", onResize);
+		// Initial sync
+		update();
+
+		vv.addEventListener("resize", update);
+		vv.addEventListener("scroll", update);
+		return () => {
+			vv.removeEventListener("resize", update);
+			vv.removeEventListener("scroll", update);
+		};
 	}, [searchOpen, isIOS]);
 
 	// Scroll focused inputs into view inside drawers (Layer 2)
@@ -304,9 +321,7 @@ export function Layout() {
 					}}
 					className="hide-scrollbar"
 				>
-					<Suspense fallback={null}>
 					<Outlet />
-				</Suspense>
 				</Box>
 
 				{/* Search drawer */}
@@ -317,76 +332,146 @@ export function Layout() {
 					position="bottom"
 					size="100%"
 					styles={{
-						content: { borderRadius: 0, height: "100dvh" },
+						content: {
+							borderRadius: 0,
+							height: "100dvh",
+							overflow: "hidden",
+						},
 						header: { display: "none" },
 						body: {
 							padding: 0,
 							height: "100%",
 							display: "flex",
 							flexDirection: "column",
+							...(isIOS ? vvStyle : {}),
+							position: isIOS ? "fixed" : undefined,
+							top: isIOS ? 0 : undefined,
+							left: isIOS ? 0 : undefined,
+							right: isIOS ? 0 : undefined,
+							willChange: isIOS ? "transform, height" : undefined,
 						},
 					}}
 					zIndex={10001}
 				>
-					{/* Recent searches (top scrollable area) */}
-					<Box style={{ flex: 1, overflow: "auto" }} px="md" pt="sm">
-						{searchHistory.length > 0 && (
-							<Stack gap={0}>
-								<Group justify="space-between" mb={8}>
-									<Text size="xs" fw={600} c="dimmed" tt="uppercase">
-										{t("search.recent")}
+					{/* Scrollable area */}
+					<Box style={{ flex: 1, overflowY: "auto" }} px="md" pt="md">
+						{/* No query: show history if exists, otherwise show onboarding */}
+						{!searchQuery && searchHistory.length > 0 && (
+							<Box mb="lg">
+								<Group justify="space-between" mb={10}>
+									<Text size="sm" fw={700} c="dark">
+										{t("search.youSearched")}
 									</Text>
-									<ActionIcon
-										variant="subtle"
-										color="gray"
-										size="sm"
-										onClick={handleClearHistory}
-									>
-										<IconX size={14} />
-									</ActionIcon>
-								</Group>
-								{searchHistory.map((query) => (
-									<UnstyledButton
-										key={query}
-										onClick={() => handleHistoryClick(query)}
-										style={{
-											display: "flex",
-											alignItems: "center",
-											padding: "10px 0",
-											borderBottom: "1px solid #f1f3f5",
-										}}
-									>
-										<IconClock
-											size={16}
-											color="#adb5bd"
-											style={{ flexShrink: 0 }}
-										/>
-										<Text size="sm" ml={12} style={{ flex: 1 }}>
-											{query}
+									<UnstyledButton onClick={handleClearHistory}>
+										<Text size="sm" c="dimmed">
+											{t("search.clearAll")}
 										</Text>
-										<ActionIcon
-											variant="subtle"
-											color="gray"
-											size="sm"
-											onClick={(e) => {
-												e.stopPropagation();
-												handleRemoveHistory(query);
+									</UnstyledButton>
+								</Group>
+								<Group gap={8} wrap="wrap">
+									{searchHistory.map((query) => (
+										<UnstyledButton
+											key={query}
+											onClick={() => handleHistoryClick(query)}
+											style={{
+												display: "flex",
+												alignItems: "center",
+												gap: 6,
+												padding: "6px 12px 6px 10px",
+												borderRadius: 50,
+												backgroundColor: "#f1f3f5",
+												border: "1px solid #e9ecef",
 											}}
 										>
-											<IconTrash size={14} />
-										</ActionIcon>
-									</UnstyledButton>
-								))}
-							</Stack>
+											<IconClock size={14} color="#adb5bd" />
+											<Text size="sm" c="dark.4">
+												{query}
+											</Text>
+											<ActionIcon
+												component="span"
+												variant="transparent"
+												size={16}
+												onClick={(e) => {
+													e.stopPropagation();
+													handleRemoveHistory(query);
+												}}
+												style={{ marginLeft: 2 }}
+											>
+												<IconX size={12} color="#adb5bd" />
+											</ActionIcon>
+										</UnstyledButton>
+									))}
+								</Group>
+							</Box>
 						)}
 
-						{searchHistory.length === 0 && (
-							<Box ta="center" py={48}>
-								<IconSearch size={36} color="#dee2e6" stroke={1.5} />
-								<Text size="sm" c="dimmed" mt={12}>
-									{t("search.emptyHistory")}
-								</Text>
-							</Box>
+						{/* Onboarding — shown only when no history and no query */}
+						{!searchQuery && searchHistory.length === 0 && (
+							<Stack gap="md" pt="sm">
+								<Box ta="center" px="md">
+									<Text fw={700} size="xl" c="dark" mb={6}>
+										{t("search.onboarding.title")}
+									</Text>
+									<Text size="sm" c="dimmed" lh={1.5}>
+										{t("search.onboarding.subtitle")}
+									</Text>
+								</Box>
+
+								<Stack gap={10}>
+									{(["market", "nodup", "alerts"] as const).map((key) => (
+										<Box
+											key={key}
+											style={{
+												backgroundColor: "#f8f9fa",
+												borderRadius: 14,
+												padding: "14px 16px",
+												display: "flex",
+												alignItems: "center",
+												gap: 14,
+											}}
+										>
+											<ThemeIcon
+												size={32}
+												radius="50%"
+												variant="light"
+												color="blue"
+												style={{ flexShrink: 0 }}
+											>
+												<IconCheck size={16} />
+											</ThemeIcon>
+											<Box>
+												<Text size="sm" fw={700} c="dark">
+													{t(`search.onboarding.features.${key}.title`)}
+												</Text>
+												<Text size="xs" c="dimmed" mt={2}>
+													{t(`search.onboarding.features.${key}.desc`)}
+												</Text>
+											</Box>
+										</Box>
+									))}
+								</Stack>
+
+								<Box
+									style={{
+										backgroundColor: "#fff9db",
+										borderRadius: 12,
+										padding: "12px 14px",
+										display: "flex",
+										alignItems: "flex-start",
+										gap: 10,
+										border: "1px solid #ffe066",
+									}}
+								>
+									<IconBulb
+										size={16}
+										color="#f59f00"
+										style={{ marginTop: 2, flexShrink: 0 }}
+									/>
+									<Text size="xs" c="dark.4" lh={1.5}>
+										{t("search.onboarding.tip")}
+									</Text>
+								</Box>
+							</Stack>
 						)}
 					</Box>
 
@@ -395,13 +480,9 @@ export function Layout() {
 						px="md"
 						py="sm"
 						style={{
-							paddingBottom:
-								kbHeight > 0
-									? kbHeight
-									: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+							paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
 							borderTop: "1px solid #f1f3f5",
 							flexShrink: 0,
-							transition: "padding-bottom 0.1s ease-out",
 						}}
 					>
 						<Group gap={8} wrap="nowrap">
@@ -409,6 +490,19 @@ export function Layout() {
 								ref={searchInputRef}
 								placeholder={searchFocused ? "" : t("search.title")}
 								leftSection={<IconSearch size={18} color="#adb5bd" />}
+								rightSection={
+									searchQuery ? (
+										<ActionIcon
+											variant="filled"
+											size={18}
+											radius="50%"
+											color="gray.5"
+											onClick={() => setSearchQuery("")}
+										>
+											<IconX size={10} color="white" />
+										</ActionIcon>
+									) : null
+								}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.currentTarget.value)}
 								onKeyDown={(e) =>
@@ -425,7 +519,8 @@ export function Layout() {
 										border: searchFocused ? "1px solid #dee2e6" : "none",
 										height: 45,
 										fontSize: 16,
-										transition: "background-color 0.15s ease, border-color 0.15s ease",
+										transition:
+											"background-color 0.15s ease, border-color 0.15s ease",
 									},
 								}}
 							/>
@@ -437,16 +532,11 @@ export function Layout() {
 								style={{
 									backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
 									border: searchFocused ? "1px solid #dee2e6" : "none",
-									transition: "background-color 0.15s ease, border-color 0.15s ease",
+									transition:
+										"background-color 0.15s ease, border-color 0.15s ease",
 									flexShrink: 0,
 								}}
-								onClick={() => {
-									if (searchQuery) {
-										setSearchQuery("");
-									} else {
-										closeSearch();
-									}
-								}}
+								onClick={closeSearch}
 							>
 								<IconX size={20} />
 							</ActionIcon>

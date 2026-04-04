@@ -216,28 +216,30 @@ function Page() {
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.currentTarget.value)}
 							onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-							rightSection={
-								searchQuery && (
-									<ActionIcon
-										variant="subtle"
-										color="gray"
-										size="sm"
-										onClick={() => setSearchQuery("")}
-									>
-										<IconX size={14} />
-									</ActionIcon>
-								)
-							}
-							radius={22}
 							onFocus={() => setSearchFocused(true)}
 							onBlur={() => setSearchFocused(false)}
+							rightSection={
+								searchQuery ? (
+									<ActionIcon
+										variant="filled"
+										size={18}
+										radius="50%"
+										color="gray.5"
+										onClick={() => setSearchQuery("")}
+									>
+										<IconX size={10} color="white" />
+									</ActionIcon>
+								) : null
+							}
+							radius={22}
 							styles={{
 								input: {
 									backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
 									border: searchFocused ? "1px solid #dee2e6" : "none",
 									height: 45,
 									fontSize: 16,
-									transition: "background-color 0.15s ease, border-color 0.15s ease",
+									transition:
+										"background-color 0.15s ease, border-color 0.15s ease",
 								},
 							}}
 						/>

@@ -295,8 +295,8 @@ function Page() {
 						style={{
 							flex: 1,
 							minWidth: 0,
-							height: 45,
-							borderRadius: 22,
+							height: 46,
+							borderRadius: 23,
 							backgroundColor: "#f1f3f5",
 							display: "flex",
 							alignItems: "center",
@@ -317,14 +317,14 @@ function Page() {
 								whiteSpace: "nowrap",
 							}}
 						>
-							{searchOpen ? "" : (searchQuery || t("search.title"))}
+							{searchOpen ? "" : searchQuery || t("search.title")}
 						</Text>
 						{searchQuery && (
 							<ActionIcon
-								variant="subtle"
-								color="gray"
-								size="sm"
-								radius="xl"
+								variant="filled"
+								size={18}
+								radius="50%"
+								color="gray.5"
 								onClick={(e) => {
 									e.stopPropagation();
 									clearScrollPosition("/");
@@ -333,7 +333,7 @@ function Page() {
 									setSearchParams(new URLSearchParams());
 								}}
 							>
-								<IconX size={14} />
+								<IconX size={10} color="white" />
 							</ActionIcon>
 						)}
 						<ActionIcon
@@ -412,6 +412,9 @@ function Page() {
 									whiteSpace: "nowrap",
 									transition: "all 0.2s ease",
 									flexShrink: 0,
+									WebkitTapHighlightColor: "transparent",
+									outline: "none",
+									userSelect: "none",
 								}}
 							>
 								<Text

@@ -16,7 +16,6 @@ import {
 	IconBuildingStore,
 	IconBrandTelegram,
 	IconArrowLeft,
-	IconCheck,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import {

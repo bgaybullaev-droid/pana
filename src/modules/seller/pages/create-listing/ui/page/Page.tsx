@@ -103,6 +103,7 @@ function Page() {
 				minHeight: "100vh",
 				maxWidth: 480,
 				margin: "0 auto",
+				overflow: "auto",
 			}}
 		>
 			<LoadingOverlay visible={isCreating} />

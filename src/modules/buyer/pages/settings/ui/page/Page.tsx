@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useUnit } from "effector-react";
 import { useAuth } from "@app/providers/useAuth";
 import { useTelegram } from "@app/providers/useTelegram";
 import {
@@ -9,10 +11,14 @@ import {
 	UnstyledButton,
 	Modal,
 	Button,
+	SimpleGrid,
+	Card,
+	Group,
+	ThemeIcon,
+	Skeleton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
-	IconBuildingStore,
 	IconClipboardList,
 	IconWallet,
 	IconBell,
@@ -26,9 +32,19 @@ import {
 	IconFileText,
 	IconFileCheck,
 	IconCheck,
+	IconList,
+	IconEye,
+	IconPhone,
+	IconHeart,
+	IconWorldSearch,
 } from "@tabler/icons-react";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import { IconUser } from "@tabler/icons-react";
+import {
+	$sellerStats,
+	$isLoadingProfile,
+	fetchSellerProfile,
+} from "@modules/seller/shared/state";
 import { ProfileCard } from "./ProfileCard";
 import { CTAButton } from "./CTAButton";
 import { SectionCard } from "./SectionCard";
@@ -47,6 +63,16 @@ function Page() {
 	const { user, isAuthenticated, logout } = useAuth();
 	const { webApp } = useTelegram();
 	const navigate = useNavigate();
+
+	const [stats, isLoadingStats] = useUnit([$sellerStats, $isLoadingProfile]);
+	const { t: ts } = useTranslation("seller");
+
+	// Fetch seller profile for stats if user is a seller
+	useEffect(() => {
+		if (user?.is_seller) {
+			fetchSellerProfile();
+		}
+	}, [user?.is_seller]);
 
 	// Drawer / modal state
 	const [soonOpened, soonHandlers] = useDisclosure(false);
@@ -150,6 +176,136 @@ function Page() {
 				editLabel={t("settings.edit")}
 			/>
 
+			{/* ─── Stats (sellers only) ─── */}
+			{user?.is_seller && (
+				<Box px={16} mt={8} mb={8}>
+					<Text fw={600} size="13px" c="dimmed" mb={8}>
+						{ts("dashboard.statsToday")}
+					</Text>
+					<SimpleGrid cols={2} spacing={8}>
+						{isLoadingStats ? (
+							<>
+								<Skeleton height={60} radius={12} />
+								<Skeleton height={60} radius={12} />
+								<Skeleton height={60} radius={12} />
+								<Skeleton height={60} radius={12} />
+							</>
+						) : (
+							<>
+								<Card
+									radius={12}
+									p="sm"
+									style={{
+										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										border: "1px solid #f1f5f9",
+									}}
+								>
+									<Group wrap="nowrap" align="center" gap="sm">
+										<ThemeIcon
+											size={32}
+											radius="md"
+											color="blue"
+											variant="light"
+										>
+											<IconList size={16} />
+										</ThemeIcon>
+										<Box>
+											<Text fw={800} size="18px" c="dark.9" lh={1}>
+												{stats?.totalListings ?? 0}
+											</Text>
+											<Text size="10px" fw={600} c="dimmed">
+												{ts("dashboard.listings")}
+											</Text>
+										</Box>
+									</Group>
+								</Card>
+								<Card
+									radius={12}
+									p="sm"
+									style={{
+										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										border: "1px solid #f1f5f9",
+									}}
+								>
+									<Group wrap="nowrap" align="center" gap="sm">
+										<ThemeIcon
+											size={32}
+											radius="md"
+											color="teal"
+											variant="light"
+										>
+											<IconEye size={16} />
+										</ThemeIcon>
+										<Box>
+											<Text fw={800} size="18px" c="dark.9" lh={1}>
+												{stats?.totalViews ?? 0}
+											</Text>
+											<Text size="10px" fw={600} c="dimmed">
+												{ts("dashboard.views")}
+											</Text>
+										</Box>
+									</Group>
+								</Card>
+								<Card
+									radius={12}
+									p="sm"
+									style={{
+										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										border: "1px solid #f1f5f9",
+									}}
+								>
+									<Group wrap="nowrap" align="center" gap="sm">
+										<ThemeIcon
+											size={32}
+											radius="md"
+											color="orange"
+											variant="light"
+										>
+											<IconPhone size={16} />
+										</ThemeIcon>
+										<Box>
+											<Text fw={800} size="18px" c="dark.9" lh={1}>
+												{stats?.totalContacts ?? 0}
+											</Text>
+											<Text size="10px" fw={600} c="dimmed">
+												{ts("dashboard.contacts")}
+											</Text>
+										</Box>
+									</Group>
+								</Card>
+								<Card
+									radius={12}
+									p="sm"
+									style={{
+										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										border: "1px solid #f1f5f9",
+									}}
+								>
+									<Group wrap="nowrap" align="center" gap="sm">
+										<ThemeIcon
+											size={32}
+											radius="md"
+											color="pink"
+											variant="light"
+										>
+											<IconHeart size={16} />
+										</ThemeIcon>
+										<Box>
+											<Text fw={800} size="18px" c="dark.9" lh={1}>
+												{stats?.totalFavorites ?? 0}
+											</Text>
+											<Text size="10px" fw={600} c="dimmed">
+												{ts("dashboard.favorites")}
+											</Text>
+										</Box>
+									</Group>
+								</Card>
+							</>
+						)}
+					</SimpleGrid>
+				</Box>
+			)}
+
 			{/* ─── CTA Button ─── */}
 			<CTAButton
 				label={t("settings.addListing")}
@@ -159,14 +315,14 @@ function Page() {
 			{/* ─── Seller Tools ─── */}
 			<SectionCard label={t("settings.sections.sellerTools")}>
 				<SettingsRow
-					icon={IconBuildingStore}
-					label={t("settings.sellerPanel")}
-					onClick={() => navigate("/seller/dashboard")}
-				/>
-				<SettingsRow
 					icon={IconClipboardList}
 					label={t("settings.myListings")}
 					onClick={() => navigate("/seller/listings")}
+				/>
+				<SettingsRow
+					icon={IconWorldSearch}
+					label={ts("dashboard.found")}
+					onClick={() => navigate("/seller/crawled")}
 				/>
 				<SettingsRow
 					icon={IconWallet}

@@ -174,7 +174,11 @@ function Page({ embedded = false }: FavoritesPageProps) {
 				>
 					<IconArrowLeft size={24} color="#868e96" />
 				</ActionIcon>
-				<Group justify="space-between" align="center" style={{ width: "100%", paddingLeft: 68 }}>
+				<Group
+					justify="space-between"
+					align="center"
+					style={{ width: "100%", paddingLeft: 68 }}
+				>
 					<Text
 						size="lg"
 						fw={700}

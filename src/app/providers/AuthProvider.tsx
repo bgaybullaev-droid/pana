@@ -14,7 +14,7 @@ import {
 } from "@shared/state/auth/model";
 
 const DEV_LOGOUT_KEY = "dev_logged_out";
-const isDev = import.meta.env.VITE_ENV === "development";
+const isDev = import.meta.env.DEV || import.meta.env.VITE_ENV === "development";
 
 interface AuthContextValue {
 	user: ReturnType<typeof $user.getState>;

@@ -12,7 +12,7 @@ export function SubPageLayout({ title, children }: SubPageLayoutProps) {
 	const navigate = useNavigate();
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: "#F5F5F7" }}>
+		<Box mih="100vh" style={{ backgroundColor: "#F5F5F7", overflow: "auto" }}>
 			{/* Sticky top bar */}
 			<Box
 				style={{
@@ -47,7 +47,14 @@ export function SubPageLayout({ title, children }: SubPageLayoutProps) {
 			</Box>
 
 			{/* Content area */}
-			<Box style={{ padding: 16 }}>{children}</Box>
+			<Box
+				style={{
+					padding: 16,
+					paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+				}}
+			>
+				{children}
+			</Box>
 		</Box>
 	);
 }

@@ -65,11 +65,17 @@ export function BottomNavigation({
 		if (path === "/profile") {
 			return [
 				"/profile",
-				"/seller/dashboard",
-				"/seller/listings",
-				"/seller/crawled",
+				"/edit-profile",
+				"/preferences",
+				"/notifications",
 				"/become-seller",
-				"/seller/create",
+				"/about",
+				"/faq",
+				"/support",
+				"/privacy",
+				"/terms",
+				"/for-realtors",
+				"/seller/",
 			].some((p) => location.pathname.startsWith(p));
 		}
 		return location.pathname.startsWith(path);
