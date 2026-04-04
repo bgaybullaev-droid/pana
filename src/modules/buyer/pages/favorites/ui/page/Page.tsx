@@ -147,29 +147,41 @@ function Page({ embedded = false }: FavoritesPageProps) {
 			<Box
 				style={{
 					backgroundColor: "white",
-					padding: "12px 16px",
+					height: 80,
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					padding: "0 16px",
 					borderBottom: "1px solid rgba(0,0,0,0.06)",
+					position: "relative",
 				}}
 			>
-				<Group justify="space-between" align="center">
-					<Group gap={8}>
-						<ActionIcon
-							variant="subtle"
-							color="gray"
-							size={36}
-							radius={12}
-							onClick={() => navigate(-1)}
-						>
-							<IconArrowLeft size={20} />
-						</ActionIcon>
-						<Text
-							size="lg"
-							fw={700}
-							style={{ fontFamily: "var(--mantine-font-family-headings)" }}
-						>
-							{t("favorites.title")}
-						</Text>
-					</Group>
+				<ActionIcon
+					variant="transparent"
+					size={56}
+					onClick={() => navigate(-1)}
+					style={{
+						position: "absolute",
+						top: 12,
+						left: 12,
+						backgroundColor: "rgba(255, 255, 255, 0.65)",
+						backdropFilter: "blur(20px) saturate(180%)",
+						WebkitBackdropFilter: "blur(20px) saturate(180%)",
+						border: "1px solid rgba(255, 255, 255, 0.5)",
+						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+						borderRadius: "50%",
+					}}
+				>
+					<IconArrowLeft size={24} color="#868e96" />
+				</ActionIcon>
+				<Group justify="space-between" align="center" style={{ width: "100%", paddingLeft: 68 }}>
+					<Text
+						size="lg"
+						fw={700}
+						style={{ fontFamily: "var(--mantine-font-family-headings)" }}
+					>
+						{t("favorites.title")}
+					</Text>
 					<Badge
 						size="lg"
 						radius={10}

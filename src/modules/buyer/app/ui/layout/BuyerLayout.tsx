@@ -5,6 +5,7 @@ import {
 	useEffect,
 	createContext,
 	useContext,
+	Suspense,
 } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -30,11 +31,13 @@ import {
 
 interface LayoutContext {
 	openSearch: () => void;
+	searchOpen: boolean;
 	scrollRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const LayoutCtx = createContext<LayoutContext>({
 	openSearch: () => {},
+	searchOpen: false,
 	scrollRef: { current: null },
 });
 export const useLayoutContext = () => useContext(LayoutCtx);
@@ -85,6 +88,7 @@ export function Layout() {
 	}, [closeSearchRaw]);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [searchFocused, setSearchFocused] = useState(false);
 	const [searchHistory, setSearchHistory] =
 		useState<string[]>(getSearchHistory);
 	const activeSearchQuery = useUnit($searchQuery);
@@ -281,7 +285,7 @@ export function Layout() {
 	}, [location.pathname]);
 
 	return (
-		<LayoutCtx.Provider value={{ openSearch, scrollRef }}>
+		<LayoutCtx.Provider value={{ openSearch, searchOpen, scrollRef }}>
 			<Box
 				style={{
 					display: "flex",
@@ -300,7 +304,9 @@ export function Layout() {
 					}}
 					className="hide-scrollbar"
 				>
+					<Suspense fallback={null}>
 					<Outlet />
+				</Suspense>
 				</Box>
 
 				{/* Search drawer */}
@@ -401,7 +407,7 @@ export function Layout() {
 						<Group gap={8} wrap="nowrap">
 							<TextInput
 								ref={searchInputRef}
-								placeholder={t("home.searchPlaceholder")}
+								placeholder={searchFocused ? "" : t("search.title")}
 								leftSection={<IconSearch size={18} color="#adb5bd" />}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.currentTarget.value)}
@@ -409,22 +415,31 @@ export function Layout() {
 									e.key === "Enter" && handleSearch(searchQuery)
 								}
 								autoFocus
-								radius={12}
+								radius={22}
 								style={{ flex: 1 }}
+								onFocus={() => setSearchFocused(true)}
+								onBlur={() => setSearchFocused(false)}
 								styles={{
 									input: {
-										backgroundColor: "#f1f3f5",
-										border: "none",
-										height: 44,
+										backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
+										border: searchFocused ? "1px solid #dee2e6" : "none",
+										height: 45,
 										fontSize: 16,
+										transition: "background-color 0.15s ease, border-color 0.15s ease",
 									},
 								}}
 							/>
 							<ActionIcon
 								variant="subtle"
 								color="gray"
-								size={44}
-								radius={12}
+								size={45}
+								radius="50%"
+								style={{
+									backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
+									border: searchFocused ? "1px solid #dee2e6" : "none",
+									transition: "background-color 0.15s ease, border-color 0.15s ease",
+									flexShrink: 0,
+								}}
 								onClick={() => {
 									if (searchQuery) {
 										setSearchQuery("");

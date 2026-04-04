@@ -117,7 +117,7 @@ function Page() {
 	const initializedRef = useRef(false);
 	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
 		useDisclosure(false);
-	const { openSearch } = useLayoutContext();
+	const { openSearch, searchOpen } = useLayoutContext();
 	const filterScrollRef = useRef<HTMLDivElement>(null);
 	const filterSwipe = useSwipeDismiss({
 		onClose: closeDrawer,
@@ -295,8 +295,8 @@ function Page() {
 						style={{
 							flex: 1,
 							minWidth: 0,
-							height: 46,
-							borderRadius: 23,
+							height: 45,
+							borderRadius: 22,
 							backgroundColor: "#f1f3f5",
 							display: "flex",
 							alignItems: "center",
@@ -317,7 +317,7 @@ function Page() {
 								whiteSpace: "nowrap",
 							}}
 						>
-							{searchQuery || t("home.searchPlaceholder")}
+							{searchOpen ? "" : (searchQuery || t("search.title"))}
 						</Text>
 						{searchQuery && (
 							<ActionIcon
@@ -405,8 +405,8 @@ function Page() {
 								key={value}
 								onClick={() => handleQuickFilter(value)}
 								style={{
-									padding: "6px 14px",
-									borderRadius: 10,
+									padding: "6px 16px",
+									borderRadius: 50,
 									backgroundColor: isSelected ? "#228be6" : "#f1f3f5",
 									cursor: "pointer",
 									whiteSpace: "nowrap",
@@ -425,23 +425,6 @@ function Page() {
 							</Box>
 						);
 					})}
-					{(searchQuery || activeFilterCount > 0) && (
-						<Box
-							onClick={handleClearFilters}
-							style={{
-								padding: "6px 14px",
-								borderRadius: 10,
-								backgroundColor: "#fff5f5",
-								cursor: "pointer",
-								whiteSpace: "nowrap",
-								flexShrink: 0,
-							}}
-						>
-							<Text size="xs" fw={600} c="red.6" style={{ lineHeight: 1.3 }}>
-								{t("common.reset")}
-							</Text>
-						</Box>
-					)}
 				</Box>
 			</ScrollArea>
 

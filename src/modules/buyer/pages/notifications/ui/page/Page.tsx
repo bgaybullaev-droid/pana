@@ -182,19 +182,34 @@ function Page() {
 					top: 0,
 					zIndex: 100,
 					backgroundColor: "white",
-					padding: "16px",
+					height: 80,
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					padding: "0 16px",
 					borderBottom: "1px solid #E8E8ED",
 				}}
 			>
-				<Group justify="space-between" align="center">
-					<Group gap={10}>
-						<ActionIcon
-							variant="transparent"
-							onClick={() => navigate(-1)}
-							size={36}
-						>
-							<IconArrowLeft size={24} color="#1C1C1E" />
-						</ActionIcon>
+				<ActionIcon
+					variant="transparent"
+					size={56}
+					onClick={() => navigate(-1)}
+					style={{
+						position: "absolute",
+						top: 12,
+						left: 12,
+						backgroundColor: "rgba(255, 255, 255, 0.65)",
+						backdropFilter: "blur(20px) saturate(180%)",
+						WebkitBackdropFilter: "blur(20px) saturate(180%)",
+						border: "1px solid rgba(255, 255, 255, 0.5)",
+						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+						borderRadius: "50%",
+					}}
+				>
+					<IconArrowLeft size={24} color="#868e96" />
+				</ActionIcon>
+				<Group justify="space-between" align="center" style={{ width: "100%" }}>
+					<Group gap={10} style={{ paddingLeft: 80 }}>
 						<Text
 							size="lg"
 							fw={700}

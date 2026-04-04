@@ -53,11 +53,11 @@ export const NavTab = forwardRef<HTMLButtonElement, NavTabProps>(
 					flexDirection: "column",
 					alignItems: "center",
 					justifyContent: "center",
-					padding: "4px 12px",
+					padding: "4px 0",
 					borderRadius: 13,
 					backgroundColor: "transparent",
 					transition: transitions.spring,
-					minWidth: 48,
+					flex: 1,
 					position: "relative",
 				}}
 			>
