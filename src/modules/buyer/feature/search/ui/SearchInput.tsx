@@ -49,11 +49,17 @@ export const SearchInput: FC<SearchInputProps> = ({
 				</ActionIcon>
 			}
 			rightSection={
-				value && (
-					<ActionIcon variant="transparent" onClick={onClear}>
-						<IconX size={18} />
+				value ? (
+					<ActionIcon
+						variant="filled"
+						size={18}
+						radius="50%"
+						color="gray.5"
+						onClick={onClear}
+					>
+						<IconX size={10} color="white" />
 					</ActionIcon>
-				)
+				) : null
 			}
 		/>
 	);

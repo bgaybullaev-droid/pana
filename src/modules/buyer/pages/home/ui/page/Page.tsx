@@ -71,7 +71,6 @@ import {
 	$favoritedIds,
 	$searchQuery,
 	$filters,
-	$total,
 	pageOpened,
 	loadMore,
 	toggleFavorite,
@@ -100,7 +99,6 @@ function Page() {
 		favoritedIds,
 		searchQuery,
 		filters,
-		total,
 		userStats,
 	] = useUnit([
 		$listings,
@@ -109,7 +107,6 @@ function Page() {
 		$favoritedIds,
 		$searchQuery,
 		$filters,
-		$total,
 		$userStats,
 	]);
 	const observerRef = useRef<IntersectionObserver | null>(null);
@@ -321,10 +318,10 @@ function Page() {
 						</Text>
 						{searchQuery && (
 							<ActionIcon
-								variant="subtle"
-								color="gray"
-								size="sm"
-								radius="xl"
+								variant="filled"
+								size={18}
+								radius="50%"
+								color="gray.5"
 								onClick={(e) => {
 									e.stopPropagation();
 									clearScrollPosition("/");
@@ -333,7 +330,7 @@ function Page() {
 									setSearchParams(new URLSearchParams());
 								}}
 							>
-								<IconX size={14} />
+								<IconX size={10} color="white" />
 							</ActionIcon>
 						)}
 						<ActionIcon
@@ -412,6 +409,9 @@ function Page() {
 									whiteSpace: "nowrap",
 									transition: "all 0.2s ease",
 									flexShrink: 0,
+									WebkitTapHighlightColor: "transparent",
+									outline: "none",
+									userSelect: "none",
 								}}
 							>
 								<Text
@@ -428,14 +428,6 @@ function Page() {
 				</Box>
 			</ScrollArea>
 
-			{/* Results count */}
-			{(searchQuery || activeFilterCount > 0) && (
-				<Box px="md" pb={8}>
-					<Text size="xs" c="dimmed" fw={500}>
-						{t("home.found", { total })}
-					</Text>
-				</Box>
-			)}
 		</Box>
 	);
 

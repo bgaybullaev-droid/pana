@@ -217,16 +217,17 @@ function Page() {
 							onChange={(e) => setSearchQuery(e.currentTarget.value)}
 							onKeyDown={(e) => e.key === "Enter" && handleSearch()}
 							rightSection={
-								searchQuery && (
+								searchQuery ? (
 									<ActionIcon
-										variant="subtle"
-										color="gray"
-										size="sm"
+										variant="filled"
+										size={18}
+										radius="50%"
+										color="gray.5"
 										onClick={() => setSearchQuery("")}
 									>
-										<IconX size={14} />
+										<IconX size={10} color="white" />
 									</ActionIcon>
-								)
+								) : null
 							}
 							radius={22}
 							onFocus={() => setSearchFocused(true)}
