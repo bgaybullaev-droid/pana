@@ -9,7 +9,7 @@ import {
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ListingListItem } from "@shared/api/types";
-import { formatPrice, gradients } from "@app/styles/theme";
+import { formatPrice, gradients, radii, shadows, spacing, surface } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
 
 interface ListingCardProps {
@@ -79,10 +79,10 @@ export const ListingCard: FC<ListingCardProps> = ({
 		>
 			<Box
 				style={{
-					borderRadius: 16,
+					borderRadius: radii.lg,
 					overflow: "hidden",
-					backgroundColor: "white",
-					boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)",
+					backgroundColor: surface.card,
+					boxShadow: shadows.md,
 				}}
 			>
 				{/* Image */}
@@ -157,7 +157,7 @@ export const ListingCard: FC<ListingCardProps> = ({
 									? "rgba(34,139,230,0.9)"
 									: "rgba(64,192,87,0.9)",
 							backdropFilter: "blur(8px)",
-							borderRadius: 8,
+							borderRadius: radii.sm,
 							padding: "3px 8px",
 						}}
 					>
@@ -194,7 +194,7 @@ export const ListingCard: FC<ListingCardProps> = ({
 							left: 10,
 							backgroundColor: "rgba(255,255,255,0.95)",
 							backdropFilter: "blur(8px)",
-							borderRadius: 10,
+							borderRadius: radii.md,
 							padding: "3px 8px",
 							boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
 						}}
@@ -212,9 +212,8 @@ export const ListingCard: FC<ListingCardProps> = ({
 
 				{/* Info — all text truncates, never overflows */}
 				<Box
-					py={8}
-					px={8}
 					style={{
+						padding: spacing.cardCompact,
 						minWidth: 0,
 						...(layout === "grid" ? { height: 82, overflow: "hidden" } : {}),
 					}}

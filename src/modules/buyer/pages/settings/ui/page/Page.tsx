@@ -39,6 +39,7 @@ import {
 	IconWorldSearch,
 } from "@tabler/icons-react";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
+import { TabBar } from "@shared/ui/TabBar";
 import { IconUser } from "@tabler/icons-react";
 import {
 	$sellerStats,
@@ -46,6 +47,7 @@ import {
 	fetchSellerProfile,
 } from "@modules/seller/shared/state";
 import { ProfileCard } from "./ProfileCard";
+import { shadows, radii, surface } from "@app/styles/theme";
 import { CTAButton } from "./CTAButton";
 import { SectionCard } from "./SectionCard";
 import { SettingsRow } from "./SettingsRow";
@@ -138,33 +140,11 @@ function Page() {
 	};
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: "#F5F5F7", paddingBottom: 32 }}>
+		<Box mih="100vh" style={{ backgroundColor: surface.page, paddingBottom: 32 }}>
 			<style>{TAP_STYLE}</style>
 
 			{/* ─── Top Bar (sticky) ─── */}
-			<Box
-				style={{
-					position: "sticky",
-					top: 0,
-					zIndex: 100,
-					height: 56,
-					backgroundColor: "#FFFFFF",
-					borderBottom: "1px solid #E8E8ED",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-				}}
-			>
-				<Text
-					style={{
-						fontSize: 17,
-						fontWeight: 600,
-						color: "#1C1C1E",
-					}}
-				>
-					{t("settings.title")}
-				</Text>
-			</Box>
+			<TabBar title={t("settings.title")} />
 
 			{/* ─── Profile Card ─── */}
 			<ProfileCard
@@ -185,18 +165,18 @@ function Page() {
 					<SimpleGrid cols={2} spacing={8}>
 						{isLoadingStats ? (
 							<>
-								<Skeleton height={60} radius={12} />
-								<Skeleton height={60} radius={12} />
-								<Skeleton height={60} radius={12} />
-								<Skeleton height={60} radius={12} />
+								<Skeleton height={60} radius={radii.md} />
+								<Skeleton height={60} radius={radii.md} />
+								<Skeleton height={60} radius={radii.md} />
+								<Skeleton height={60} radius={radii.md} />
 							</>
 						) : (
 							<>
 								<Card
-									radius={12}
+									radius={radii.md}
 									p="sm"
 									style={{
-										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										boxShadow: shadows.md,
 										border: "1px solid #f1f5f9",
 									}}
 								>
@@ -220,10 +200,10 @@ function Page() {
 									</Group>
 								</Card>
 								<Card
-									radius={12}
+									radius={radii.md}
 									p="sm"
 									style={{
-										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										boxShadow: shadows.md,
 										border: "1px solid #f1f5f9",
 									}}
 								>
@@ -247,10 +227,10 @@ function Page() {
 									</Group>
 								</Card>
 								<Card
-									radius={12}
+									radius={radii.md}
 									p="sm"
 									style={{
-										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										boxShadow: shadows.md,
 										border: "1px solid #f1f5f9",
 									}}
 								>
@@ -274,10 +254,10 @@ function Page() {
 									</Group>
 								</Card>
 								<Card
-									radius={12}
+									radius={radii.md}
 									p="sm"
 									style={{
-										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										boxShadow: shadows.md,
 										border: "1px solid #f1f5f9",
 									}}
 								>
@@ -459,7 +439,7 @@ function Page() {
 				</Text>
 				<Button
 					fullWidth
-					radius={12}
+					radius={radii.md}
 					size="md"
 					onClick={soonHandlers.close}
 					styles={{
@@ -539,7 +519,7 @@ function Page() {
 				onClose={logoutHandlers.close}
 				withCloseButton={false}
 				centered
-				radius={14}
+				radius={radii.md}
 				padding="lg"
 				size="sm"
 				styles={{
@@ -609,7 +589,7 @@ function Page() {
 				onClose={deleteHandlers.close}
 				withCloseButton={false}
 				centered
-				radius={14}
+				radius={radii.md}
 				padding="lg"
 				size="sm"
 				styles={{

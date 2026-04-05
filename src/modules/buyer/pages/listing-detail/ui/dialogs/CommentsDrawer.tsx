@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { commentsApi } from '@shared/api/comments';
 import type { Comment } from '@shared/api/types';
 import { CommentItem } from '../main/CommentItem';
+import { radii } from '@app/styles/theme';
 
 interface CommentsDrawerProps {
   opened: boolean;
@@ -255,8 +256,8 @@ export const CommentsDrawer: FC<CommentsDrawerProps> = ({
       withCloseButton={false}
       styles={{
         content: {
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
+          borderTopLeftRadius: radii.lg,
+          borderTopRightRadius: radii.lg,
         },
         body: {
           padding: 0,

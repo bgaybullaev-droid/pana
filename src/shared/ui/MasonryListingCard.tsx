@@ -1,7 +1,7 @@
 import { FC, useState } from 'react';
 import { Image, Text, Stack, Skeleton, UnstyledButton, Box } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { IMAGE_BASE_URL, formatPrice, gradients } from '@app/styles/theme';
+import { IMAGE_BASE_URL, formatPrice, gradients, radii, shadows, spacing, surface } from '@app/styles/theme';
 import type { BuyerListing } from '@shared/api/types';
 
 interface MasonryListingCardProps {
@@ -22,10 +22,10 @@ export const MasonryListingCard: FC<MasonryListingCardProps> = ({ listing, onCli
       <Box
         mb={12}
         style={{
-          borderRadius: 16,
+          borderRadius: radii.lg,
           overflow: 'hidden',
-          backgroundColor: 'white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+          backgroundColor: surface.card,
+          boxShadow: shadows.md,
           transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
@@ -78,7 +78,7 @@ export const MasonryListingCard: FC<MasonryListingCardProps> = ({ listing, onCli
               left: 10,
               backgroundColor: 'rgba(255,255,255,0.95)',
               backdropFilter: 'blur(8px)',
-              borderRadius: 10,
+              borderRadius: radii.md,
               padding: '4px 10px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
@@ -90,7 +90,7 @@ export const MasonryListingCard: FC<MasonryListingCardProps> = ({ listing, onCli
         </Box>
 
         {/* Product Info */}
-        <Stack gap={2} py={10} px={10}>
+        <Stack gap={2} style={{ padding: spacing.cardCompact }}>
           <Text
             size="sm"
             fw={600}

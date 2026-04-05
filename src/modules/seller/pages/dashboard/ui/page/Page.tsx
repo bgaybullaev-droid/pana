@@ -29,12 +29,14 @@ import {
 	IconBuildingStore,
 	IconSparkles,
 } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 import {
 	$sellerProfile,
 	$sellerStats,
 	$isLoadingProfile,
 	fetchSellerProfile,
 } from "@modules/seller/shared/state";
+import { radii, shadows, spacing, surface } from '@app/styles/theme';
 
 function Page() {
 	const navigate = useNavigate();
@@ -55,18 +57,20 @@ function Page() {
 	}, [sellerProfile, isLoading]);
 
 	return (
-		<Container px="sm" py="md" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', maxWidth: 480, margin: '0 auto' }}>
+		<Container px="sm" py="md" style={{ backgroundColor: surface.page, minHeight: '100vh', maxWidth: 980, margin: '0 auto' }}>
+			<PageBar title={t("dashboard.title", "Dashboard")} />
 			<Stack gap={16}>
+
 				{/* ── Greeting Card (Compact Mobile) ── */}
 				<Box style={{ animation: 'fade-in 0.4s ease-out' }}>
 					{isLoading ? (
 						<Skeleton height={90} radius={16} />
 					) : (
-						<Group wrap="nowrap" gap="sm" align="center" style={{ 
-							background: "linear-gradient(135deg, #228be6, #1864ab)", 
-							borderRadius: 16, 
-							padding: 16,
-							boxShadow: "0 8px 16px rgba(34, 139, 230, 0.15)",
+						<Group wrap="nowrap" gap="sm" align="center" style={{
+							background: "linear-gradient(135deg, #228be6, #1864ab)",
+							borderRadius: radii.lg,
+							padding: spacing.card,
+							boxShadow: shadows.accent,
 						}}>
 							<Avatar
 								src={sellerProfile?.logo_url}
@@ -104,7 +108,7 @@ function Page() {
 							</>
 						) : (
 							<>
-								<Card radius={12} p="sm" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' }}>
+								<Card radius={radii.md} p="sm" style={{ boxShadow: shadows.sm, border: '1px solid #f1f5f9' }}>
 									<Group wrap="nowrap" align="center" gap="sm">
 										<ThemeIcon size={32} radius="md" color="blue" variant="light">
 											<IconList size={16} />
@@ -116,7 +120,7 @@ function Page() {
 									</Group>
 								</Card>
 								
-								<Card radius={12} p="sm" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' }}>
+								<Card radius={radii.md} p="sm" style={{ boxShadow: shadows.sm, border: '1px solid #f1f5f9' }}>
 									<Group wrap="nowrap" align="center" gap="sm">
 										<ThemeIcon size={32} radius="md" color="teal" variant="light">
 											<IconEye size={16} />
@@ -128,7 +132,7 @@ function Page() {
 									</Group>
 								</Card>
 
-								<Card radius={12} p="sm" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' }}>
+								<Card radius={radii.md} p="sm" style={{ boxShadow: shadows.sm, border: '1px solid #f1f5f9' }}>
 									<Group wrap="nowrap" align="center" gap="sm">
 										<ThemeIcon size={32} radius="md" color="orange" variant="light">
 											<IconPhone size={16} />
@@ -140,7 +144,7 @@ function Page() {
 									</Group>
 								</Card>
 
-								<Card radius={12} p="sm" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9' }}>
+								<Card radius={radii.md} p="sm" style={{ boxShadow: shadows.sm, border: '1px solid #f1f5f9' }}>
 									<Group wrap="nowrap" align="center" gap="sm">
 										<ThemeIcon size={32} radius="md" color="pink" variant="light">
 											<IconHeart size={16} />
@@ -163,10 +167,10 @@ function Page() {
 					</Text>
 					<Stack gap="xs">
 						<UnstyledButton onClick={() => navigate("/seller/create")}>
-							<Card radius={12} p="sm" style={{ background: '#228be6', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(34, 139, 230, 0.2)' }}>
+							<Card radius={radii.md} p="sm" style={{ background: '#228be6', color: 'white', border: 'none', boxShadow: shadows.accent }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">
-										<Center style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.2)' }}>
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: 'rgba(255,255,255,0.2)' }}>
 											<IconPlus size={18} color="white" />
 										</Center>
 										<Text fw={600} size="13px">{t("dashboard.createListing", "Create Listing")}</Text>
@@ -177,10 +181,10 @@ function Page() {
 						</UnstyledButton>
 
 						<UnstyledButton onClick={() => navigate("/seller/listings")}>
-							<Card radius={12} p="sm" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+							<Card radius={radii.md} p="sm" style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">
-										<Center style={{ width: 32, height: 32, borderRadius: 8, background: '#f8fafc', color: '#475569' }}>
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: surface.page, color: '#475569' }}>
 											<IconList size={18} />
 										</Center>
 										<Text fw={600} size="13px" c="dark.8">{t("dashboard.myListings", "My Listings")}</Text>
@@ -191,10 +195,10 @@ function Page() {
 						</UnstyledButton>
 
 						<UnstyledButton onClick={() => navigate("/profile")}>
-							<Card radius={12} p="sm" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+							<Card radius={radii.md} p="sm" style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">
-										<Center style={{ width: 32, height: 32, borderRadius: 8, background: '#f8fafc', color: '#475569' }}>
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: surface.page, color: '#475569' }}>
 											<IconUser size={18} />
 										</Center>
 										<Text fw={600} size="13px" c="dark.8">{t("dashboard.profile", "Profile")}</Text>
@@ -205,10 +209,10 @@ function Page() {
 						</UnstyledButton>
 
 						<UnstyledButton onClick={() => navigate("/seller/crawled")}>
-							<Card radius={12} p="sm" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+							<Card radius={radii.md} p="sm" style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">
-										<Center style={{ width: 32, height: 32, borderRadius: 8, background: '#f8fafc', color: '#10b981' }}>
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: surface.page, color: '#10b981' }}>
 											<IconWorldSearch size={18} />
 										</Center>
 										<Text fw={600} size="13px" c="dark.8">{t("dashboard.found", "Found Listings")}</Text>
@@ -225,12 +229,12 @@ function Page() {
 					<Box style={{ animation: 'fade-in-up 0.4s ease-out 0.15s both' }}>
 						<UnstyledButton onClick={() => navigate("/seller/create")} style={{ width: '100%', display: 'block' }}>
 							<Card
-								radius={12}
+								radius={radii.md}
 								p="sm"
 								style={{
 									background: "#f0f9ff",
 									border: "1px dashed #38bdf8",
-									boxShadow: "0 4px 12px rgba(56, 189, 248, 0.1)",
+									boxShadow: shadows.accent,
 								}}
 							>
 								<Group wrap="nowrap" gap="sm" align="center">

@@ -14,6 +14,7 @@ import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { CommentsDrawer } from "./CommentsDrawer";
+import { radii } from "@app/styles/theme";
 
 interface DescriptionDrawerProps {
 	opened: boolean;
@@ -66,8 +67,8 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 				withCloseButton={false}
 				styles={{
 					content: {
-						borderTopLeftRadius: 16,
-						borderTopRightRadius: 16,
+						borderTopLeftRadius: radii.lg,
+						borderTopRightRadius: radii.lg,
 						overflow: "hidden",
 					},
 					body: {

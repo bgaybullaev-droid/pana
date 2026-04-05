@@ -13,9 +13,9 @@ import {
 	IconList,
 	IconPlus,
 	IconUser,
-	IconArrowLeft,
 	IconLogout,
 } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 import { useEffect } from "react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
@@ -27,7 +27,6 @@ import {
 	fetchSellerProfile,
 } from "@modules/seller/shared/state";
 import { LanguageSwitcher } from "@shared/ui/LanguageSwitcher";
-import { gradients } from "@app/styles/theme";
 
 interface NavItem {
 	icon: typeof IconLayoutDashboard;
@@ -112,62 +111,31 @@ export function SellerLayout() {
 				width: "100%",
 			}}
 		>
-			{/* Gradient Header */}
-			<Box
-				style={{
-					background: gradients.primary,
-					padding: "12px 16px",
-					boxShadow: "0 2px 8px rgba(34,139,230,0.15)",
-					borderRadius: "0 0 16px 16px",
-				}}
-			>
-				<Group justify="space-between">
-					<Group gap="xs">
-						<UnstyledButton
-							onClick={() => {
-								if (location.pathname === "/seller/dashboard") {
-									navigate("/");
-								} else {
-									navigate("/seller/dashboard");
-								}
-							}}
-							style={{
-								width: 32,
-								height: 32,
-								borderRadius: 8,
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								transition: "background 0.2s ease",
-							}}
-						>
-							<IconArrowLeft size={20} color="white" />
-						</UnstyledButton>
-						<Text fw={600} c="white">
-							{t("header.sellerPanel")}
-						</Text>
-					</Group>
+			{/* Header */}
+			<PageBar
+				title={t("header.sellerPanel")}
+				onBack={() =>
+					navigate(
+						location.pathname === "/seller/dashboard"
+							? "/"
+							: "/seller/dashboard",
+					)
+				}
+				actions={
 					<Group gap="xs">
 						<LanguageSwitcher />
-						{sellerProfile?.company_name && (
-							<Text size="sm" c="rgba(255,255,255,0.8)" truncate maw={120}>
-								{sellerProfile.company_name}
-							</Text>
-						)}
 						<ActionIcon
 							variant="subtle"
-							color="white"
+							color="gray"
 							onClick={logout}
 							title={t("header.logout")}
-							style={{
-								borderRadius: 8,
-							}}
+							style={{ borderRadius: 8 }}
 						>
-							<IconLogout size={20} color="rgba(255,255,255,0.9)" />
+							<IconLogout size={20} />
 						</ActionIcon>
 					</Group>
-				</Group>
-			</Box>
+				}
+			/>
 
 			{/* Main content area */}
 			<Box
@@ -178,7 +146,9 @@ export function SellerLayout() {
 				}}
 				className="hide-scrollbar"
 			>
-				<Outlet />
+				<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
+					<Outlet />
+				</Box>
 			</Box>
 
 			{/* Glassmorphic Bottom Navigation */}

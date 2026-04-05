@@ -1,4 +1,5 @@
 import { Box, Text, Badge, Group, UnstyledButton } from '@mantine/core';
+import { radii, shadows } from '@app/styles/theme';
 
 interface PillTab {
   value: string;
@@ -22,10 +23,10 @@ export function PillTabs({ tabs, activeValue, onChange }: PillTabsProps) {
             <Box
               style={{
                 padding: '7px 14px',
-                borderRadius: 20,
+                borderRadius: radii.xl,
                 backgroundColor: isActive ? '#228be6' : 'var(--mantine-color-gray-0)',
                 border: isActive ? 'none' : '1px solid var(--mantine-color-gray-2)',
-                boxShadow: isActive ? '0 2px 8px rgba(34,139,230,0.3)' : 'none',
+                boxShadow: isActive ? shadows.accent : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,

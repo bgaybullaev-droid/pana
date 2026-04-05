@@ -8,11 +8,9 @@ import {
 	LoadingOverlay,
 	Text,
 	Stack,
-	Group,
-	Badge,
-	ActionIcon,
 } from "@mantine/core";
-import { IconHeart, IconArrowLeft } from "@tabler/icons-react";
+import { IconHeart } from "@tabler/icons-react";
+import { TabBar } from "@shared/ui/TabBar";
 import {
 	$favorites,
 	$isLoading,
@@ -22,6 +20,7 @@ import {
 import { useAuth } from "@app/providers/useAuth";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import { FavoriteCard } from "../main/FavoriteCard";
+import { radii, surface } from "@app/styles/theme";
 import {
 	seedListingIds,
 	seedListingSource,
@@ -64,7 +63,7 @@ function Page({ embedded = false }: FavoritesPageProps) {
 						style={{
 							width: 80,
 							height: 80,
-							borderRadius: "50%",
+							borderRadius: radii.full,
 							backgroundColor: "#fff5f5",
 							display: "flex",
 							alignItems: "center",
@@ -97,7 +96,7 @@ function Page({ embedded = false }: FavoritesPageProps) {
 	const content = (
 		<>
 			<LoadingOverlay visible={isLoading && favorites.length === 0} />
-			<Container size="sm" px="md" py="md">
+			<Container size={980} px="md" py="md">
 				<Stack gap={10}>
 					{favorites.length === 0 && !isLoading ? (
 						<Box ta="center" py={48}>
@@ -105,7 +104,7 @@ function Page({ embedded = false }: FavoritesPageProps) {
 								style={{
 									width: 80,
 									height: 80,
-									borderRadius: "50%",
+									borderRadius: radii.full,
 									backgroundColor: "#fff5f5",
 									display: "flex",
 									alignItems: "center",
@@ -138,65 +137,22 @@ function Page({ embedded = false }: FavoritesPageProps) {
 	);
 
 	if (embedded) {
-		return <Box bg="#f8f9fa">{content}</Box>;
+		return <Box style={{ backgroundColor: surface.page }}>{content}</Box>;
 	}
 
 	return (
-		<Box mih="100vh" bg="#f8f9fa">
+		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
 			{/* Header */}
-			<Box
-				style={{
-					backgroundColor: "white",
-					height: 80,
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					padding: "0 16px",
-					borderBottom: "1px solid rgba(0,0,0,0.06)",
-					position: "relative",
-				}}
-			>
-				<ActionIcon
-					variant="transparent"
-					size={56}
-					onClick={() => navigate(-1)}
-					style={{
-						position: "absolute",
-						top: 12,
-						left: 12,
-						backgroundColor: "rgba(255, 255, 255, 0.65)",
-						backdropFilter: "blur(20px) saturate(180%)",
-						WebkitBackdropFilter: "blur(20px) saturate(180%)",
-						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-						borderRadius: "50%",
-					}}
-				>
-					<IconArrowLeft size={24} color="#868e96" />
-				</ActionIcon>
-				<Group
-					justify="space-between"
-					align="center"
-					style={{ width: "100%", paddingLeft: 68 }}
-				>
-					<Text
-						size="lg"
-						fw={700}
-						style={{ fontFamily: "var(--mantine-font-family-headings)" }}
-					>
-						{t("favorites.title")}
-					</Text>
-					<Badge
-						size="lg"
-						radius={10}
-						variant="light"
-						color="blue"
-						style={{ fontWeight: 700 }}
-					>
-						{favorites.length}
-					</Badge>
-				</Group>
-			</Box>
+			<TabBar
+				title={t("favorites.title")}
+				actions={
+					favorites.length > 0 ? (
+						<Box style={{ backgroundColor: "#228be6", borderRadius: 12, padding: "2px 8px" }}>
+							<Text style={{ fontSize: 11, fontWeight: 700, color: "white", lineHeight: 1.4 }}>{favorites.length}</Text>
+						</Box>
+					) : undefined
+				}
+			/>
 			{content}
 		</Box>
 	);

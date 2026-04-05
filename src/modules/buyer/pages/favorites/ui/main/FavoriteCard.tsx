@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Box, Text, Group, Image, ActionIcon, UnstyledButton } from '@mantine/core';
 import { IconTrash, IconPhoto, IconBed, IconRuler } from '@tabler/icons-react';
-import { formatPrice, propertyTypeColors, shadows, transitions } from '@app/styles/theme';
+import { formatPrice, propertyTypeColors, radii, shadows, surface, transitions } from '@app/styles/theme';
 import { translateDistrict } from '@shared/lib/regions';
 import type { ListingListItem } from '@shared/api/types';
 
@@ -19,9 +19,9 @@ export function FavoriteCard({ listing, onClick, onRemove }: FavoriteCardProps) 
     <UnstyledButton onClick={onClick} style={{ display: 'block' }}>
       <Box
         style={{
-          backgroundColor: 'white',
-          borderRadius: 16,
-          boxShadow: shadows.card,
+          backgroundColor: surface.card,
+          borderRadius: radii.lg,
+          boxShadow: shadows.md,
           overflow: 'hidden',
           transition: transitions.spring,
         }}
@@ -33,7 +33,7 @@ export function FavoriteCard({ listing, onClick, onRemove }: FavoriteCardProps) 
               width: 120,
               height: 100,
               flexShrink: 0,
-              backgroundColor: '#f1f3f5',
+              backgroundColor: surface.muted,
               position: 'relative',
             }}
           >
@@ -85,7 +85,7 @@ export function FavoriteCard({ listing, onClick, onRemove }: FavoriteCardProps) 
                 variant="subtle"
                 color="red"
                 size={32}
-                radius={10}
+                radius={radii.md}
                 onClick={onRemove}
                 style={{ flexShrink: 0 }}
               >

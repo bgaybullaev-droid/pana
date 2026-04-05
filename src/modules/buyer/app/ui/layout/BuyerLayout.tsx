@@ -34,6 +34,7 @@ import {
 	applyFilters,
 	$searchQuery,
 } from "@modules/buyer/shared/state/model";
+import { radii, surface } from "@app/styles/theme";
 
 interface LayoutContext {
 	openSearch: () => void;
@@ -321,7 +322,9 @@ export function Layout() {
 					}}
 					className="hide-scrollbar"
 				>
-					<Outlet />
+					<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
+						<Outlet />
+					</Box>
 				</Box>
 
 				{/* Search drawer */}
@@ -354,7 +357,7 @@ export function Layout() {
 					zIndex={10001}
 				>
 					{/* Scrollable area */}
-					<Box style={{ flex: 1, overflowY: "auto" }} px="md" pt="md">
+					<Box style={{ flex: 1, overflowY: "auto", maxWidth: 980, margin: "0 auto", width: "100%" }} px="md" pt="md">
 						{/* No query: show history if exists, otherwise show onboarding */}
 						{!searchQuery && searchHistory.length > 0 && (
 							<Box mb="lg">
@@ -378,8 +381,8 @@ export function Layout() {
 												alignItems: "center",
 												gap: 6,
 												padding: "6px 12px 6px 10px",
-												borderRadius: 50,
-												backgroundColor: "#f1f3f5",
+												borderRadius: radii.full,
+												backgroundColor: surface.muted,
 												border: "1px solid #e9ecef",
 											}}
 										>
@@ -422,8 +425,8 @@ export function Layout() {
 										<Box
 											key={key}
 											style={{
-												backgroundColor: "#f8f9fa",
-												borderRadius: 14,
+												backgroundColor: surface.page,
+												borderRadius: radii.md,
 												padding: "14px 16px",
 												display: "flex",
 												alignItems: "center",
@@ -454,7 +457,7 @@ export function Layout() {
 								<Box
 									style={{
 										backgroundColor: "#fff9db",
-										borderRadius: 12,
+										borderRadius: radii.md,
 										padding: "12px 14px",
 										display: "flex",
 										alignItems: "flex-start",
@@ -483,6 +486,9 @@ export function Layout() {
 							paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
 							borderTop: "1px solid #f1f3f5",
 							flexShrink: 0,
+							maxWidth: 980,
+							margin: "0 auto",
+							width: "100%",
 						}}
 					>
 						<Group gap={8} wrap="nowrap">
@@ -509,13 +515,13 @@ export function Layout() {
 									e.key === "Enter" && handleSearch(searchQuery)
 								}
 								autoFocus
-								radius={22}
+								radius={radii.xl}
 								style={{ flex: 1 }}
 								onFocus={() => setSearchFocused(true)}
 								onBlur={() => setSearchFocused(false)}
 								styles={{
 									input: {
-										backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
+										backgroundColor: searchFocused ? surface.page : surface.muted,
 										border: searchFocused ? "1px solid #dee2e6" : "none",
 										height: 45,
 										fontSize: 16,
@@ -530,7 +536,7 @@ export function Layout() {
 								size={45}
 								radius="50%"
 								style={{
-									backgroundColor: searchFocused ? "#f8f9fa" : "#f1f3f5",
+									backgroundColor: searchFocused ? surface.page : surface.muted,
 									border: searchFocused ? "1px solid #dee2e6" : "none",
 									transition:
 										"background-color 0.15s ease, border-color 0.15s ease",

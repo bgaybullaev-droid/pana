@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/providers/useAuth";
 import { updateProfileFx } from "@shared/state/auth/model/effects";
+import { radii, surface } from "@app/styles/theme";
 import {
 	Box,
 	Text,
 	TextInput,
 	Button,
 	Avatar,
-	ActionIcon,
 } from "@mantine/core";
-import { IconArrowLeft, IconUser } from "@tabler/icons-react";
+import { IconUser } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -58,49 +59,9 @@ function Page() {
 	};
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: "#F5F5F7" }}>
+		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
 			{/* Top bar */}
-			<Box
-				style={{
-					position: "sticky",
-					top: 0,
-					zIndex: 100,
-					height: 80,
-					backgroundColor: "#FFFFFF",
-					borderBottom: "1px solid #E8E8ED",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-				}}
-			>
-				<ActionIcon
-					variant="transparent"
-					size={56}
-					onClick={() => navigate(-1)}
-					style={{
-						position: "absolute",
-						top: 12,
-						left: 12,
-						backgroundColor: "rgba(255, 255, 255, 0.65)",
-						backdropFilter: "blur(20px) saturate(180%)",
-						WebkitBackdropFilter: "blur(20px) saturate(180%)",
-						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-						borderRadius: "50%",
-					}}
-				>
-					<IconArrowLeft size={24} color="#868e96" />
-				</ActionIcon>
-				<Text
-					style={{
-						fontSize: 17,
-						fontWeight: 600,
-						color: "#1C1C1E",
-					}}
-				>
-					{t("editProfile.title")}
-				</Text>
-			</Box>
+			<PageBar title={t("editProfile.title")} />
 
 			<Box style={{ padding: 16 }}>
 				{/* Avatar section */}
@@ -115,7 +76,7 @@ function Page() {
 					<Avatar
 						src={user?.avatar_url}
 						size={80}
-						radius="50%"
+						radius={radii.full}
 						styles={{
 							placeholder: {
 								backgroundColor: "#E8F0FE",
@@ -133,7 +94,7 @@ function Page() {
 				<Box
 					style={{
 						backgroundColor: "#FFFFFF",
-						borderRadius: 14,
+						borderRadius: radii.md,
 						padding: 20,
 						marginBottom: 16,
 					}}
@@ -155,7 +116,7 @@ function Page() {
 							},
 							input: {
 								height: 48,
-								borderRadius: 12,
+								borderRadius: radii.md,
 								borderColor: "#E8E8ED",
 								fontSize: 16,
 								"&:focus": {
@@ -181,7 +142,7 @@ function Page() {
 							},
 							input: {
 								height: 48,
-								borderRadius: 12,
+								borderRadius: radii.md,
 								borderColor: "#E8E8ED",
 								fontSize: 16,
 								"&:focus": {
@@ -206,7 +167,7 @@ function Page() {
 							<Box
 								style={{
 									height: 48,
-									borderRadius: 12,
+									borderRadius: radii.md,
 									border: "1px solid #E8E8ED",
 									backgroundColor: "#F5F5F7",
 									display: "flex",
@@ -244,7 +205,7 @@ function Page() {
 				{/* Save button */}
 				<Button
 					fullWidth
-					radius={14}
+					radius={radii.md}
 					size="lg"
 					onClick={handleSave}
 					loading={saving}

@@ -1,7 +1,7 @@
 import { Box, Group, Text, Badge } from '@mantine/core';
 import { ListingImageThumbnail } from '@shared/ui/ListingImageThumbnail';
 import type { TelegramListing } from '@shared/api/types';
-import { formatPrice } from '@app/styles/theme';
+import { formatPrice, radii, shadows, spacing, surface } from '@app/styles/theme';
 import { getFirstImage } from './getFirstImage';
 import { PropertyInfo } from './PropertyInfo';
 
@@ -11,10 +11,10 @@ export function TelegramListingCard({ listing }: { listing: TelegramListing }) {
   return (
     <Box
       style={{
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 12,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        backgroundColor: surface.card,
+        borderRadius: radii.md,
+        padding: spacing.cardCompact,
+        boxShadow: shadows.sm,
         border: '1px dashed var(--mantine-color-gray-3)',
         position: 'relative',
       }}

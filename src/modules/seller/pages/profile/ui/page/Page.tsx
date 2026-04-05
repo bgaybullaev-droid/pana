@@ -39,6 +39,7 @@ import { StatCard } from "@shared/ui/StatCard";
 import { FormSection } from "@shared/ui/FormSection";
 import { IconList, IconEye } from "@tabler/icons-react";
 import { ContactRow } from "../main/ContactRow";
+import { shadows } from "@app/styles/theme";
 
 function Page() {
 	const { t } = useTranslation("seller");
@@ -93,7 +94,7 @@ function Page() {
 	}
 
 	return (
-		<Container size="sm" px="md" py="md">
+		<Container size={980} px="md" py="md">
 			<LoadingOverlay visible={isLoading} />
 			<Stack gap="md">
 				{/* Profile Hero Card */}
@@ -129,7 +130,7 @@ function Page() {
 						color="white"
 						style={{
 							border: "3px solid white",
-							boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+							boxShadow: shadows.lg,
 						}}
 					>
 						<IconUser size={40} color="white" />
@@ -170,7 +171,7 @@ function Page() {
 							mt="sm"
 							leftSection={<IconEdit size={14} />}
 							onClick={() => setIsEditing(true)}
-							style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+							style={{ boxShadow: shadows.md }}
 						>
 							{t("profile.edit")}
 						</Button>

@@ -1,6 +1,7 @@
 import { Box, Button, Stack, Text } from '@mantine/core';
 import { type TablerIconsProps } from '@tabler/icons-react';
 import { type FC } from 'react';
+import { shadows, radii } from '@app/styles/theme';
 
 interface EmptyStateProps {
   icon: FC<TablerIconsProps>;
@@ -17,7 +18,7 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, onActi
         style={{
           width: 80,
           height: 80,
-          borderRadius: '50%',
+          borderRadius: radii.full,
           backgroundColor: 'var(--mantine-color-blue-0)',
           display: 'flex',
           alignItems: 'center',
@@ -42,7 +43,7 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, onActi
           style={{
             background: 'linear-gradient(135deg, #228be6, #40A7E3)',
             border: 'none',
-            boxShadow: '0 4px 12px rgba(34,139,230,0.3)',
+            boxShadow: shadows.accent,
           }}
           radius="xl"
           size="md"

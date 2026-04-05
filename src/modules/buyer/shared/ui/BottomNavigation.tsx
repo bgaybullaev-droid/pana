@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { $userStats } from "@shared/state/user/model";
 import { clearFilters } from "@modules/buyer/shared/state/model";
 import { NavTab, type NavItem } from "./NavTab";
+import { radii, shadows } from "@app/styles/theme";
 
 const PILL_ITEMS: NavItem[] = [
 	{ icon: IconHome, labelKey: "nav.home", path: "/", badgeKey: null },
@@ -152,10 +153,10 @@ export function BottomNavigation({
 						backgroundColor: "rgba(255, 255, 255, 0.65)",
 						backdropFilter: "blur(20px) saturate(180%)",
 						WebkitBackdropFilter: "blur(20px) saturate(180%)",
-						borderRadius: 50,
+						borderRadius: radii.full,
 						padding: "5px 0",
 						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+						boxShadow: shadows.md,
 						pointerEvents: "auto",
 						marginRight: 10,
 						position: "relative",
@@ -205,7 +206,7 @@ export function BottomNavigation({
 						backdropFilter: "blur(20px) saturate(180%)",
 						WebkitBackdropFilter: "blur(20px) saturate(180%)",
 						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+						boxShadow: shadows.md,
 						pointerEvents: "auto",
 						display: "flex",
 						alignItems: "center",

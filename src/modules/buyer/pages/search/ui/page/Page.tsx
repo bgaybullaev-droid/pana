@@ -26,7 +26,7 @@ import {
 } from "@tabler/icons-react";
 import type { ListingFilters } from "@shared/api/types";
 import { ROOMS_OPTIONS_KEYS } from "@shared/lib/constants";
-import { gradients, shadows, transitions } from "@app/styles/theme";
+import { gradients, shadows, transitions, radii, surface } from "@app/styles/theme";
 import {
 	getRegionKeys,
 	getDistrictsForRegion,
@@ -140,13 +140,13 @@ function Page() {
 	};
 
 	return (
-		<Box mih="100vh" bg="#f8f9fa">
+		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
 			{/* Gradient Header */}
 			<GradientHeader icon={IconSearch} title={t("search.title")} />
 
 			{/* Search content */}
 			<Container
-				size="sm"
+				size={980}
 				px="md"
 				style={{
 					marginTop: -30,
@@ -159,10 +159,10 @@ function Page() {
 					{/* Sorting */}
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
 							padding: "12px 16px",
-							boxShadow: shadows.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<Text size="sm" fw={600} mb={8} c="gray.7">
@@ -204,10 +204,10 @@ function Page() {
 					{/* Search Input Card */}
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
 							padding: "12px 16px",
-							boxShadow: shadows.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<TextInput
@@ -259,13 +259,13 @@ function Page() {
 							styles={{
 								root: {
 									backgroundColor: "#f1f3f5",
-									borderRadius: 12,
+									borderRadius: radii.md,
 									padding: 4,
 								},
 								label: { fontWeight: 600, fontSize: 14 },
 								indicator: {
-									borderRadius: 10,
-									boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+									borderRadius: radii.md,
+									boxShadow: shadows.md,
 								},
 							}}
 						/>
@@ -292,12 +292,12 @@ function Page() {
 										<Box
 											style={{
 												backgroundColor: isSelected ? pt.color : "white",
-												borderRadius: 16,
+												borderRadius: radii.lg,
 												padding: "14px 8px",
 												textAlign: "center",
 												boxShadow: isSelected
 													? `0 6px 16px ${pt.color}40`
-													: shadows.soft,
+													: shadows.md,
 												transition: transitions.spring,
 												transform: isSelected ? "translateY(-2px)" : "none",
 												border: isSelected
@@ -309,7 +309,7 @@ function Page() {
 												style={{
 													width: 40,
 													height: 40,
-													borderRadius: 12,
+													borderRadius: radii.md,
 													backgroundColor: isSelected
 														? "rgba(255,255,255,0.25)"
 														: pt.bg,
@@ -365,7 +365,7 @@ function Page() {
 												fontWeight: 600,
 												fontSize: 13,
 												padding: "8px 18px",
-												boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+												boxShadow: shadows.md,
 												transition: transitions.fast,
 											},
 										}}
@@ -390,7 +390,7 @@ function Page() {
 							<Box
 								style={{
 									backgroundColor: "#e7f5ff",
-									borderRadius: 8,
+									borderRadius: radii.sm,
 									padding: "4px 12px",
 								}}
 							>
@@ -438,10 +438,10 @@ function Page() {
 									thumb: {
 										width: 22,
 										height: 22,
-										backgroundColor: "white",
+										backgroundColor: surface.card,
 										borderWidth: 3,
 										borderColor: "#228be6",
-										boxShadow: "0 2px 8px rgba(34,139,230,0.3)",
+										boxShadow: shadows.accent,
 									},
 									markLabel: {
 										fontSize: 12,
@@ -545,7 +545,7 @@ function Page() {
 							height: 48,
 							background: gradients.primary,
 							border: "none",
-							boxShadow: shadows.button,
+							boxShadow: shadows.accent,
 							fontWeight: 700,
 						}}
 					>

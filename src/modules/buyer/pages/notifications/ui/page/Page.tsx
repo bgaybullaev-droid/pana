@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-	ActionIcon,
-	Container,
 	Stack,
 	Text,
 	Box,
@@ -15,7 +13,6 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import {
-	IconArrowLeft,
 	IconBell,
 	IconHome,
 	IconHeart,
@@ -23,11 +20,13 @@ import {
 	IconMessage,
 	IconCheck,
 } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 import { formatTimeAgo } from "@shared/lib/date";
 import { notificationsApi } from "@shared/api/notifications";
 import { useAuth } from "@app/providers/useAuth";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import type { Notification } from "@shared/api/types";
+import { radii, surface } from "@app/styles/theme";
 
 // Group notifications by date
 function groupByDate(
@@ -174,73 +173,36 @@ function Page() {
 	}
 
 	return (
-		<Box mih="100vh" bg="#f8f9fa">
+		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
 			{/* Header */}
-			<Box
-				style={{
-					position: "sticky",
-					top: 0,
-					zIndex: 100,
-					backgroundColor: "white",
-					height: 80,
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					padding: "0 16px",
-					borderBottom: "1px solid #E8E8ED",
-				}}
-			>
-				<ActionIcon
-					variant="transparent"
-					size={56}
-					onClick={() => navigate(-1)}
-					style={{
-						position: "absolute",
-						top: 12,
-						left: 12,
-						backgroundColor: "rgba(255, 255, 255, 0.65)",
-						backdropFilter: "blur(20px) saturate(180%)",
-						WebkitBackdropFilter: "blur(20px) saturate(180%)",
-						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-						borderRadius: "50%",
-					}}
-				>
-					<IconArrowLeft size={24} color="#868e96" />
-				</ActionIcon>
-				<Group justify="space-between" align="center" style={{ width: "100%" }}>
-					<Group gap={10} style={{ paddingLeft: 80 }}>
-						<Text
-							size="lg"
-							fw={700}
-							style={{ fontFamily: "var(--mantine-font-family-headings)" }}
+			<PageBar
+				title={t("notifications.title")}
+				badge={
+					unreadCount > 0 ? (
+						<Box
+							style={{
+								backgroundColor: "#ff6b6b",
+								borderRadius: radii.md,
+								padding: "2px 8px",
+								minWidth: 22,
+								textAlign: "center",
+							}}
 						>
-							{t("notifications.title")}
-						</Text>
-						{unreadCount > 0 && (
-							<Box
+							<Text
 								style={{
-									backgroundColor: "#ff6b6b",
-									borderRadius: 10,
-									padding: "2px 8px",
-									minWidth: 22,
-									textAlign: "center",
+									fontSize: 11,
+									fontWeight: 700,
+									color: "white",
+									lineHeight: 1.4,
 								}}
 							>
-								<Text
-									style={{
-										fontSize: 11,
-										fontWeight: 700,
-										color: "white",
-										lineHeight: 1.4,
-									}}
-								>
-									{unreadCount}
-								</Text>
-							</Box>
-						)}
-					</Group>
-					{unreadCount > 0 && (
+								{unreadCount}
+							</Text>
+						</Box>
+					) : undefined
+				}
+				actions={
+					unreadCount > 0 ? (
 						<UnstyledButton onClick={handleMarkAllAsRead}>
 							<Group gap={4}>
 								<IconCheck size={16} color="#228be6" />
@@ -249,11 +211,11 @@ function Page() {
 								</Text>
 							</Group>
 						</UnstyledButton>
-					)}
-				</Group>
-			</Box>
+					) : undefined
+				}
+			/>
 
-			<Container size="sm" px="md" py="md">
+			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
 				{isLoading && notifications.length === 0 ? (
 					<Center py={48}>
 						<Loader size="md" color="blue" />
@@ -264,7 +226,7 @@ function Page() {
 							style={{
 								width: 80,
 								height: 80,
-								borderRadius: "50%",
+								borderRadius: radii.full,
 								backgroundColor: "#e7f5ff",
 								display: "flex",
 								alignItems: "center",
@@ -317,7 +279,7 @@ function Page() {
 														backgroundColor: notification.read
 															? "#f8f9fa"
 															: "white",
-														borderRadius: 14,
+														borderRadius: radii.md,
 														padding: "12px 14px",
 														boxShadow: notification.read
 															? "none"
@@ -344,7 +306,7 @@ function Page() {
 																style={{
 																	width: 42,
 																	height: 42,
-																	borderRadius: 12,
+																	borderRadius: radii.md,
 																	backgroundColor: config.bg,
 																	display: "flex",
 																	alignItems: "center",
@@ -413,7 +375,7 @@ function Page() {
 						)}
 					</Stack>
 				)}
-			</Container>
+			</Box>
 		</Box>
 	);
 }

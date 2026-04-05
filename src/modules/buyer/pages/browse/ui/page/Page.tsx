@@ -3,6 +3,7 @@ import { useUnit } from "effector-react";
 import { Box, LoadingOverlay, ActionIcon } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { shadows, radii } from "@app/styles/theme";
 import { useTelegram } from "@app/providers/useTelegram";
 import { getListingShareUrl } from "@shared/lib/constants";
 import { TikTokSlider } from "@modules/buyer/pages/listing-detail/ui/main/Sliders";
@@ -88,8 +89,8 @@ function Page() {
 					backdropFilter: "blur(20px) saturate(180%)",
 					WebkitBackdropFilter: "blur(20px) saturate(180%)",
 					border: "1px solid rgba(255, 255, 255, 0.5)",
-					boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-					borderRadius: "50%",
+					boxShadow: shadows.md,
+					borderRadius: radii.full,
 				}}
 			>
 				<IconArrowLeft size={24} color="#868e96" />

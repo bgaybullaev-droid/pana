@@ -40,7 +40,7 @@ import {
 	IconBuildingCommunity,
 	IconTrees,
 } from "@tabler/icons-react";
-import { transitions } from "@app/styles/theme";
+import { transitions, shadows, radii, surface } from "@app/styles/theme";
 import { PreferenceCard } from "@modules/buyer/feature/preferences/ui/PreferenceCard";
 import {
 	useLayoutContext,
@@ -48,6 +48,7 @@ import {
 } from "@modules/buyer/app/ui/layout/BuyerLayout";
 import { ListingCard } from "@shared/ui/ListingCard";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
+import { TabBar } from "@shared/ui/TabBar";
 import {
 	getListingDetailUrl,
 	type SourcedListingListItem,
@@ -273,19 +274,9 @@ function Page() {
 
 	// Search header
 	const SearchHeader = (
-		<Box
-			style={{
-				position: "sticky",
-				top: 0,
-				zIndex: 100,
-				backgroundColor: "rgba(255,255,255,0.92)",
-				backdropFilter: "blur(20px)",
-				WebkitBackdropFilter: "blur(20px)",
-				borderBottom: "1px solid rgba(0,0,0,0.06)",
-			}}
-		>
+		<TabBar blur>
 			{/* Search bar + notification */}
-			<Box px="md" pt="sm" pb={8}>
+			<Box px="md" pt="sm" pb={8} style={{ maxWidth: 980, margin: "0 auto" }}>
 				<Group gap={8} wrap="nowrap">
 					<UnstyledButton
 						onClick={openSearch}
@@ -293,8 +284,8 @@ function Page() {
 							flex: 1,
 							minWidth: 0,
 							height: 46,
-							borderRadius: 23,
-							backgroundColor: "#f1f3f5",
+							borderRadius: radii.xl,
+							backgroundColor: surface.muted,
 							display: "flex",
 							alignItems: "center",
 							paddingLeft: 16,
@@ -394,7 +385,7 @@ function Page() {
 
 			{/* Quick filter chips */}
 			<ScrollArea scrollbarSize={0} type="never" offsetScrollbars={false}>
-				<Box px="md" pb="sm" style={{ display: "flex", gap: 6 }}>
+				<Box px="md" pb="sm" style={{ display: "flex", gap: 6, maxWidth: 980, margin: "0 auto" }}>
 					{QUICK_FILTER_VALUES.map((value) => {
 						const isSelected = filters.property_type === value;
 						return (
@@ -403,7 +394,7 @@ function Page() {
 								onClick={() => handleQuickFilter(value)}
 								style={{
 									padding: "6px 16px",
-									borderRadius: 50,
+									borderRadius: radii.full,
 									backgroundColor: isSelected ? "#228be6" : "#f1f3f5",
 									cursor: "pointer",
 									whiteSpace: "nowrap",
@@ -428,7 +419,7 @@ function Page() {
 				</Box>
 			</ScrollArea>
 
-		</Box>
+		</TabBar>
 	);
 
 	// Filter drawer
@@ -450,7 +441,9 @@ function Page() {
 					borderRadius: "20px 20px 0 0",
 					maxHeight: "90vh",
 					overflow: "hidden",
-					backgroundColor: "#f8f9fa",
+					backgroundColor: surface.page,
+					maxWidth: 980,
+					margin: "0 auto",
 				},
 				header: { display: "none" },
 				body: {
@@ -592,8 +585,8 @@ function Page() {
 										>
 											<Box
 												style={{
-													backgroundColor: selected ? bg : "#f8f9fa",
-													borderRadius: 14,
+													backgroundColor: selected ? bg : surface.page,
+													borderRadius: radii.md,
 													padding: "18px 12px",
 													textAlign: "center",
 													border: selected
@@ -610,7 +603,7 @@ function Page() {
 													style={{
 														width: 48,
 														height: 48,
-														borderRadius: 14,
+														borderRadius: radii.md,
 														backgroundColor: selected ? `${color}20` : "white",
 														display: "flex",
 														alignItems: "center",
@@ -687,8 +680,8 @@ function Page() {
 										>
 											<Box
 												style={{
-													backgroundColor: selected ? bg : "#f8f9fa",
-													borderRadius: 14,
+													backgroundColor: selected ? bg : surface.page,
+													borderRadius: radii.md,
 													padding: "14px 4px 12px",
 													textAlign: "center",
 													border: selected
@@ -705,7 +698,7 @@ function Page() {
 													style={{
 														width: 40,
 														height: 40,
-														borderRadius: 12,
+														borderRadius: radii.md,
 														backgroundColor: selected ? `${color}20` : "white",
 														display: "flex",
 														alignItems: "center",
@@ -767,7 +760,7 @@ function Page() {
 												styles={{
 													iconWrapper: { display: "none" },
 													label: {
-														borderRadius: 12,
+														borderRadius: radii.md,
 														fontWeight: 600,
 														fontSize: 13,
 														padding: "8px 16px",
@@ -802,7 +795,7 @@ function Page() {
 								<Box
 									style={{
 										backgroundColor: "#f3f0ff",
-										borderRadius: 10,
+										borderRadius: radii.md,
 										padding: "6px 16px",
 									}}
 								>
@@ -921,7 +914,7 @@ function Page() {
 
 	// Shimmer skeleton
 	const ShimmerSkeleton = (
-		<Box bg="#f8f9fa" mih="100vh">
+		<Box style={{ backgroundColor: surface.page }} mih="100vh">
 			{SearchHeader}
 			{FilterDrawer}
 			<Container className="listings-container" px="md" pt="sm">
@@ -937,10 +930,10 @@ function Page() {
 							key={index}
 							mb={12}
 							style={{
-								borderRadius: 16,
+								borderRadius: radii.lg,
 								overflow: "hidden",
 								backgroundColor: "white",
-								boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+								boxShadow: shadows.md,
 							}}
 						>
 							<Skeleton height={180} radius={0} animate />
@@ -963,7 +956,7 @@ function Page() {
 	// Empty state
 	if (!isLoading && listings.length === 0) {
 		return (
-			<Box bg="#f8f9fa" mih="100vh">
+			<Box style={{ backgroundColor: surface.page }} mih="100vh">
 				{SearchHeader}
 				{FilterDrawer}
 				<Container className="listings-container">
@@ -973,7 +966,7 @@ function Page() {
 								style={{
 									width: 80,
 									height: 80,
-									borderRadius: "50%",
+									borderRadius: radii.full,
 									backgroundColor: "#e7f5ff",
 									display: "flex",
 									alignItems: "center",
@@ -1006,7 +999,7 @@ function Page() {
 	}
 
 	return (
-		<Box bg="#f8f9fa" mih="100vh">
+		<Box style={{ backgroundColor: surface.page }} mih="100vh">
 			{SearchHeader}
 			{FilterDrawer}
 			<Container className="listings-container" px="md" pt="sm">

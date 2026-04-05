@@ -1,5 +1,6 @@
 import { Box, Image } from '@mantine/core';
 import { IconPhoto } from '@tabler/icons-react';
+import { radii } from '@app/styles/theme';
 
 interface ListingImageThumbnailProps {
   src: string | null;
@@ -12,7 +13,7 @@ export function ListingImageThumbnail({ src, size = 96 }: ListingImageThumbnailP
       style={{
         width: size,
         height: size,
-        borderRadius: 10,
+        borderRadius: radii.md,
         overflow: 'hidden',
         flexShrink: 0,
         backgroundColor: 'var(--mantine-color-gray-1)',

@@ -1,6 +1,6 @@
 import { Box, Text, Button, UnstyledButton } from '@mantine/core';
 import { IconLogin } from '@tabler/icons-react';
-import { shadows, gradients } from '@app/styles/theme';
+import { shadows, gradients, radii, spacing, surface } from '@app/styles/theme';
 
 interface LoginPromptCardProps {
   promptText: string;
@@ -18,10 +18,10 @@ export function LoginPromptCard({
   return (
     <Box
       style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 24,
-        boxShadow: shadows.card,
+        backgroundColor: surface.card,
+        borderRadius: radii.lg,
+        padding: spacing.card,
+        boxShadow: shadows.md,
         textAlign: 'center',
       }}
     >
@@ -32,13 +32,13 @@ export function LoginPromptCard({
       {variant === 'button' ? (
         <Button
           mt="lg"
-          radius={12}
+          radius={radii.md}
           size="md"
           fullWidth
           onClick={onAction}
           style={{
             background: gradients.primary,
-            boxShadow: shadows.button,
+            boxShadow: shadows.accent,
           }}
         >
           {actionLabel}

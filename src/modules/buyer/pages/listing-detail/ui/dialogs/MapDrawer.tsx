@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
 import { getListingCoords } from "../main/ListingMap";
+import { radii } from "@app/styles/theme";
 
 const ListingMap = lazy(() =>
 	import("../main/ListingMap").then((m) => ({ default: m.ListingMap })),
@@ -31,7 +32,7 @@ export const MapDrawer: FC<MapDrawerProps> = ({ opened, onClose, listing }) => {
 			size="70%"
 			withCloseButton={false}
 			styles={{
-				content: { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+				content: { borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg },
 				body: {
 					padding: 0,
 					height: "100%",
@@ -79,7 +80,7 @@ export const MapDrawer: FC<MapDrawerProps> = ({ opened, onClose, listing }) => {
 			<Box style={{ flex: 1, padding: 12 }}>
 				{coords ? (
 					<Suspense
-						fallback={<Box h="100%" bg="gray.1" style={{ borderRadius: 12 }} />}
+						fallback={<Box h="100%" bg="gray.1" style={{ borderRadius: radii.md }} />}
 					>
 						<ListingMap
 							lat={coords.lat}
@@ -93,7 +94,7 @@ export const MapDrawer: FC<MapDrawerProps> = ({ opened, onClose, listing }) => {
 						h="100%"
 						bg="gray.1"
 						style={{
-							borderRadius: 12,
+							borderRadius: radii.md,
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",

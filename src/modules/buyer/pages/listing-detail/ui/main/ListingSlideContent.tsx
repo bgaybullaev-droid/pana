@@ -24,7 +24,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { useNavigate } from "react-router-dom";
-import { formatPrice } from "@app/styles/theme";
+import { formatPrice, shadows } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
 import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
 import { MapDrawer } from "../dialogs/MapDrawer";
@@ -277,7 +277,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 					backdropFilter: "blur(20px) saturate(180%)",
 					WebkitBackdropFilter: "blur(20px) saturate(180%)",
 					border: "1px solid rgba(255, 255, 255, 0.5)",
-					boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+					boxShadow: shadows.md,
 					borderRadius: "50%",
 				}}
 			>

@@ -17,7 +17,8 @@ import {
 	Group,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconX, IconCameraPlus, IconArrowLeft } from "@tabler/icons-react";
+import { IconX, IconCameraPlus } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useEffectorNotification } from "@shared/hooks/useEffectorNotification";
 import { FormSection } from "@shared/ui/FormSection";
@@ -31,6 +32,7 @@ import {
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
+import { radii, shadows, surface } from "@app/styles/theme";
 
 function Page() {
 	const navigate = useNavigate();
@@ -99,39 +101,17 @@ function Page() {
 			px="sm"
 			py="md"
 			style={{
-				backgroundColor: "#f8fafc",
+				backgroundColor: surface.page,
 				minHeight: "100vh",
-				maxWidth: 480,
+				maxWidth: 980,
 				margin: "0 auto",
 				overflow: "auto",
 			}}
 		>
+			<PageBar title={t("createListing.title")} />
 			<LoadingOverlay visible={isCreating} />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack gap="md">
-					{/* Header */}
-					<Group gap="sm" align="center" mb="xs">
-						<ActionIcon
-							variant="transparent"
-							color="dark.9"
-							size={36}
-							radius="md"
-							onClick={() => navigate(-1)}
-						>
-							<IconArrowLeft size={20} />
-						</ActionIcon>
-						<Text
-							size="xl"
-							fw={800}
-							style={{
-								fontFamily: "Outfit, sans-serif",
-								letterSpacing: "-0.3px",
-							}}
-							c="dark.9"
-						>
-							{t("createListing.title")}
-						</Text>
-					</Group>
 
 					{/* Section: Photos */}
 					<FormSection title={t("createListing.photos")}>
@@ -162,7 +142,7 @@ function Page() {
 										{...props}
 										style={{
 											height: 100,
-											borderRadius: 12,
+											borderRadius: radii.md,
 											border: "2px dashed #bae6fd",
 											backgroundColor: "#f0f9ff",
 											display: "flex",
@@ -201,7 +181,7 @@ function Page() {
 											style={{
 												position: "relative",
 												aspectRatio: "1",
-												borderRadius: 12,
+												borderRadius: radii.md,
 												overflow: "hidden",
 												border: "1px solid #f1f5f9",
 											}}
@@ -235,9 +215,9 @@ function Page() {
 													{...props}
 													style={{
 														aspectRatio: "1",
-														borderRadius: 12,
+														borderRadius: radii.md,
 														border: "2px dashed #cbd5e1",
-														backgroundColor: "#f8fafc",
+														backgroundColor: surface.page,
 														display: "flex",
 														alignItems: "center",
 														justifyContent: "center",
@@ -274,13 +254,13 @@ function Page() {
 					type="submit"
 					size="md"
 					fullWidth
-					radius={12}
+					radius={radii.md}
 					loading={isCreating || isUploading}
 					onClick={() => form.onSubmit(handleSubmit)()}
 					style={{
 						background: "#228be6",
 						border: "none",
-						boxShadow: "0 4px 12px rgba(34, 139, 230, 0.2)",
+						boxShadow: shadows.accent,
 					}}
 				>
 					{isUploading
@@ -292,7 +272,7 @@ function Page() {
 					color="gray"
 					size="md"
 					fullWidth
-					radius={12}
+					radius={radii.md}
 					onClick={() => navigate(-1)}
 				>
 					{t("createListing.cancel")}

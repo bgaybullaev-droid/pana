@@ -30,6 +30,7 @@ import {
 	registerAsSellerFx,
 } from "@modules/seller/shared/state";
 import { BenefitRow } from "../main/BenefitRow";
+import { radii, shadows, spacing, surface } from "@app/styles/theme";
 
 function Page() {
 	const { t } = useTranslation("seller");
@@ -100,7 +101,7 @@ function Page() {
 	};
 
 	return (
-		<Box style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
+		<Box style={{ minHeight: "100vh", backgroundColor: surface.page }}>
 			<LoadingOverlay visible={isLoading} />
 
 			{/* Gradient Hero Section */}
@@ -122,7 +123,7 @@ function Page() {
 						right: -30,
 						width: 120,
 						height: 120,
-						borderRadius: "50%",
+						borderRadius: radii.full,
 						backgroundColor: "rgba(255,255,255,0.08)",
 					}}
 				/>
@@ -133,7 +134,7 @@ function Page() {
 						left: -20,
 						width: 80,
 						height: 80,
-						borderRadius: "50%",
+						borderRadius: radii.full,
 						backgroundColor: "rgba(255,255,255,0.06)",
 					}}
 				/>
@@ -163,7 +164,7 @@ function Page() {
 
 			{/* Overlapping white container */}
 			<Container
-				size="sm"
+				size={980}
 				px="md"
 				style={{
 					marginTop: -40,
@@ -176,10 +177,10 @@ function Page() {
 					{/* Benefits Cards */}
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
-							padding: 16,
-							boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
+							padding: spacing.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<Text size="xs" fw={600} c="blue.6" tt="uppercase" mb="sm" lh={1}>
@@ -210,10 +211,10 @@ function Page() {
 					{/* Registration Form */}
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
-							padding: 16,
-							boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
+							padding: spacing.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<Text size="xs" fw={600} c="blue.6" tt="uppercase" mb="sm" lh={1}>
@@ -266,7 +267,7 @@ function Page() {
 									style={{
 										background: "linear-gradient(135deg, #228be6, #40A7E3)",
 										border: "none",
-										boxShadow: "0 4px 12px rgba(34,139,230,0.3)",
+										boxShadow: shadows.accent,
 									}}
 								>
 									{t("register.submit")}

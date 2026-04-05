@@ -3,7 +3,7 @@ import { IconExternalLink, IconDotsVertical, IconEdit } from '@tabler/icons-reac
 import { useTranslation } from 'react-i18next';
 import { ListingImageThumbnail } from '@shared/ui/ListingImageThumbnail';
 import type { OLXListing } from '@shared/api/types';
-import { formatPrice } from '@app/styles/theme';
+import { formatPrice, radii, shadows, spacing, surface } from '@app/styles/theme';
 import { getFirstImage } from './getFirstImage';
 import { PropertyInfo } from './PropertyInfo';
 
@@ -20,10 +20,10 @@ export function OLXListingCard({ listing, onClaim, isClaiming }: OLXListingCardP
   return (
     <Box
       style={{
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 12,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        backgroundColor: surface.card,
+        borderRadius: radii.md,
+        padding: spacing.cardCompact,
+        boxShadow: shadows.sm,
         border: '1px dashed var(--mantine-color-gray-3)',
         position: 'relative',
         transition: 'all 0.15s ease',

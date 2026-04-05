@@ -2,6 +2,7 @@ import { FC } from 'react';
 import { Box, Group, Text, UnstyledButton } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
 import type { TablerIconsProps } from '@tabler/icons-react';
+import { radii } from '@app/styles/theme';
 
 interface ProfileMenuItemProps {
   icon: FC<TablerIconsProps>;
@@ -35,7 +36,7 @@ export function ProfileMenuItem({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 10,
+              borderRadius: radii.md,
               backgroundColor: bg,
               display: 'flex',
               alignItems: 'center',

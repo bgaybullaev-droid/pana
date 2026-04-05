@@ -10,12 +10,11 @@ import {
 	TextInput,
 	Button,
 	LoadingOverlay,
-	ActionIcon,
 } from "@mantine/core";
 import {
 	IconBuildingStore,
 	IconBrandTelegram,
-	IconArrowLeft,
+
 	IconCheck,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
@@ -26,7 +25,8 @@ import {
 	$sellerError,
 } from "@modules/seller/shared/state";
 import { SELLER_BOT_USERNAME } from "@shared/lib/constants";
-import { gradients } from "@app/styles/theme";
+import { gradients, shadows, radii, surface } from "@app/styles/theme";
+import { PageBar } from "@shared/ui/PageBar";
 
 function Page() {
 	const navigate = useNavigate();
@@ -97,9 +97,9 @@ function Page() {
 	}
 
 	return (
-		<Box
-			style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-		>
+		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
+			<PageBar title={t("auth.becomeSeller")} onBack={() => navigate("/profile")} />
+
 			{/* Gradient header */}
 			<Box
 				style={{
@@ -110,26 +110,6 @@ function Page() {
 					position: "relative",
 				}}
 			>
-				{/* Back button */}
-				<ActionIcon
-					variant="transparent"
-					size={56}
-					onClick={() => navigate("/profile")}
-					style={{
-						position: "absolute",
-						top: 12,
-						left: 12,
-						zIndex: 2,
-						backgroundColor: "rgba(255, 255, 255, 0.65)",
-						backdropFilter: "blur(20px) saturate(180%)",
-						WebkitBackdropFilter: "blur(20px) saturate(180%)",
-						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-						borderRadius: "50%",
-					}}
-				>
-					<IconArrowLeft size={24} color="#868e96" />
-				</ActionIcon>
 
 				{/* Decorative circles */}
 				<Box
@@ -139,7 +119,7 @@ function Page() {
 						right: -20,
 						width: 100,
 						height: 100,
-						borderRadius: "50%",
+						borderRadius: radii.full,
 						backgroundColor: "rgba(255,255,255,0.08)",
 					}}
 				/>
@@ -150,7 +130,7 @@ function Page() {
 						left: -10,
 						width: 70,
 						height: 70,
-						borderRadius: "50%",
+						borderRadius: radii.full,
 						backgroundColor: "rgba(255,255,255,0.06)",
 					}}
 				/>
@@ -206,7 +186,7 @@ function Page() {
 									style={{
 										width: 24,
 										height: 24,
-										borderRadius: 12,
+										borderRadius: radii.md,
 										backgroundColor: "#ebfbee",
 										display: "flex",
 										alignItems: "center",
@@ -285,7 +265,7 @@ function Page() {
 						style={{
 							background: gradients.orange,
 							border: "none",
-							boxShadow: "0 4px 12px rgba(255,110,1,0.3)",
+							boxShadow: shadows.accentOrange,
 						}}
 					>
 						{t("register.submit")}

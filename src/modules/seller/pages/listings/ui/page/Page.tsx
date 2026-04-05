@@ -26,10 +26,10 @@ import {
   IconEye,
   IconPhone,
   IconExternalLink,
-  IconArrowLeft,
   IconBuilding,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { PageBar } from '@shared/ui/PageBar';
 import {
   $sellerListings,
   $isLoadingListings,
@@ -50,7 +50,7 @@ import {
 import { EmptyState } from '@shared/ui/EmptyState';
 import { PillTabs } from '@shared/ui/PillTabs';
 import { ListingImageThumbnail } from '@shared/ui/ListingImageThumbnail';
-import { formatPrice } from '@app/styles/theme';
+import { formatPrice, radii, shadows, surface } from '@app/styles/theme';
 import { translateDistrict } from '@shared/lib/regions';
 
 interface UnifiedCard {
@@ -303,44 +303,33 @@ function Page() {
   };
 
   return (
-    <Container px="sm" py="md" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', maxWidth: 480, margin: '0 auto', overflow: 'auto' }}>
-      <Stack gap={16}>
-        {/* ── Modern Compact Header ── */}
-        <Box style={{ animation: 'fade-in 0.4s ease-out' }}>
-          <Group justify="space-between" align="center" mb="sm">
-            <Group gap="xs">
-              <ActionIcon
-                variant="transparent"
-                color="dark.9"
-                size={36}
-                radius="md"
-                onClick={() => navigate(-1)}
-              >
-                <IconArrowLeft size={20} />
-              </ActionIcon>
-              <Text fw={800} size="22px" c="dark.9" style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.3px' }} lh={1.1}>
-                {t('listings.myListings')}
-              </Text>
-            </Group>
-            <Button
-              leftSection={<IconPlus size={16} stroke={2} />}
-              radius="xl"
-              size="sm"
-              style={{
-                background: '#228be6',
-                border: 'none',
-                boxShadow: '0 4px 12px rgba(34, 139, 230, 0.2)',
-                padding: '0 12px',
+    <Container px="sm" py="md" style={{ backgroundColor: surface.page, minHeight: '100vh', maxWidth: 980, margin: '0 auto', overflow: 'auto' }}>
+      <PageBar
+        title={t('listings.myListings')}
+        actions={
+          <Button
+            leftSection={<IconPlus size={16} stroke={2} />}
+            radius="xl"
+            size="sm"
+            style={{
+              background: '#228be6',
+              border: 'none',
+              boxShadow: shadows.accent,
+              padding: '0 12px',
                 height: 32,
               }}
               onClick={() => navigate('/seller/create')}
             >
               {t('listings.add', 'New')}
             </Button>
-          </Group>
+          }
+      />
+      <Stack gap={16}>
 
+        {/* ── Modern Compact Header ── */}
+        <Box style={{ animation: 'fade-in 0.4s ease-out' }}>
           {/* ── Pill-style filter chips inside a subtle card ── */}
-          <Card radius={12} p={4} style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+          <Card radius={radii.md} p={4} style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
             <PillTabs tabs={filters} activeValue={filter} onChange={setFilter} />
           </Card>
         </Box>
@@ -377,20 +366,20 @@ function Page() {
 
             const cardContent = (
               <Card
-                radius={12}
+                radius={radii.md}
                 p="xs"
                 style={{
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                  boxShadow: shadows.sm,
                   border: isCrawled ? '1px dashed #cbd5e1' : '1px solid #f1f5f9',
                   borderLeft: borderLeftColor ? `4px solid ${borderLeftColor}` : '1px solid #f1f5f9',
-                  backgroundColor: 'white',
+                  backgroundColor: surface.card,
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                   cursor: 'pointer',
                   animation: `fade-in-up 0.4s ease-out ${0.05 + (index * 0.05)}s both`
                 }}
               >
                 <Group wrap="nowrap" gap="sm" align="flex-start">
-                  <Box style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 8, overflow: 'hidden' }}>
+                  <Box style={{ width: 80, height: 80, flexShrink: 0, borderRadius: radii.sm, overflow: 'hidden' }}>
                     <ListingImageThumbnail src={card.imageUrl} />
                   </Box>
 
@@ -549,13 +538,13 @@ function Page() {
         }
       `}</style>
 
-      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title={<Text fw={700} size="lg" style={{ fontFamily: 'Outfit, sans-serif' }}>{t('listings.deleteTitle', 'Delete Listing')}</Text>} centered radius={16} overlayProps={{ blur: 4, backgroundOpacity: 0.4 }} padding="md">
+      <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title={<Text fw={700} size="lg" style={{ fontFamily: 'Outfit, sans-serif' }}>{t('listings.deleteTitle', 'Delete Listing')}</Text>} centered radius={radii.lg} overlayProps={{ blur: 4, backgroundOpacity: 0.4 }} padding="md">
         <Stack gap="md">
           <Text size="sm" c="dimmed" lh={1.4}>
             {t('listings.deleteConfirm', 'Are you sure you want to permanently delete this listing?')}
           </Text>
           <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={() => setDeleteModalOpen(false)} radius="xl" size="sm" style={{ border: 'none', background: '#f1f5f9', color: '#475569' }}>
+            <Button variant="default" onClick={() => setDeleteModalOpen(false)} radius="xl" size="sm" style={{ border: 'none', background: surface.muted, color: '#475569' }}>
               {t('listings.cancel')}
             </Button>
             <Button color="red" onClick={confirmDelete} radius="xl" size="sm">

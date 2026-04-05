@@ -2,6 +2,7 @@ import { FC, useState } from "react";
 import { TextInput, ActionIcon } from "@mantine/core";
 import { IconArrowLeft, IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { radii, surface } from "@app/styles/theme";
 
 interface SearchInputProps {
 	value: string;
@@ -32,11 +33,11 @@ export const SearchInput: FC<SearchInputProps> = ({
 					onSubmit();
 				}
 			}}
-			radius={22}
+			radius={radii.xl}
 			styles={{
 				input: {
 					height: 45,
-					backgroundColor: focused ? "#f8f9fa" : "#f1f3f5",
+					backgroundColor: focused ? surface.page : surface.muted,
 					border: focused ? "1px solid #dee2e6" : "none",
 					paddingLeft: 42,
 					fontSize: 16,

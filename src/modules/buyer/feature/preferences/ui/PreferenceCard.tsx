@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Box, Group, Stack, Text, ThemeIcon } from '@mantine/core';
+import { radii, shadows, spacing, surface } from '@app/styles/theme';
 import type { TablerIconsProps } from '@tabler/icons-react';
 
 interface PreferenceCardProps {
@@ -22,10 +23,10 @@ export function PreferenceCard({
   return (
     <Box
       style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: '20px 18px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)',
+        backgroundColor: surface.card,
+        borderRadius: radii.lg,
+        padding: spacing.card,
+        boxShadow: shadows.md,
       }}
     >
       <Group gap={12} mb={description ? 6 : 14} align="center" wrap="nowrap">

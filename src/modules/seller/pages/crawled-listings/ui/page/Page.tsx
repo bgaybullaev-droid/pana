@@ -11,7 +11,6 @@ import {
 	Pagination,
 	Skeleton,
 	SimpleGrid,
-	ActionIcon,
 	Card,
 	ThemeIcon,
 } from "@mantine/core";
@@ -20,14 +19,15 @@ import {
 	IconWorldSearch,
 	IconBrandTelegram,
 	IconHome,
-	IconArrowLeft,
 	IconSearch,
 } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 import { claimOlxListing } from "@shared/api/sellerCrawledListings";
 import { EmptyState } from "@shared/ui/EmptyState";
 import { PillTabs } from "@shared/ui/PillTabs";
 import { OLXListingCard } from "../main/OLXListingCard";
 import { TelegramListingCard } from "../main/TelegramListingCard";
+import { radii, shadows, surface } from "@app/styles/theme";
 import {
 	pageOpened,
 	tabChanged,
@@ -142,43 +142,21 @@ function Page() {
 			px="sm"
 			py="md"
 			style={{
-				backgroundColor: "#f8fafc",
+				backgroundColor: surface.page,
 				minHeight: "100vh",
-				maxWidth: 480,
+				maxWidth: 980,
 				margin: "0 auto",
 				overflow: "auto",
 			}}
 		>
+			<PageBar title={t("crawled.title")} />
 			<Stack gap={16}>
+
 				{/* ── Modern Compact Header ── */}
 				<Box style={{ animation: "fade-in 0.4s ease-out" }}>
-					<Group gap="sm" align="center" mb="xs">
-						<ActionIcon
-							variant="transparent"
-							color="dark.9"
-							size={36}
-							radius="md"
-							onClick={() => navigate(-1)}
-						>
-							<IconArrowLeft size={20} />
-						</ActionIcon>
-						<Text
-							fw={800}
-							size="22px"
-							c="dark.9"
-							style={{
-								fontFamily: "Outfit, sans-serif",
-								letterSpacing: "-0.3px",
-							}}
-							lh={1.1}
-						>
-							{t("crawled.title")}
-						</Text>
-					</Group>
-
 					{/* ── Context Card (Compact Mobile) ── */}
 					<Card
-						radius={12}
+						radius={radii.md}
 						p="sm"
 						mb="sm"
 						style={{
@@ -212,10 +190,10 @@ function Page() {
 					) : stats ? (
 						<SimpleGrid cols={3} spacing="xs">
 							<Card
-								radius={12}
+								radius={radii.md}
 								p="sm"
 								style={{
-									boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+									boxShadow: shadows.md,
 									border: "1px solid #f1f5f9",
 								}}
 							>
@@ -236,10 +214,10 @@ function Page() {
 								</Text>
 							</Card>
 							<Card
-								radius={12}
+								radius={radii.md}
 								p="sm"
 								style={{
-									boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+									boxShadow: shadows.md,
 									border: "1px solid #f1f5f9",
 								}}
 							>
@@ -260,10 +238,10 @@ function Page() {
 								</Text>
 							</Card>
 							<Card
-								radius={12}
+								radius={radii.md}
 								p="sm"
 								style={{
-									boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+									boxShadow: shadows.md,
 									border: "1px solid #f1f5f9",
 								}}
 							>
@@ -290,7 +268,7 @@ function Page() {
 				{/* ── Error State ── */}
 				{error && (
 					<Card
-						radius={12}
+						radius={radii.md}
 						p="xs"
 						style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca" }}
 					>
@@ -303,12 +281,12 @@ function Page() {
 				{/* ── Pill-style filter chips inside a subtle card ── */}
 				<Box style={{ animation: "fade-in-up 0.4s ease-out 0.05s both" }}>
 					<Card
-						radius={12}
+						radius={radii.md}
 						p={4}
 						style={{
-							background: "white",
+							background: surface.card,
 							border: "1px solid #f1f5f9",
-							boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+							boxShadow: shadows.md,
 						}}
 					>
 						{renderTabs()}
@@ -342,9 +320,9 @@ function Page() {
 										<Box
 											key={listing.id}
 											style={{
-												boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-												borderRadius: 12,
-												backgroundColor: "white",
+												boxShadow: shadows.sm,
+												borderRadius: radii.md,
+												backgroundColor: surface.card,
 												border: "1px solid #f1f5f9",
 											}}
 										>
@@ -359,9 +337,9 @@ function Page() {
 										<Box
 											key={listing.id}
 											style={{
-												boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-												borderRadius: 12,
-												backgroundColor: "white",
+												boxShadow: shadows.sm,
+												borderRadius: radii.md,
+												backgroundColor: surface.card,
 												border: "1px solid #f1f5f9",
 											}}
 										>

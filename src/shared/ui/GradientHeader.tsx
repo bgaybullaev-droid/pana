@@ -1,7 +1,7 @@
 import { FC, ReactNode } from "react";
 import { ActionIcon, Box, Text } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
-import { gradients } from "@app/styles/theme";
+import { gradients, shadows } from "@app/styles/theme";
 import type { TablerIconsProps } from "@tabler/icons-react";
 
 type GradientType = "header" | "primary" | "orange";
@@ -77,7 +77,7 @@ export function GradientHeader({
 						backdropFilter: "blur(20px) saturate(180%)",
 						WebkitBackdropFilter: "blur(20px) saturate(180%)",
 						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+						boxShadow: shadows.soft,
 						borderRadius: "50%",
 					}}
 				>

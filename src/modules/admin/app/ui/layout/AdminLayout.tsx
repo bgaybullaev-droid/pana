@@ -1,5 +1,6 @@
 import { Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Box, UnstyledButton, Text, Group } from '@mantine/core';
+import { PageBar } from '@shared/ui/PageBar';
 import {
   IconLayoutDashboard,
   IconUsers,
@@ -82,41 +83,19 @@ export function AdminLayout() {
         background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
       }}
     >
-      {/* Gradient Header */}
-      <Box className="admin-header">
-        <Box style={{ position: 'relative', zIndex: 1 , bottom: 25}}>
-          <Group justify="space-between" align="center">
-            <Box>
-              <Text
-                size="xs"
-                fw={500}
-                style={{ opacity: 0.7, letterSpacing: '0.5px', textTransform: 'uppercase' }}
-              >
-{t('header.brand')}
-              </Text>
-              <Text size="lg" fw={700} mt={2}>
-                {t('header.title')}
-              </Text>
-            </Box>
-            <Group gap={8}>
-              <LanguageSwitcher />
-              <Box
-                style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: 12,
-                  padding: '6px 14px',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                }}
-              >
-                <Text size="xs" fw={600} style={{ letterSpacing: '0.5px' }}>
-                  {firstName}
-                </Text>
-              </Box>
-            </Group>
+      {/* Header */}
+      <PageBar
+        title={t('header.title')}
+        onBack={() => navigate('/')}
+        actions={
+          <Group gap={8}>
+            <LanguageSwitcher />
+            <Text size="xs" fw={600} c="dimmed">
+              {firstName}
+            </Text>
           </Group>
-        </Box>
-      </Box>
+        }
+      />
 
       {/* Main content */}
       <Box
@@ -127,7 +106,9 @@ export function AdminLayout() {
         }}
         className="admin-page-bg hide-scrollbar"
       >
-        <Outlet />
+        <Box style={{ maxWidth: 980, margin: '0 auto', width: '100%' }}>
+          <Outlet />
+        </Box>
       </Box>
 
       {/* Bottom navigation */}

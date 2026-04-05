@@ -22,6 +22,7 @@ import {
 	$isSellerOTPLoading,
 } from "@shared/state/auth/model";
 import { LanguageSwitcher } from "@shared/ui/LanguageSwitcher";
+import { shadows } from "@app/styles/theme";
 
 const SELLER_BOT_USERNAME =
 	import.meta.env.VITE_SELLER_BOT_USERNAME || "testourbor_bot";
@@ -166,7 +167,7 @@ export function SellerLoginGate() {
 							style={{
 								background: "linear-gradient(135deg, #228be6, #40A7E3)",
 								border: "none",
-								boxShadow: "0 4px 12px rgba(34,139,230,0.3)",
+								boxShadow: shadows.accent,
 							}}
 						>
 							{t("auth.getCode")}

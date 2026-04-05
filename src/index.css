@@ -4,6 +4,13 @@
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
 }
 
+/* Constrain Drawer content to max-width on wide screens */
+.mantine-Drawer-content {
+  max-width: 980px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

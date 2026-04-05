@@ -139,7 +139,7 @@ export function PreferencesPanel(_props: PreferencesPanelProps = {}) {
 	};
 
 	return (
-		<Container size="sm" px="md" style={{ paddingBottom: 24 }}>
+		<Container size={980} px="md" style={{ paddingBottom: 24 }}>
 			<Stack gap="md">
 				{/* Subtitle */}
 				<Text size="sm" c="dimmed" ta="center">

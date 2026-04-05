@@ -1,5 +1,6 @@
 import { SegmentedControl } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { radii, surface } from '@app/styles/theme';
 
 interface LanguageSwitcherProps {
   variant?: 'dark' | 'light';
@@ -29,8 +30,8 @@ export function LanguageSwitcher({ variant = 'dark' }: LanguageSwitcherProps) {
         }
       : {
           root: {
-            backgroundColor: '#f1f3f5',
-            borderRadius: 10,
+            backgroundColor: surface.muted,
+            borderRadius: radii.md,
             padding: 2,
           },
           label: {
@@ -39,7 +40,7 @@ export function LanguageSwitcher({ variant = 'dark' }: LanguageSwitcherProps) {
             padding: '4px 12px',
           },
           indicator: {
-            borderRadius: 8,
+            borderRadius: radii.sm,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           },
         };
@@ -53,7 +54,7 @@ export function LanguageSwitcher({ variant = 'dark' }: LanguageSwitcherProps) {
         { label: 'UZ', value: 'uz' },
       ]}
       size="xs"
-      radius={10}
+      radius={radii.md}
       styles={styles}
     />
   );

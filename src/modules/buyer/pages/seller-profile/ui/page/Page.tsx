@@ -32,6 +32,7 @@ import {
 	IconList,
 } from "@tabler/icons-react";
 import { apiClient } from "@shared/api/client";
+import { shadows, radii, surface } from "@app/styles/theme";
 import type { SellerPublic, ListingListItem } from "@shared/api/types";
 import { ListingCard } from "@shared/ui/ListingCard";
 
@@ -107,9 +108,9 @@ function Page() {
 		<Container
 			px={0}
 			style={{
-				backgroundColor: "#f8fafc",
+				backgroundColor: surface.page,
 				minHeight: "100vh",
-				maxWidth: 480,
+				maxWidth: 980,
 				margin: "0 auto",
 				overflow: "auto",
 			}}
@@ -138,8 +139,8 @@ function Page() {
 						backdropFilter: "blur(20px) saturate(180%)",
 						WebkitBackdropFilter: "blur(20px) saturate(180%)",
 						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-						borderRadius: "50%",
+						boxShadow: shadows.md,
+						borderRadius: radii.full,
 					}}
 				>
 					<IconArrowLeft size={24} color="#868e96" />
@@ -149,10 +150,10 @@ function Page() {
 			<Box px="sm" style={{ marginTop: -50 }}>
 				{/* ── Compact Profile Info Card ── */}
 				<Card
-					radius={16}
+					radius={radii.lg}
 					p="md"
 					style={{
-						boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+						boxShadow: shadows.md,
 						position: "relative",
 						overflow: "visible",
 						zIndex: 10,
@@ -165,10 +166,10 @@ function Page() {
 								style={{
 									width: 80,
 									height: 80,
-									borderRadius: "50%",
+									borderRadius: radii.full,
 									padding: 3,
 									background: "white",
-									boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+									boxShadow: shadows.md,
 								}}
 							>
 								<Avatar
@@ -194,7 +195,7 @@ function Page() {
 										bottom: 2,
 										right: 2,
 										background: "#228be6",
-										borderRadius: "50%",
+										borderRadius: radii.full,
 										padding: 2,
 										border: "2px solid white",
 										display: "flex",
@@ -249,12 +250,12 @@ function Page() {
 						{/* Action Buttons */}
 						<Group wrap="nowrap" w="100%" mt={12} gap="xs">
 							<Button
-								radius={12}
+								radius={radii.md}
 								size="sm"
 								color="blue"
 								style={{
 									flex: 1,
-									boxShadow: "0 4px 12px rgba(34, 139, 230, 0.2)",
+									boxShadow: shadows.accent,
 								}}
 								leftSection={<IconPhone size={16} />}
 								component="a"
@@ -266,7 +267,7 @@ function Page() {
 
 							{seller.telegram_username && (
 								<ActionIcon
-									radius={12}
+									radius={radii.md}
 									size={36}
 									variant="light"
 									color="blue"
@@ -278,13 +279,13 @@ function Page() {
 								</ActionIcon>
 							)}
 							<ActionIcon
-								radius={12}
+								radius={radii.md}
 								size={36}
 								variant="default"
 								onClick={handleShare}
 								style={{
 									border: "1px solid #e2e8f0",
-									background: "#f8fafc",
+									background: surface.page,
 									color: "#64748b",
 								}}
 							>
@@ -297,9 +298,8 @@ function Page() {
 							<Stack
 								gap={2}
 								align="center"
-								bg="#f8fafc"
 								py="xs"
-								style={{ borderRadius: 12, border: "1px solid #f1f5f9" }}
+								style={{ backgroundColor: surface.page, borderRadius: radii.md, border: "1px solid #f1f5f9" }}
 							>
 								<ThemeIcon variant="light" color="blue" size="sm" radius="md">
 									<IconList size={14} />
@@ -327,9 +327,8 @@ function Page() {
 							<Stack
 								gap={2}
 								align="center"
-								bg="#f8fafc"
 								py="xs"
-								style={{ borderRadius: 12, border: "1px solid #f1f5f9" }}
+								style={{ backgroundColor: surface.page, borderRadius: radii.md, border: "1px solid #f1f5f9" }}
 							>
 								<ThemeIcon variant="light" color="teal" size="sm" radius="md">
 									<IconCalendarEvent size={14} />
@@ -357,9 +356,8 @@ function Page() {
 							<Stack
 								gap={2}
 								align="center"
-								bg="#f8fafc"
 								py="xs"
-								style={{ borderRadius: 12, border: "1px solid #f1f5f9" }}
+								style={{ backgroundColor: surface.page, borderRadius: radii.md, border: "1px solid #f1f5f9" }}
 							>
 								<ThemeIcon variant="light" color="violet" size="sm" radius="md">
 									<IconEye size={14} />
@@ -400,7 +398,7 @@ function Page() {
 									component="a"
 									href={seller.instagram_url}
 									target="_blank"
-									radius={12}
+									radius={radii.md}
 									p="sm"
 									style={{
 										display: "flex",
@@ -409,7 +407,7 @@ function Page() {
 										textDecoration: "none",
 										background: "white",
 										border: "1px solid #f1f5f9",
-										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										boxShadow: shadows.md,
 									}}
 								>
 									<ThemeIcon size={32} radius="md" color="pink" variant="light">
@@ -433,7 +431,7 @@ function Page() {
 									component="a"
 									href={seller.website_url}
 									target="_blank"
-									radius={12}
+									radius={radii.md}
 									p="sm"
 									style={{
 										display: "flex",
@@ -442,7 +440,7 @@ function Page() {
 										textDecoration: "none",
 										background: "white",
 										border: "1px solid #f1f5f9",
-										boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+										boxShadow: shadows.md,
 									}}
 								>
 									<ThemeIcon size={32} radius="md" color="gray" variant="light">
@@ -488,7 +486,7 @@ function Page() {
 							size="xs"
 							variant="dot"
 							color="blue"
-							style={{ background: "#f8fafc", fontWeight: 800 }}
+							style={{ background: surface.page, fontWeight: 800 }}
 						>
 							{listings.length} ACTIVE
 						</Badge>
@@ -507,10 +505,9 @@ function Page() {
 					) : (
 						<Paper
 							p="xl"
-							radius={16}
+							radius={radii.lg}
 							ta="center"
-							bg="#f8fafc"
-							style={{ border: "1px dashed #cbd5e1" }}
+							style={{ backgroundColor: surface.page, border: "1px dashed #cbd5e1" }}
 						>
 							<IconHome2
 								size={32}

@@ -82,13 +82,13 @@ export const theme = createTheme({
 		Card: {
 			defaultProps: {
 				shadow: "none",
-				radius: 16,
+				radius: 12,
 				withBorder: false,
 			},
 			styles: {
 				root: {
 					backgroundColor: "#fff",
-					boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)",
+					boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
 					transition:
 						"transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease",
 					"&:active": {
@@ -109,13 +109,40 @@ export const theme = createTheme({
 // Utility constants for consistent usage
 export const IMAGE_BASE_URL = "https://source.uchar.market/";
 
-// Design tokens
+// ── Design tokens ──────────────────────────────────────────
+
+export const radii = {
+	sm: 8,
+	md: 12,
+	lg: 16,
+	xl: 24,
+	full: 9999,
+} as const;
+
 export const shadows = {
-	card: "0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)",
-	cardHover: "0 4px 12px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.1)",
+	sm: "0 1px 4px rgba(0,0,0,0.04)",
+	md: "0 2px 12px rgba(0,0,0,0.06)",
+	lg: "0 8px 32px rgba(0,0,0,0.12)",
+	accent: "0 4px 12px rgba(34,139,230,0.3)",
+	accentOrange: "0 4px 12px rgba(255,110,1,0.3)",
+	// Legacy aliases (use new names in new code)
+	card: "0 2px 12px rgba(0,0,0,0.06)",
+	cardHover: "0 8px 32px rgba(0,0,0,0.12)",
 	soft: "0 2px 12px rgba(0,0,0,0.06)",
 	elevated: "0 8px 32px rgba(0,0,0,0.12)",
 	button: "0 4px 12px rgba(34,139,230,0.3)",
+} as const;
+
+export const spacing = {
+	card: 16,
+	cardCompact: 12,
+	page: "md" as const,
+} as const;
+
+export const surface = {
+	page: "#f8f9fa",
+	card: "#ffffff",
+	muted: "#f1f3f5",
 } as const;
 
 export const gradients = {

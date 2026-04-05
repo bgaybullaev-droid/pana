@@ -88,7 +88,7 @@ function Page() {
 
 	if (error) {
 		return (
-			<Container size="sm" px="md" py="xl">
+			<Container size={980} px="md" py="xl">
 				<Stack align="center" gap="md">
 					<IconPhoto size={64} color="var(--mantine-color-gray-5)" />
 					<Title order={3} ta="center">

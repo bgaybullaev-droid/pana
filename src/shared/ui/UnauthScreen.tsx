@@ -3,6 +3,7 @@ import { Box } from '@mantine/core';
 import type { TablerIconsProps } from '@tabler/icons-react';
 import { GradientHeader } from './GradientHeader';
 import { LoginPromptCard } from './LoginPromptCard';
+import { surface } from '@app/styles/theme';
 
 interface UnauthScreenProps {
   icon: FC<TablerIconsProps>;
@@ -28,7 +29,7 @@ export function UnauthScreen({
   children,
 }: UnauthScreenProps) {
   return (
-    <Box mih="100vh" bg="#f8f9fa">
+    <Box mih="100vh" bg={surface.page}>
       <GradientHeader icon={icon} title={title} subtitle={subtitle} onBack={onBack} />
 
       <Box px="md" style={{ marginTop: -30 }}>

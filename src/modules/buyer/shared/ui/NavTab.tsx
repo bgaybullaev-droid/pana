@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import { Box, UnstyledButton, Text } from "@mantine/core";
 import type { IconHome } from "@tabler/icons-react";
-import { transitions } from "@app/styles/theme";
+import { radii, transitions } from "@app/styles/theme";
 
 // Custom filled home icon (Tabler doesn't have IconHomeFilled)
 function HomeFilled({
@@ -54,7 +54,7 @@ export const NavTab = forwardRef<HTMLButtonElement, NavTabProps>(
 					alignItems: "center",
 					justifyContent: "center",
 					padding: "4px 0",
-					borderRadius: 13,
+					borderRadius: radii.md,
 					backgroundColor: "transparent",
 					transition: transitions.spring,
 					flex: 1,

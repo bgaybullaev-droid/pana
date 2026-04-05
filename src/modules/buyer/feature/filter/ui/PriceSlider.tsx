@@ -38,7 +38,7 @@ export const PriceSlider: FC<PriceSliderProps> = ({
           thumb: {
             width: 25,
             height: 25,
-            borderRadius: 9,
+            borderRadius: 8,
           },
           track: {
             height: 4,

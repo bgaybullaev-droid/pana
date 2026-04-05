@@ -69,7 +69,9 @@ function WithBottomNav({ children }: { children: React.ReactNode }) {
 				}}
 				className="hide-scrollbar"
 			>
-				{children}
+				<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
+					{children}
+				</Box>
 			</Box>
 			<BottomNavigation />
 		</Box>

@@ -36,7 +36,7 @@ import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import { ProfileMenuItem } from "@shared/ui/ProfileMenuItem";
 import { LanguageSwitcher } from "@shared/ui/LanguageSwitcher";
 import { ActionIcon } from "@mantine/core";
-import { shadows, gradients } from "@app/styles/theme";
+import { shadows, gradients, radii, surface } from "@app/styles/theme";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -83,10 +83,10 @@ function Page() {
 				<Box px="md" mt="md">
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
 							padding: "12px 16px",
-							boxShadow: shadows.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<Group justify="space-between">
@@ -95,7 +95,7 @@ function Page() {
 									style={{
 										width: 36,
 										height: 36,
-										borderRadius: 10,
+										borderRadius: radii.md,
 										backgroundColor: "#e7f5ff",
 										display: "flex",
 										alignItems: "center",
@@ -164,7 +164,7 @@ function Page() {
 	];
 
 	return (
-		<Box mih="100vh" bg="#f8f9fa">
+		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
 			{/* Gradient header */}
 			<Box
 				style={{
@@ -189,8 +189,8 @@ function Page() {
 						backdropFilter: "blur(20px) saturate(180%)",
 						WebkitBackdropFilter: "blur(20px) saturate(180%)",
 						border: "1px solid rgba(255, 255, 255, 0.5)",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
-						borderRadius: "50%",
+						boxShadow: shadows.md,
+						borderRadius: radii.full,
 					}}
 				>
 					<IconArrowLeft size={24} color="#868e96" />
@@ -205,7 +205,7 @@ function Page() {
 						right: -30,
 						width: 120,
 						height: 120,
-						borderRadius: "50%",
+						borderRadius: radii.full,
 						backgroundColor: "rgba(255,255,255,0.08)",
 					}}
 				/>
@@ -216,7 +216,7 @@ function Page() {
 						left: -20,
 						width: 80,
 						height: 80,
-						borderRadius: "50%",
+						borderRadius: radii.full,
 						backgroundColor: "rgba(255,255,255,0.06)",
 					}}
 				/>
@@ -233,9 +233,9 @@ function Page() {
 						style={{
 							width: 76,
 							height: 76,
-							borderRadius: "50%",
+							borderRadius: radii.full,
 							border: "3px solid rgba(255,255,255,0.5)",
-							boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+							boxShadow: shadows.lg,
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",
@@ -274,9 +274,9 @@ function Page() {
 							<Box
 								style={{
 									background: gradients.orange,
-									borderRadius: 16,
+									borderRadius: radii.lg,
 									padding: "16px 18px",
-									boxShadow: "0 4px 16px rgba(255,110,1,0.25)",
+									boxShadow: shadows.accentOrange,
 								}}
 							>
 								<Group justify="space-between" wrap="nowrap">
@@ -285,7 +285,7 @@ function Page() {
 											style={{
 												width: 44,
 												height: 44,
-												borderRadius: 12,
+												borderRadius: radii.md,
 												backgroundColor: "rgba(255,255,255,0.2)",
 												display: "flex",
 												alignItems: "center",
@@ -313,9 +313,9 @@ function Page() {
 					{user?.is_seller && (
 						<Box
 							style={{
-								backgroundColor: "white",
-								borderRadius: 16,
-								boxShadow: shadows.card,
+								backgroundColor: surface.card,
+								borderRadius: radii.lg,
+								boxShadow: shadows.md,
 								overflow: "hidden",
 							}}
 						>
@@ -336,10 +336,10 @@ function Page() {
 					{/* Notifications toggle */}
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
 							padding: "12px 16px",
-							boxShadow: shadows.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<Group justify="space-between">
@@ -348,7 +348,7 @@ function Page() {
 									style={{
 										width: 36,
 										height: 36,
-										borderRadius: 10,
+										borderRadius: radii.md,
 										backgroundColor: "#f3f0ff",
 										display: "flex",
 										alignItems: "center",
@@ -379,10 +379,10 @@ function Page() {
 					{/* Language switcher */}
 					<Box
 						style={{
-							backgroundColor: "white",
-							borderRadius: 16,
+							backgroundColor: surface.card,
+							borderRadius: radii.lg,
 							padding: "12px 16px",
-							boxShadow: shadows.card,
+							boxShadow: shadows.md,
 						}}
 					>
 						<Group justify="space-between">
@@ -391,7 +391,7 @@ function Page() {
 									style={{
 										width: 36,
 										height: 36,
-										borderRadius: 10,
+										borderRadius: radii.md,
 										backgroundColor: "#e7f5ff",
 										display: "flex",
 										alignItems: "center",

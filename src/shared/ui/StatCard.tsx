@@ -1,4 +1,5 @@
 import { Box, Group, Text } from '@mantine/core';
+import { radii, shadows, spacing, surface } from '@app/styles/theme';
 import { type TablerIconsProps } from '@tabler/icons-react';
 import { type FC } from 'react';
 
@@ -23,16 +24,16 @@ const colorMap: Record<string, { bg: string; fg: string }> = {
 export function StatCard({ icon: Icon, color, value, label, compact }: StatCardProps) {
   const colors = colorMap[color] || colorMap.blue;
   const iconSize = compact ? 40 : 48;
-  const iconRadius = compact ? 12 : 14;
+  const iconRadius = radii.md;
   const iconPx = compact ? 18 : 22;
-  const padding = compact ? 12 : 16;
+  const padding = compact ? spacing.cardCompact : spacing.card;
 
   return (
     <Box
       style={{
-        background: '#ffffff',
-        borderRadius: 16,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        background: surface.card,
+        borderRadius: radii.lg,
+        boxShadow: shadows.md,
         padding,
         transition: 'all 0.2s ease',
         cursor: 'default',

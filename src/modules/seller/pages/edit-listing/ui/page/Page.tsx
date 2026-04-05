@@ -17,7 +17,8 @@ import {
 	Group,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconX, IconCameraPlus, IconArrowLeft } from "@tabler/icons-react";
+import { IconX, IconCameraPlus } from "@tabler/icons-react";
+import { PageBar } from "@shared/ui/PageBar";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useEffectorNotification } from "@shared/hooks/useEffectorNotification";
 import { FormSection } from "@shared/ui/FormSection";
@@ -34,6 +35,7 @@ import {
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
+import { radii, shadows, spacing, surface } from "@app/styles/theme";
 
 function Page() {
 	const navigate = useNavigate();
@@ -136,7 +138,7 @@ function Page() {
 
 	if (isLoading) {
 		return (
-			<Container size="sm" px="md" py="md">
+			<Container size={980} px="md" py="md">
 				<Stack gap="md">
 					<Group gap="sm">
 						<Skeleton width={30} height={30} circle />
@@ -160,39 +162,17 @@ function Page() {
 			px="sm"
 			py="md"
 			style={{
-				backgroundColor: "#f8fafc",
+				backgroundColor: surface.page,
 				minHeight: "100vh",
-				maxWidth: 480,
+				maxWidth: 980,
 				margin: "0 auto",
 				overflow: "auto",
 			}}
 		>
+			<PageBar title={t("editListing.title")} />
 			<LoadingOverlay visible={isUpdating || isUploading} />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack gap="md">
-					{/* Header */}
-					<Group gap="sm" align="center" mb="xs">
-						<ActionIcon
-							variant="transparent"
-							color="dark.9"
-							size={36}
-							radius="md"
-							onClick={() => navigate(-1)}
-						>
-							<IconArrowLeft size={20} />
-						</ActionIcon>
-						<Text
-							size="xl"
-							fw={800}
-							style={{
-								fontFamily: "Outfit, sans-serif",
-								letterSpacing: "-0.3px",
-							}}
-							c="dark.9"
-						>
-							{t("editListing.title")}
-						</Text>
-					</Group>
 
 					{/* Shared form fields: Type, Main Info, Price, Parameters, Location, Contact */}
 					<ListingFormFields
@@ -217,7 +197,7 @@ function Page() {
 											style={{
 												position: "relative",
 												aspectRatio: "1",
-												borderRadius: 12,
+												borderRadius: radii.md,
 												overflow: "hidden",
 												border: "1px solid #f1f5f9",
 											}}
@@ -251,7 +231,7 @@ function Page() {
 										style={{
 											position: "relative",
 											aspectRatio: "1",
-											borderRadius: 12,
+											borderRadius: radii.md,
 											overflow: "hidden",
 											border: "1px solid #f1f5f9",
 										}}
@@ -285,9 +265,9 @@ function Page() {
 												{...props}
 												style={{
 													aspectRatio: "1",
-													borderRadius: 12,
+													borderRadius: radii.md,
 													border: "2px dashed #cbd5e1",
-													backgroundColor: "#f8fafc",
+													backgroundColor: surface.page,
 													display: "flex",
 													alignItems: "center",
 													justifyContent: "center",
@@ -319,7 +299,7 @@ function Page() {
 					bottom: 0,
 					left: 0,
 					right: 0,
-					padding: "16px",
+					padding: spacing.card,
 					paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
 					backgroundColor: "rgba(255,255,255,0.9)",
 					backdropFilter: "blur(8px)",
@@ -328,18 +308,18 @@ function Page() {
 					borderTop: "1px solid #f1f5f9",
 				}}
 			>
-				<Box style={{ maxWidth: 448, margin: "0 auto" }}>
+				<Box style={{ maxWidth: 980, margin: "0 auto" }}>
 					<Button
 						type="submit"
 						size="md"
 						fullWidth
-						radius={12}
+						radius={radii.md}
 						loading={isUpdating || isUploading}
 						onClick={() => form.onSubmit(handleSubmit)()}
 						style={{
 							background: "#228be6",
 							border: "none",
-							boxShadow: "0 4px 12px rgba(34, 139, 230, 0.2)",
+							boxShadow: shadows.accent,
 						}}
 					>
 						{isUploading
