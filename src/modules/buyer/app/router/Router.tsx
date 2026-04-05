@@ -1,9 +1,10 @@
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { LoadingOverlay } from "@mantine/core";
+import { useAuth } from "@app/providers/useAuth";
 import { Layout } from "../ui/layout";
 
-// Lazy load buyer pages — extract .Page from { route, Page } exports
+// ── User pages (formerly "buyer") ──
 const HomePage = lazy(() =>
 	import("../../pages/home").then((m) => ({ default: m.Home.Page })),
 );
@@ -73,18 +74,65 @@ const EditProfilePage = lazy(() =>
 	})),
 );
 
+// ── Seller pages (same user, seller features) ──
+const SellerDashboardPage = lazy(() =>
+	import("@modules/seller/pages/dashboard").then((m) => ({
+		default: m.SellerDashboard.Page,
+	})),
+);
+const SellerListingsPage = lazy(() =>
+	import("@modules/seller/pages/listings").then((m) => ({
+		default: m.SellerListings.Page,
+	})),
+);
+const CrawledListingsPage = lazy(() =>
+	import("@modules/seller/pages/crawled-listings").then((m) => ({
+		default: m.CrawledListings.Page,
+	})),
+);
+const CreateListingPage = lazy(() =>
+	import("@modules/seller/pages/create-listing").then((m) => ({
+		default: m.CreateListing.Page,
+	})),
+);
+const EditListingPage = lazy(() =>
+	import("@modules/seller/pages/edit-listing").then((m) => ({
+		default: m.EditListing.Page,
+	})),
+);
+const SellerProfileEditPage = lazy(() =>
+	import("@modules/seller/pages/profile").then((m) => ({
+		default: m.SellerProfileEdit.Page,
+	})),
+);
+const SellerRegisterPage = lazy(() =>
+	import("@modules/seller/pages/register").then((m) => ({
+		default: m.SellerRegister.Page,
+	})),
+);
+
+// Auth guard for seller features
+function SellerRoute({ children }: { children: React.ReactNode }) {
+	const { user, isLoading } = useAuth();
+	if (isLoading) return <LoadingOverlay visible />;
+	if (!user) return <Navigate to="/auth" replace />;
+	if (!user.is_seller) return <Navigate to="/seller/register" replace />;
+	return <>{children}</>;
+}
+
 // Redirect component for old crawler routes
 function CrawlerRedirect() {
 	const { id } = useParams<{ id: string }>();
 	return <Navigate to={`/listings/${id}`} replace />;
 }
 
-export function BuyerRouter() {
+export function UserRouter() {
 	return (
 		<Suspense fallback={<LoadingOverlay visible />}>
 			<Routes>
-				{/* Routes with bottom navigation (BuyerLayout) */}
+				{/* Routes with bottom navigation (unified layout) */}
 				<Route element={<Layout />}>
+					{/* ── General pages ── */}
 					<Route path="/" element={<HomePage />} />
 					<Route path="/search" element={<SearchPage />} />
 					<Route path="/preferences" element={<PreferencesPage />} />
@@ -102,6 +150,15 @@ export function BuyerRouter() {
 					<Route path="/privacy" element={<PrivacyPage />} />
 					<Route path="/terms" element={<TermsPage />} />
 					<Route path="/edit-profile" element={<EditProfilePage />} />
+
+					{/* ── Seller pages (same layout, guarded) ── */}
+					<Route path="/seller/register" element={<SellerRegisterPage />} />
+					<Route path="/seller/dashboard" element={<SellerRoute><SellerDashboardPage /></SellerRoute>} />
+					<Route path="/seller/listings" element={<SellerRoute><SellerListingsPage /></SellerRoute>} />
+					<Route path="/seller/crawled" element={<SellerRoute><CrawledListingsPage /></SellerRoute>} />
+					<Route path="/seller/create" element={<SellerRoute><CreateListingPage /></SellerRoute>} />
+					<Route path="/seller/edit/:id" element={<SellerRoute><EditListingPage /></SellerRoute>} />
+					<Route path="/seller/profile" element={<SellerRoute><SellerProfileEditPage /></SellerRoute>} />
 				</Route>
 
 				{/* Full-screen pages (no bottom nav) */}

@@ -29,7 +29,7 @@ import {
   IconBuilding,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { PageBar } from '@shared/ui/PageBar';
+import { InnerPage } from '@shared/ui/InnerPage';
 import {
   $sellerListings,
   $isLoadingListings,
@@ -303,27 +303,28 @@ function Page() {
   };
 
   return (
-    <Container px="sm" py="md" style={{ backgroundColor: surface.page, minHeight: '100vh', maxWidth: 980, margin: '0 auto', overflow: 'auto' }}>
-      <PageBar
-        title={t('listings.myListings')}
-        actions={
-          <Button
-            leftSection={<IconPlus size={16} stroke={2} />}
-            radius="xl"
-            size="sm"
-            style={{
-              background: '#228be6',
-              border: 'none',
-              boxShadow: shadows.accent,
-              padding: '0 12px',
-                height: 32,
-              }}
-              onClick={() => navigate('/seller/create')}
-            >
-              {t('listings.add', 'New')}
-            </Button>
-          }
-      />
+    <InnerPage
+      title={t('listings.myListings')}
+      actions={
+        <Button
+          leftSection={<IconPlus size={16} stroke={2} />}
+          radius="xl"
+          size="sm"
+          style={{
+            background: '#228be6',
+            border: 'none',
+            boxShadow: shadows.accent,
+            padding: '0 12px',
+            height: 32,
+          }}
+          onClick={() => navigate('/seller/create')}
+        >
+          {t('listings.add', 'New')}
+        </Button>
+      }
+      noPadding
+    >
+      <Container px="sm" py="md">
       <Stack gap={16}>
 
         {/* ── Modern Compact Header ── */}
@@ -553,7 +554,8 @@ function Page() {
           </Group>
         </Stack>
       </Modal>
-    </Container>
+      </Container>
+    </InnerPage>
   );
 }
 

@@ -5,10 +5,10 @@ import {
 	Text,
 	Button,
 	Stack,
-	TextInput,
 	PinInput,
 	LoadingOverlay,
 } from "@mantine/core";
+import { PhoneInput } from "@shared/ui/PhoneInput";
 import { IconBuildingStore } from "@tabler/icons-react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
@@ -40,8 +40,8 @@ export function SellerLoginGate() {
 
 	const handleRequestOTP = () => {
 		const digits = phone.replace(/\D/g, "");
-		if (digits.length !== 9) return;
-		requestSellerOTP(digits);
+		if (digits.length !== 12) return;
+		requestSellerOTP(digits.slice(3));
 	};
 
 	const handleVerifyOTP = (code: string) => {
@@ -124,36 +124,14 @@ export function SellerLoginGate() {
 
 				{otpStep === "phone" ? (
 					<Stack gap="md" align="center" maw={400} mx="auto">
-						<TextInput
+						<PhoneInput
 							w="100%"
-							placeholder={t("auth.phonePlaceholder")}
-							radius="xl"
-							size="md"
-							type="tel"
-							inputMode="numeric"
-							autoComplete="tel"
-							maxLength={9}
-							leftSection={
-								<Text size="sm" c="dimmed" fw={500}>
-									+998
-								</Text>
-							}
-							leftSectionWidth={56}
+							placeholder="+998 XX XXX XX XX"
 							value={phone}
-							onChange={(e) => {
-								const val = e.currentTarget.value.replace(/\D/g, "");
-								setPhone(val);
-							}}
+							onChange={setPhone}
 							error={authError}
 							onKeyDown={(e) => {
 								if (e.key === "Enter") handleRequestOTP();
-							}}
-							onPaste={(e) => {
-								e.preventDefault();
-								const pasted = e.clipboardData
-									.getData("text")
-									.replace(/\D/g, "");
-								setPhone(pasted.slice(0, 9));
 							}}
 							disabled={isLoading}
 						/>

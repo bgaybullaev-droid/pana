@@ -8,8 +8,7 @@ import {
 	IconShieldCheck,
 	IconDeviceMobile,
 } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
-import { surface } from "@app/styles/theme";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 const FEATURES_ICONS = [
 	IconMessage2,
@@ -24,9 +23,7 @@ function Page() {
 	const { t } = useTranslation("buyer");
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("settings.about")} />
-			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+		<InnerPage title={t("settings.about")}>
 			{/* Hero */}
 			<Box
 				style={{
@@ -123,8 +120,7 @@ function Page() {
 					</Box>
 				))}
 			</Box>
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

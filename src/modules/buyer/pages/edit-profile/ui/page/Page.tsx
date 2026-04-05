@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/providers/useAuth";
 import { updateProfileFx } from "@shared/state/auth/model/effects";
-import { radii, surface } from "@app/styles/theme";
+import { radii } from "@app/styles/theme";
 import {
 	Box,
 	Text,
@@ -12,7 +12,7 @@ import {
 	Avatar,
 } from "@mantine/core";
 import { IconUser } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -59,11 +59,7 @@ function Page() {
 	};
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			{/* Top bar */}
-			<PageBar title={t("editProfile.title")} />
-
-			<Box style={{ padding: 16 }}>
+		<InnerPage title={t("editProfile.title")}>
 				{/* Avatar section */}
 				<Box
 					style={{
@@ -225,8 +221,7 @@ function Page() {
 				>
 					{t("editProfile.save")}
 				</Button>
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

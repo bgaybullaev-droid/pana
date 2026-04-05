@@ -96,6 +96,9 @@
   "createListing.titlePlaceholder": "Например: 3-комн. квартира с ремонтом",
   "createListing.descriptionLabel": "Описание",
   "createListing.descriptionPlaceholder": "Опишите вашу недвижимость...",
+  "createListing.maxChars": "Максимум {{count}} символов",
+
+  "createListing.charLimitReached": "Достигнут лимит в {{count}} символов",
   "createListing.priceSection": "Цена",
   "createListing.priceLabel": "Цена",
   "createListing.currencyLabel": "Валюта",

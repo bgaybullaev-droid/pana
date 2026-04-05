@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Text, TextInput, Button, PinInput } from "@mantine/core";
+import { Box, Stack, Text, Button, PinInput } from "@mantine/core";
+import { PhoneInput } from "@shared/ui/PhoneInput";
 import { IconPhone } from "@tabler/icons-react";
 import { gradients, shadows } from "@app/styles/theme";
 import {
@@ -39,11 +40,11 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 	}, []);
 
 	const digits = phone.replace(/\D/g, "");
-	const isPhoneValid = digits.length === 9;
+	const isPhoneValid = digits.length === 12;
 
 	const handleRequestOTP = () => {
 		if (!isPhoneValid) return;
-		requestSellerOTP(digits);
+		requestSellerOTP(digits.slice(3));
 	};
 
 	const handleVerifyOTP = (code: string) => {
@@ -90,52 +91,15 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 					</Box>
 
 					{/* Phone field */}
-					<TextInput
-						placeholder={t("auth.phonePlaceholder")}
-						type="tel"
-						inputMode="numeric"
-						autoComplete="tel"
-						maxLength={9}
-						leftSection={
-							<Text
-								size="sm"
-								fw={600}
-								c="dark.5"
-								style={{ whiteSpace: "nowrap" }}
-							>
-								+998
-							</Text>
-						}
-						leftSectionWidth={56}
+					<PhoneInput
+						placeholder="+998 XX XXX XX XX"
 						value={phone}
-						onChange={(e) => {
-							const val = e.currentTarget.value.replace(/\D/g, "");
-							setPhone(val);
-						}}
+						onChange={setPhone}
 						error={authError}
 						onKeyDown={(e) => {
 							if (e.key === "Enter") handleRequestOTP();
 						}}
-						onPaste={(e) => {
-							e.preventDefault();
-							const pasted = e.clipboardData.getData("text").replace(/\D/g, "");
-							setPhone(pasted.slice(0, 9));
-						}}
 						disabled={isLoading}
-						radius={12}
-						styles={{
-							input: {
-								backgroundColor: "#f8f9fa",
-								border: "1.5px solid #e9ecef",
-								height: 48,
-								fontSize: 16,
-								"&:focus": {
-									backgroundColor: "#fff",
-									borderColor: "#40A7E3",
-									boxShadow: "0 0 0 3px rgba(64, 167, 227, 0.1)",
-								},
-							},
-						}}
 					/>
 
 					{/* Submit button */}

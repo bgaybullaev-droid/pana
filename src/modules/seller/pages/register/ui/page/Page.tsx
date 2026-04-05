@@ -11,12 +11,13 @@ import {
 	Box,
 	LoadingOverlay,
 } from "@mantine/core";
+import { PhoneInput } from "@shared/ui/PhoneInput";
+import { InnerPage } from "@shared/ui/InnerPage";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useEffectorNotification } from "@shared/hooks/useEffectorNotification";
 import {
 	IconUser,
-	IconPhone,
 	IconBuildingStore,
 	IconList,
 	IconChartBar,
@@ -101,7 +102,7 @@ function Page() {
 	};
 
 	return (
-		<Box style={{ minHeight: "100vh", backgroundColor: surface.page }}>
+		<InnerPage title={t("register.title")} noPadding>
 			<LoadingOverlay visible={isLoading} />
 
 			{/* Gradient Hero Section */}
@@ -222,27 +223,12 @@ function Page() {
 						</Text>
 						<form onSubmit={form.onSubmit(handleSubmit)}>
 							<Stack gap="sm">
-								<TextInput
+								<PhoneInput
 									label={t("register.phone")}
-									placeholder={t("register.phonePlaceholder")}
-									required
-									type="tel"
-									inputMode="numeric"
-									autoComplete="tel"
-									leftSection={<IconPhone size={16} />}
-									radius="md"
-									{...form.getInputProps("phone")}
-									onChange={(e) => {
-										const val = e.currentTarget.value.replace(/[^+\d]/g, "");
-										form.setFieldValue("phone", val);
-									}}
-									onPaste={(e) => {
-										e.preventDefault();
-										const pasted = e.clipboardData
-											.getData("text")
-											.replace(/[^+\d]/g, "");
-										form.setFieldValue("phone", pasted);
-									}}
+									placeholder="+998 XX XXX XX XX"
+									value={form.values.phone}
+									onChange={(val) => form.setFieldValue("phone", val)}
+									error={form.errors.phone as string | null | false}
 								/>
 
 								<TextInput
@@ -277,7 +263,7 @@ function Page() {
 					</Box>
 				</Stack>
 			</Container>
-		</Box>
+		</InnerPage>
 	);
 }
 

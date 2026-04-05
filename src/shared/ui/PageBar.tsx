@@ -41,14 +41,18 @@ export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 			>
 				{/* Back button */}
 				<ActionIcon
-					variant="subtle"
-					color="gray"
+					variant="default"
 					size={40}
-					radius={radii.md}
+					radius={radii.full}
 					onClick={handleBack}
-					style={{ flexShrink: 0 }}
+					style={{
+						flexShrink: 0,
+						backgroundColor: "#ffffff",
+						border: "1px solid #e9ecef",
+						boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+					}}
 				>
-					<IconArrowLeft size={22} stroke={1.8} />
+					<IconArrowLeft size={20} stroke={1.8} color="#495057" />
 				</ActionIcon>
 
 				{/* Title + badge */}

@@ -1,2 +1,2 @@
-export { SellerRouter } from './router';
-export { SellerLayout } from './ui/layout';
+// Seller routes are now part of the unified UserRouter in @modules/buyer/app
+// Seller pages remain in @modules/seller/pages/

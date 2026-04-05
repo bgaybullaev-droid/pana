@@ -16,7 +16,7 @@ import {
 	IconMessageCircle,
 	IconShare,
 	IconUser,
-	IconArrowLeft,
+
 	IconEye,
 	IconMapPin,
 	IconPhone,
@@ -24,7 +24,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { useNavigate } from "react-router-dom";
-import { formatPrice, shadows } from "@app/styles/theme";
+import { formatPrice } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
 import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
 import { MapDrawer } from "../dialogs/MapDrawer";
@@ -263,26 +263,6 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 				</Stack>
 			</Box>
 
-			{/* ── Back button ── */}
-			<ActionIcon
-				variant="transparent"
-				size={56}
-				onClick={() => navigate(-1)}
-				style={{
-					position: "absolute",
-					bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
-					right: 12,
-					zIndex: 50,
-					backgroundColor: "rgba(255, 255, 255, 0.65)",
-					backdropFilter: "blur(20px) saturate(180%)",
-					WebkitBackdropFilter: "blur(20px) saturate(180%)",
-					border: "1px solid rgba(255, 255, 255, 0.5)",
-					boxShadow: shadows.md,
-					borderRadius: "50%",
-				}}
-			>
-				<IconArrowLeft size={26} color="#868e96" />
-			</ActionIcon>
 
 			{/* ── Bottom-left — Product Info ── */}
 			<Box

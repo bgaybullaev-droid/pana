@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -18,15 +18,15 @@ import {
 	IconHeart,
 	IconTag,
 	IconMessage,
-	IconCheck,
+	IconChecks,
 } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 import { formatTimeAgo } from "@shared/lib/date";
 import { notificationsApi } from "@shared/api/notifications";
 import { useAuth } from "@app/providers/useAuth";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import type { Notification } from "@shared/api/types";
-import { radii, surface } from "@app/styles/theme";
+import { radii } from "@app/styles/theme";
 
 // Group notifications by date
 function groupByDate(
@@ -77,16 +77,87 @@ const ICON_CONFIG: Record<
 	favorite_update: { icon: IconHeart, color: "#ff6b6b", bg: "#fff5f5" },
 };
 
+// TODO: Remove mock data before production
+const MOCK_NOTIFICATIONS: Notification[] = [
+	{
+		id: "mock-1",
+		user_id: "mock",
+		type: "price_drop",
+		title: "Цена снижена!",
+		message: "Квартира в Мирабадском районе подешевела на $5,000 — теперь $85,000",
+		listing_id: null,
+		comment_id: null,
+		actor: null,
+		read: false,
+		created_at: new Date().toISOString(),
+	},
+	{
+		id: "mock-2",
+		user_id: "mock",
+		type: "new_listing",
+		title: "Новое объявление",
+		message: "Появилась 3-комнатная квартира в Юнусабадском районе за $120,000",
+		listing_id: null,
+		comment_id: null,
+		actor: null,
+		read: false,
+		created_at: new Date(Date.now() - 3600000).toISOString(),
+	},
+	{
+		id: "mock-3",
+		user_id: "mock",
+		type: "comment_reply",
+		title: "Ответ на комментарий",
+		message: "Продавец ответил на ваш вопрос: «Да, возможен торг»",
+		listing_id: null,
+		comment_id: null,
+		actor: {
+			id: "seller-1",
+			first_name: "Алишер",
+			last_name: "Каримов",
+			username: "alisher_k",
+			avatar_url: null,
+		},
+		read: true,
+		created_at: new Date(Date.now() - 86400000).toISOString(),
+	},
+	{
+		id: "mock-4",
+		user_id: "mock",
+		type: "favorite_update",
+		title: "Обновление избранного",
+		message: "Дом в Чиланзарском районе был обновлён — добавлены новые фото",
+		listing_id: null,
+		comment_id: null,
+		actor: null,
+		read: true,
+		created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+	},
+	{
+		id: "mock-5",
+		user_id: "mock",
+		type: "new_listing",
+		title: "Подходящее объявление",
+		message: "Участок 10 соток в Ташкентской области за $20,000 — совпадает с вашими предпочтениями",
+		listing_id: null,
+		comment_id: null,
+		actor: null,
+		read: true,
+		created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+	},
+];
+
 function Page() {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
 	const { isAuthenticated } = useAuth();
-	const [notifications, setNotifications] = useState<Notification[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [unreadCount, setUnreadCount] = useState(0);
+	const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+	const [isLoading, setIsLoading] = useState(false);
+	const [unreadCount, setUnreadCount] = useState(MOCK_NOTIFICATIONS.filter((n) => !n.read).length);
 	const [page, setPage] = useState(1);
 	const [hasMore, setHasMore] = useState(true);
-	const initializedRef = useRef(false);
+	// TODO: Re-enable after removing mock data
+	// const initializedRef = useRef(false);
 
 	const loadNotifications = useCallback(
 		async (pageNum: number, reset = false) => {
@@ -110,21 +181,19 @@ function Page() {
 		[],
 	);
 
-	useEffect(() => {
-		if (!isAuthenticated) return;
-		if (initializedRef.current) return;
-		initializedRef.current = true;
-		loadNotifications(1, true);
-	}, [isAuthenticated, loadNotifications]);
+	// TODO: Re-enable API call after removing mock data
+	// useEffect(() => {
+	// 	if (!isAuthenticated) return;
+	// 	if (initializedRef.current) return;
+	// 	initializedRef.current = true;
+	// 	loadNotifications(1, true);
+	// }, [isAuthenticated, loadNotifications]);
 
-	const handleMarkAllAsRead = async () => {
-		try {
-			await notificationsApi.markAsRead();
-			setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-			setUnreadCount(0);
-		} catch (error) {
-			console.error("Failed to mark notifications as read:", error);
-		}
+	const handleMarkAllAsRead = () => {
+		// TODO: Re-enable API call after removing mock data
+		// notificationsApi.markAsRead();
+		setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+		setUnreadCount(0);
 	};
 
 	const handleNotificationClick = async (notification: Notification) => {
@@ -173,49 +242,41 @@ function Page() {
 	}
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			{/* Header */}
-			<PageBar
-				title={t("notifications.title")}
-				badge={
-					unreadCount > 0 ? (
-						<Box
+		<InnerPage
+			title={t("notifications.title")}
+			badge={
+				unreadCount > 0 ? (
+					<Box
+						style={{
+							backgroundColor: "#ff6b6b",
+							borderRadius: radii.md,
+							padding: "2px 8px",
+							minWidth: 22,
+							textAlign: "center",
+						}}
+					>
+						<Text
 							style={{
-								backgroundColor: "#ff6b6b",
-								borderRadius: radii.md,
-								padding: "2px 8px",
-								minWidth: 22,
-								textAlign: "center",
+								fontSize: 11,
+								fontWeight: 700,
+								color: "white",
+								lineHeight: 1.4,
 							}}
 						>
-							<Text
-								style={{
-									fontSize: 11,
-									fontWeight: 700,
-									color: "white",
-									lineHeight: 1.4,
-								}}
-							>
-								{unreadCount}
-							</Text>
-						</Box>
-					) : undefined
-				}
-				actions={
-					unreadCount > 0 ? (
-						<UnstyledButton onClick={handleMarkAllAsRead}>
-							<Group gap={4}>
-								<IconCheck size={16} color="#228be6" />
-								<Text size="sm" fw={600} c="blue">
-									{t("notifications.markAllRead")}
-								</Text>
-							</Group>
-						</UnstyledButton>
-					) : undefined
-				}
-			/>
-
-			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+							{unreadCount}
+						</Text>
+					</Box>
+				) : undefined
+			}
+			actions={
+				<UnstyledButton
+					onClick={unreadCount > 0 ? handleMarkAllAsRead : undefined}
+					style={{ display: "flex", alignItems: "center", cursor: unreadCount > 0 ? "pointer" : "default" }}
+				>
+					<IconChecks size={22} color={unreadCount > 0 ? "#228be6" : "#adb5bd"} stroke={1.8} />
+				</UnstyledButton>
+			}
+		>
 				{isLoading && notifications.length === 0 ? (
 					<Center py={48}>
 						<Loader size="md" color="blue" />
@@ -375,8 +436,7 @@ function Page() {
 						)}
 					</Stack>
 				)}
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

@@ -11,6 +11,7 @@ import {
 	Button,
 	LoadingOverlay,
 } from "@mantine/core";
+import { PhoneInput } from "@shared/ui/PhoneInput";
 import {
 	IconBuildingStore,
 	IconBrandTelegram,
@@ -25,8 +26,8 @@ import {
 	$sellerError,
 } from "@modules/seller/shared/state";
 import { SELLER_BOT_USERNAME } from "@shared/lib/constants";
-import { gradients, shadows, radii, surface } from "@app/styles/theme";
-import { PageBar } from "@shared/ui/PageBar";
+import { gradients, shadows, radii } from "@app/styles/theme";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 function Page() {
 	const navigate = useNavigate();
@@ -72,13 +73,13 @@ function Page() {
 	// Pre-fill phone from user data if available
 	useEffect(() => {
 		if (user?.phone && !phone) {
-			setPhone(user.phone.replace("+998", ""));
+			setPhone(user.phone);
 		}
 	}, [user, phone]);
 
 	const handleSubmit = () => {
 		const digits = phone.replace(/\D/g, "");
-		if (digits.length !== 9) {
+		if (digits.length !== 12) {
 			notifications.show({
 				title: t("register.error"),
 				message: t("register.phoneError"),
@@ -87,7 +88,7 @@ function Page() {
 			return;
 		}
 		registerAsSeller({
-			phone: `+998${digits}`,
+			phone: phone,
 			company_name: companyName.trim() || undefined,
 		});
 	};
@@ -97,8 +98,7 @@ function Page() {
 	}
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("auth.becomeSeller")} onBack={() => navigate("/profile")} />
+		<InnerPage title={t("auth.becomeSeller")} onBack={() => navigate("/profile")} noPadding>
 
 			{/* Gradient header */}
 			<Box
@@ -204,36 +204,15 @@ function Page() {
 					</Stack>
 
 					{/* Phone input */}
-					<TextInput
+					<PhoneInput
 						label={t("register.phoneLabel")}
-						placeholder="00 000 00 00"
-						radius="xl"
-						size="md"
-						type="tel"
-						inputMode="numeric"
-						autoComplete="tel"
-						maxLength={9}
-						leftSection={
-							<Text size="sm" c="dimmed" fw={500}>
-								+998
-							</Text>
-						}
-						leftSectionWidth={56}
+						placeholder="+998 XX XXX XX XX"
 						value={phone}
-						onChange={(e) => {
-							const val = e.currentTarget.value.replace(/\D/g, "");
-							setPhone(val);
-						}}
+						onChange={setPhone}
 						onKeyDown={(e) => {
 							if (e.key === "Enter") handleSubmit();
 						}}
-						onPaste={(e) => {
-							e.preventDefault();
-							const pasted = e.clipboardData.getData("text").replace(/\D/g, "");
-							setPhone(pasted.slice(0, 9));
-						}}
 						disabled={isRegistering}
-						required
 					/>
 
 					{/* Company name (optional) */}
@@ -291,7 +270,7 @@ function Page() {
 					</Box>
 				</Stack>
 			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

@@ -1,17 +1,14 @@
-import { Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 import { PreferencesPanel } from "@modules/buyer/feature/preferences";
-import { surface } from "@app/styles/theme";
 
 function Page() {
 	const { t } = useTranslation("buyer");
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("preferences.title")} />
+		<InnerPage title={t("preferences.title")} noPadding>
 			<PreferencesPanel />
-		</Box>
+		</InnerPage>
 	);
 }
 

@@ -10,11 +10,8 @@ const AuthPage = lazy(() =>
 );
 
 // Lazy-load module routers
-const BuyerRouter = lazy(() =>
-  import('@modules/buyer/app').then((m) => ({ default: m.BuyerRouter }))
-);
-const SellerRouter = lazy(() =>
-  import('@modules/seller/app').then((m) => ({ default: m.SellerRouter }))
+const UserRouter = lazy(() =>
+  import('@modules/buyer/app').then((m) => ({ default: m.UserRouter }))
 );
 const AdminRouter = lazy(() =>
   import('@modules/admin/app').then((m) => ({ default: m.AdminRouter }))
@@ -70,11 +67,8 @@ export function Router() {
         {/* Admin module */}
         <Route path="/admin/*" element={<AdminRouter />} />
 
-        {/* Seller module */}
-        <Route path="/seller/*" element={<SellerRouter />} />
-
-        {/* Buyer module (catch-all) */}
-        <Route path="/*" element={<BuyerRouter />} />
+        {/* User module (catch-all — includes buyer + seller pages) */}
+        <Route path="/*" element={<UserRouter />} />
       </Routes>
     </Suspense>
   );

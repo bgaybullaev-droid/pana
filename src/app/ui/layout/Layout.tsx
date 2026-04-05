@@ -2,8 +2,8 @@ import { Outlet } from 'react-router-dom';
 
 /**
  * Minimal shell layout — just renders child routes.
- * Module-specific layouts (BuyerLayout, SellerLayout, AdminLayout)
- * are handled within each module's own router.
+ * UserLayout (bottom nav, search, scroll) wraps user routes.
+ * AdminLayout wraps admin routes separately.
  */
 export function Layout() {
   return <Outlet />;

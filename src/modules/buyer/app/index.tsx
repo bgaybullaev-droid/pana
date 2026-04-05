@@ -1,1 +1,1 @@
-export { BuyerRouter } from './router';
+export { UserRouter } from './router';

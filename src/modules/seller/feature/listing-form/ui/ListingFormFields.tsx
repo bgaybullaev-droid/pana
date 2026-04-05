@@ -1,5 +1,4 @@
 import {
-	TextInput,
 	Textarea,
 	NumberInput,
 	SegmentedControl,
@@ -11,7 +10,8 @@ import { useTranslation } from "react-i18next";
 import { Suspense, lazy, useMemo } from "react";
 import { FormSection } from "@shared/ui/FormSection";
 import { ChipSelect } from "@shared/ui/ChipSelect";
-import { CheckboxGrid } from "@shared/ui/CheckboxGrid";
+import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
+import { PhoneInput } from "@shared/ui/PhoneInput";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
@@ -366,57 +366,6 @@ export function ListingFormFields({
 				)}
 			</FormSection>
 
-			{/* ── Additional Info + Seller Type ── */}
-			<FormSection title={t("createListing.additionalInfo")}>
-				<Textarea
-					label={t("createListing.descriptionLabel")}
-					placeholder={t("createListing.descriptionPlaceholder")}
-					minRows={3}
-					{...form.getInputProps("description")}
-				/>
-				<ChipSelect
-					label={t("createListing.sellerTypeLabel")}
-					options={[
-						{ value: "owner", label: t("createListing.sellerTypeOwner") },
-						{ value: "realtor", label: t("createListing.sellerTypeRealtor") },
-					]}
-					value={form.values.seller_type}
-					onChange={(val) => set("seller_type", (val as string) || "")}
-				/>
-			</FormSection>
-
-			{/* ── Price ── */}
-			<FormSection title={t("createListing.priceSection")}>
-				<Box>
-					<Switch
-						label={t("createListing.negotiable")}
-						checked={form.values.is_negotiable}
-						onChange={(e) => set("is_negotiable", e.currentTarget.checked)}
-						mb={10}
-						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
-					/>
-					{!form.values.is_negotiable && (
-						<NumberInput
-							label={t("createListing.priceLabel")}
-							required
-							min={0}
-							allowNegative={false}
-							allowDecimal={false}
-							thousandSeparator=" "
-							inputMode="decimal"
-							error={form.errors.price}
-							{...form.getInputProps("price")}
-						/>
-					)}
-				</Box>
-				<ChipSelect
-					label={t("createListing.currencyLabel")}
-					options={currencyOpts}
-					value={form.values.currency}
-					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}
-				/>
-			</FormSection>
-
 			{/* ── Parameters ── */}
 			{/* Field order changes by property type: houses prioritize land area + stories */}
 			<FormSection title={t("createListing.parameters")}>
@@ -439,21 +388,6 @@ export function ListingFormFields({
 						onChange={(val) => set("rooms", val as number | undefined)}
 						customInputMode="numeric"
 						customPlaceholder="7, 8, 10..."
-					/>
-				)}
-				{/* Total floors — before individual floor, prioritized for houses (Этажность дома) */}
-				{show.totalFloors && (
-					<ChipSelect
-						label={
-							pt === "house"
-								? t("createListing.houseStories")
-								: t("createListing.totalFloors")
-						}
-						options={totalFloorsOpts}
-						value={form.values.total_floors}
-						onChange={(val) => set("total_floors", val as number | undefined)}
-						customInputMode="numeric"
-						customPlaceholder="24, 30..."
 					/>
 				)}
 				{show.area && (
@@ -495,10 +429,25 @@ export function ListingFormFields({
 						customPlaceholder="10, 15..."
 					/>
 				)}
+				{/* Total floors — after individual floor */}
+				{show.totalFloors && (
+					<ChipSelect
+						label={
+							pt === "house"
+								? t("createListing.houseStories")
+								: t("createListing.totalFloors")
+						}
+						options={totalFloorsOpts}
+						value={form.values.total_floors}
+						onChange={(val) => set("total_floors", val as number | undefined)}
+						customInputMode="numeric"
+						customPlaceholder="24, 30..."
+					/>
+				)}
 			</FormSection>
 
 			{/* ── Apartment Attributes ── */}
-			{(show.buildingType || show.condition) && (
+			{(show.buildingType || show.condition || show.furnished) && (
 				<FormSection title={t("createListing.aptAttributes")}>
 					{show.buildingType && (
 						<ChipSelect
@@ -524,6 +473,14 @@ export function ListingFormFields({
 							onChange={(val) => set("condition", val as string | undefined)}
 						/>
 					)}
+					{show.furnished && (
+						<ChipSelect
+							label={t("createListing.furnished")}
+							options={furnishedOpts}
+							value={form.values.is_furnished}
+							onChange={(val) => set("is_furnished", val as string | undefined)}
+						/>
+					)}
 				</FormSection>
 			)}
 
@@ -536,13 +493,13 @@ export function ListingFormFields({
 						value={form.values.house_type}
 						onChange={(val) => set("house_type", val as string | undefined)}
 					/>
-					<CheckboxGrid
+					<ChipMultiSelect
 						label={t("createListing.houseCondition")}
 						options={houseConditionOpts}
 						value={form.values.house_condition}
 						onChange={(val) => set("house_condition", val)}
 					/>
-					<CheckboxGrid
+					<ChipMultiSelect
 						label={t("createListing.locationType")}
 						options={locationTypeOpts}
 						value={form.values.location_type}
@@ -554,7 +511,7 @@ export function ListingFormFields({
 			{/* ── Utilities (House only) ── */}
 			{show.utilities && (
 				<FormSection title={t("createListing.utilities")}>
-					<CheckboxGrid
+					<ChipMultiSelect
 						label={t("createListing.waterSupply")}
 						options={waterSupplyOpts}
 						value={form.values.water_supply}
@@ -569,7 +526,7 @@ export function ListingFormFields({
 						/>
 					</Box>
 					<Box mt={12}>
-						<CheckboxGrid
+						<ChipMultiSelect
 							label={t("createListing.heating")}
 							options={heatingOpts}
 							value={form.values.heating}
@@ -595,18 +552,6 @@ export function ListingFormFields({
 				</FormSection>
 			)}
 
-			{/* ── Common Attributes ── */}
-			{show.furnished && (
-				<FormSection title={t("createListing.commonAttributes")}>
-					<ChipSelect
-						label={t("createListing.furnished")}
-						options={furnishedOpts}
-						value={form.values.is_furnished}
-						onChange={(val) => set("is_furnished", val as string | undefined)}
-					/>
-				</FormSection>
-			)}
-
 			{/* ── Land Purpose (Land only) ── */}
 			{show.landPurpose && (
 				<FormSection title={t("createListing.landPurposeSection")}>
@@ -623,7 +568,7 @@ export function ListingFormFields({
 			{(show.aptAmenities || show.houseAmenities || show.nearbyAmenities) && (
 				<FormSection title={t("createListing.amenitiesSection")}>
 					{show.aptAmenities && (
-						<CheckboxGrid
+						<ChipMultiSelect
 							label={t("createListing.inProperty")}
 							options={aptAmenityOpts}
 							value={form.values.amenities}
@@ -631,7 +576,7 @@ export function ListingFormFields({
 						/>
 					)}
 					{show.houseAmenities && (
-						<CheckboxGrid
+						<ChipMultiSelect
 							label={t("createListing.inHouseProperty")}
 							options={houseAmenityOpts}
 							value={form.values.amenities}
@@ -639,8 +584,8 @@ export function ListingFormFields({
 						/>
 					)}
 					{show.nearbyAmenities && (
-						<Box mt={show.aptAmenities || show.houseAmenities ? 16 : 0}>
-							<CheckboxGrid
+						<Box mt={16}>
+							<ChipMultiSelect
 								label={t("createListing.nearby")}
 								options={nearbyOpts}
 								value={form.values.nearby_amenities}
@@ -653,29 +598,22 @@ export function ListingFormFields({
 
 			{/* ── Location ── */}
 			<FormSection title={t("createListing.locationSection")}>
-				<CheckboxGrid
+				<ChipSelect
 					label={t("createListing.region")}
 					options={regions}
-					value={form.values.region ? [form.values.region] : []}
+					value={form.values.region || undefined}
 					onChange={(val) => {
-						// Single select: take the last clicked (new) item
-						const current = form.values.region;
-						const newVal = val.find((v) => v !== current) || "";
-						onRegionChange(newVal);
+						onRegionChange(val ? String(val) : "");
 					}}
-					columns={2}
 				/>
 				{form.values.region && districts.length > 0 && (
-					<CheckboxGrid
+					<ChipSelect
 						label={t("createListing.district")}
 						options={districts}
-						value={form.values.district ? [form.values.district] : []}
+						value={form.values.district || undefined}
 						onChange={(val) => {
-							const current = form.values.district;
-							const newVal = val.find((v) => v !== current) || "";
-							set("district", newVal);
+							set("district", val ? String(val) : "");
 						}}
-						columns={2}
 					/>
 				)}
 				<Box mt={8}>
@@ -711,26 +649,78 @@ export function ListingFormFields({
 				/>
 			</FormSection>
 
+			{/* ── Additional Info + Seller Type ── */}
+			<FormSection title={t("createListing.additionalInfo")}>
+				<Box>
+					<Textarea
+						label={t("createListing.descriptionLabel")}
+						placeholder={t("createListing.descriptionPlaceholder")}
+						maxLength={100}
+						{...form.getInputProps("description")}
+						styles={{ input: { minHeight: 100 } }}
+					/>
+					<Box style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+						<Text size="xs" c={(form.values.description?.length ?? 0) >= 100 ? "red" : "transparent"}>
+							{t("createListing.charLimitReached", { count: 100 })}
+						</Text>
+						<Text size="xs" c={(form.values.description?.length ?? 0) >= 100 ? "red" : "dimmed"}>
+							{form.values.description?.length ?? 0} / 100
+						</Text>
+					</Box>
+				</Box>
+			</FormSection>
+
+			{/* ── Price ── */}
+			<FormSection title={t("createListing.priceSection")}>
+				<Box>
+					<Switch
+						label={t("createListing.negotiable")}
+						checked={form.values.is_negotiable}
+						onChange={(e) => set("is_negotiable", e.currentTarget.checked)}
+						mb={10}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+					{!form.values.is_negotiable && (
+						<NumberInput
+							label={t("createListing.priceLabel")}
+							required
+							min={0}
+							allowNegative={false}
+							allowDecimal={false}
+							thousandSeparator=" "
+							inputMode="decimal"
+							hideControls
+							error={form.errors.price}
+							{...form.getInputProps("price")}
+						/>
+					)}
+				</Box>
+				<ChipSelect
+					label={t("createListing.currencyLabel")}
+					options={currencyOpts}
+					value={form.values.currency}
+					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}
+				/>
+			</FormSection>
+
 			{/* ── Contact ── */}
 			<FormSection title={t("createListing.contactSection")}>
-				<TextInput
+				<ChipSelect
+					label={t("createListing.sellerTypeLabel")}
+					options={[
+						{ value: "owner", label: t("createListing.sellerTypeOwner") },
+						{ value: "realtor", label: t("createListing.sellerTypeRealtor") },
+					]}
+					value={form.values.seller_type}
+					onChange={(val) => set("seller_type", (val as string) || "")}
+				/>
+				<PhoneInput
 					label={t("createListing.phoneLabel")}
-					placeholder={t("createListing.phonePlaceholder")}
+					placeholder="+998 XX XXX XX XX"
 					description={t("createListing.phoneDescription")}
-					type="tel"
-					inputMode="numeric"
-					autoComplete="tel"
-					{...form.getInputProps("phone")}
-					onChange={(e) =>
-						set("phone", e.currentTarget.value.replace(/[^+\d]/g, ""))
-					}
-					onPaste={(e) => {
-						e.preventDefault();
-						set(
-							"phone",
-							e.clipboardData.getData("text").replace(/[^+\d]/g, ""),
-						);
-					}}
+					value={form.values.phone}
+					onChange={(val) => set("phone", val)}
+					error={form.errors.phone as string}
 				/>
 			</FormSection>
 		</>

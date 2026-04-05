@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Text, UnstyledButton, Collapse } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
-import { surface } from "@app/styles/theme";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 const FAQ_COUNT = 6;
 
@@ -16,9 +15,7 @@ function Page() {
 	};
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("settings.faq")} />
-			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+		<InnerPage title={t("settings.faq")}>
 			<Box
 				style={{
 					backgroundColor: "#FFFFFF",
@@ -92,8 +89,7 @@ function Page() {
 					);
 				})}
 			</Box>
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

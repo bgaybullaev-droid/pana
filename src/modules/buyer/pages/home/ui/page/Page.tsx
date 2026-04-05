@@ -48,7 +48,7 @@ import {
 } from "@modules/buyer/app/ui/layout/BuyerLayout";
 import { ListingCard } from "@shared/ui/ListingCard";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
-import { TabBar } from "@shared/ui/TabBar";
+import { RootPage } from "@shared/ui/RootPage";
 import {
 	getListingDetailUrl,
 	type SourcedListingListItem,
@@ -272,9 +272,9 @@ function Page() {
 		}, 0);
 	};
 
-	// Search header
-	const SearchHeader = (
-		<TabBar blur>
+	// Search header content (rendered inside RootPage's TabBar)
+	const SearchHeaderContent = (
+		<>
 			{/* Search bar + notification */}
 			<Box px="md" pt="sm" pb={8} style={{ maxWidth: 980, margin: "0 auto" }}>
 				<Group gap={8} wrap="nowrap">
@@ -418,8 +418,7 @@ function Page() {
 					})}
 				</Box>
 			</ScrollArea>
-
-		</TabBar>
+		</>
 	);
 
 	// Filter drawer
@@ -914,8 +913,7 @@ function Page() {
 
 	// Shimmer skeleton
 	const ShimmerSkeleton = (
-		<Box style={{ backgroundColor: surface.page }} mih="100vh">
-			{SearchHeader}
+		<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
 			{FilterDrawer}
 			<Container className="listings-container" px="md" pt="sm">
 				<div
@@ -945,7 +943,7 @@ function Page() {
 					))}
 				</div>
 			</Container>
-		</Box>
+		</RootPage>
 	);
 
 	// Show skeletons while initial loading
@@ -956,8 +954,7 @@ function Page() {
 	// Empty state
 	if (!isLoading && listings.length === 0) {
 		return (
-			<Box style={{ backgroundColor: surface.page }} mih="100vh">
-				{SearchHeader}
+			<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
 				{FilterDrawer}
 				<Container className="listings-container">
 					<Center py={60}>
@@ -994,13 +991,12 @@ function Page() {
 						</Stack>
 					</Center>
 				</Container>
-			</Box>
+			</RootPage>
 		);
 	}
 
 	return (
-		<Box style={{ backgroundColor: surface.page }} mih="100vh">
-			{SearchHeader}
+		<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
 			{FilterDrawer}
 			<Container className="listings-container" px="md" pt="sm">
 				{viewMode === "masonry" ? (
@@ -1052,7 +1048,7 @@ function Page() {
 					</Center>
 				)}
 			</Container>
-		</Box>
+		</RootPage>
 	);
 }
 

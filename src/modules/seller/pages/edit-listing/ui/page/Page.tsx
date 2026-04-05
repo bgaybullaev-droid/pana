@@ -18,7 +18,7 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconX, IconCameraPlus } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useEffectorNotification } from "@shared/hooks/useEffectorNotification";
 import { FormSection } from "@shared/ui/FormSection";
@@ -158,18 +158,8 @@ function Page() {
 	const totalImageCount = existingImageCount + images.length;
 
 	return (
-		<Container
-			px="sm"
-			py="md"
-			style={{
-				backgroundColor: surface.page,
-				minHeight: "100vh",
-				maxWidth: 980,
-				margin: "0 auto",
-				overflow: "auto",
-			}}
-		>
-			<PageBar title={t("editListing.title")} />
+		<InnerPage title={t("editListing.title")} noPadding>
+			<Container px="sm" py="md">
 			<LoadingOverlay visible={isUpdating || isUploading} />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack gap="md">
@@ -328,7 +318,8 @@ function Page() {
 					</Button>
 				</Box>
 			</Box>
-		</Container>
+			</Container>
+		</InnerPage>
 	);
 }
 

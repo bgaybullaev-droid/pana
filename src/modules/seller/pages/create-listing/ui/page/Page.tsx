@@ -18,7 +18,7 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconX, IconCameraPlus } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useEffectorNotification } from "@shared/hooks/useEffectorNotification";
 import { FormSection } from "@shared/ui/FormSection";
@@ -97,18 +97,8 @@ function Page() {
 	};
 
 	return (
-		<Container
-			px="sm"
-			py="md"
-			style={{
-				backgroundColor: surface.page,
-				minHeight: "100vh",
-				maxWidth: 980,
-				margin: "0 auto",
-				overflow: "auto",
-			}}
-		>
-			<PageBar title={t("createListing.title")} />
+		<InnerPage title={t("createListing.title")} noPadding>
+			<Container px="sm" py="md">
 			<LoadingOverlay visible={isCreating} />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack gap="md">
@@ -278,7 +268,8 @@ function Page() {
 					{t("createListing.cancel")}
 				</Button>
 			</Stack>
-		</Container>
+			</Container>
+		</InnerPage>
 	);
 }
 

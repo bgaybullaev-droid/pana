@@ -10,7 +10,7 @@ import {
 	Stack,
 } from "@mantine/core";
 import { IconHeart } from "@tabler/icons-react";
-import { TabBar } from "@shared/ui/TabBar";
+import { RootPage } from "@shared/ui/RootPage";
 import {
 	$favorites,
 	$isLoading,
@@ -141,20 +141,19 @@ function Page({ embedded = false }: FavoritesPageProps) {
 	}
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			{/* Header */}
-			<TabBar
-				title={t("favorites.title")}
-				actions={
-					favorites.length > 0 ? (
-						<Box style={{ backgroundColor: "#228be6", borderRadius: 12, padding: "2px 8px" }}>
-							<Text style={{ fontSize: 11, fontWeight: 700, color: "white", lineHeight: 1.4 }}>{favorites.length}</Text>
-						</Box>
-					) : undefined
-				}
-			/>
+		<RootPage
+			title={t("favorites.title")}
+			actions={
+				favorites.length > 0 ? (
+					<Box style={{ backgroundColor: "#228be6", borderRadius: 12, padding: "2px 8px" }}>
+						<Text style={{ fontSize: 11, fontWeight: 700, color: "white", lineHeight: 1.4 }}>{favorites.length}</Text>
+					</Box>
+				) : undefined
+			}
+			noPadding
+		>
 			{content}
-		</Box>
+		</RootPage>
 	);
 }
 

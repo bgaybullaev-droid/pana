@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Box, Text, UnstyledButton } from "@mantine/core";
 import { IconBrandTelegram, IconPhone, IconMail } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
-import { surface } from "@app/styles/theme";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -35,9 +34,7 @@ function Page() {
 	];
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("settings.support")} />
-			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+		<InnerPage title={t("settings.support")}>
 			{/* Info card */}
 			<Box
 				style={{
@@ -152,8 +149,7 @@ function Page() {
 					{t("support.hours")}
 				</Text>
 			</Box>
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

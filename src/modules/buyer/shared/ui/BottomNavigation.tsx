@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Box, UnstyledButton } from "@mantine/core";
+import { Avatar, Box, UnstyledButton } from "@mantine/core";
 import {
 	IconHome,
 	IconSearch,
@@ -13,6 +13,7 @@ import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import { $userStats } from "@shared/state/user/model";
 import { clearFilters } from "@modules/buyer/shared/state/model";
+import { useAuth } from "@app/providers/useAuth";
 import { NavTab, type NavItem } from "./NavTab";
 import { radii, shadows } from "@app/styles/theme";
 
@@ -54,6 +55,29 @@ export function BottomNavigation({
 	const location = useLocation();
 	const navigate = useNavigate();
 	const userStats = useUnit($userStats);
+	const { user } = useAuth();
+
+	// Build user avatar for settings tab
+	const getInitials = () => {
+		if (!user) return "";
+		const first = user.first_name?.[0] || "";
+		const last = user.last_name?.[0] || "";
+		return (first + last).toUpperCase() || "";
+	};
+
+	const userAvatar = user ? (
+		<Avatar
+			src={user.avatar_url}
+			size={26}
+			radius={radii.full}
+			color="blue"
+			style={{
+				border: "2px solid transparent",
+			}}
+		>
+			{getInitials()}
+		</Avatar>
+	) : null;
 
 	const pillRef = useRef<HTMLDivElement>(null);
 	const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -191,6 +215,7 @@ export function BottomNavigation({
 							badgeValue={getBadgeValue(item.badgeKey)}
 							onClick={() => handleTabClick(item)}
 							t={t}
+							customIcon={item.path === "/profile" ? userAvatar : undefined}
 						/>
 					))}
 				</Box>

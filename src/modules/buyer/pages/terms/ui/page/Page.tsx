@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Box, Text } from "@mantine/core";
-import { PageBar } from "@shared/ui/PageBar";
-import { surface } from "@app/styles/theme";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 const SECTION_COUNT = 6;
 
@@ -9,9 +8,7 @@ function Page() {
 	const { t } = useTranslation("buyer");
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("settings.terms")} />
-			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+		<InnerPage title={t("settings.terms")}>
 			{/* Last updated */}
 			<Text
 				style={{
@@ -75,8 +72,7 @@ function Page() {
 					</Text>
 				</Box>
 			))}
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 

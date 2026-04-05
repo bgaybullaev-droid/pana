@@ -29,7 +29,7 @@ import {
 	IconBuildingStore,
 	IconSparkles,
 } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 import {
 	$sellerProfile,
 	$sellerStats,
@@ -57,8 +57,8 @@ function Page() {
 	}, [sellerProfile, isLoading]);
 
 	return (
-		<Container px="sm" py="md" style={{ backgroundColor: surface.page, minHeight: '100vh', maxWidth: 980, margin: '0 auto' }}>
-			<PageBar title={t("dashboard.title", "Dashboard")} />
+		<InnerPage title={t("dashboard.title", "Dashboard")} noPadding>
+			<Container px="sm" py="md">
 			<Stack gap={16}>
 
 				{/* ── Greeting Card (Compact Mobile) ── */}
@@ -269,7 +269,8 @@ function Page() {
 					}
 				`}</style>
 			</Stack>
-		</Container>
+			</Container>
+		</InnerPage>
 	);
 }
 

@@ -96,6 +96,8 @@
   "createListing.titlePlaceholder": "Masalan: 3 xonali ta'mirlangan kvartira",
   "createListing.descriptionLabel": "Tavsif",
   "createListing.descriptionPlaceholder": "Ko'chmas mulkingizni tasvirlab bering...",
+  "createListing.maxChars": "Maksimum {{count}} belgi",
+  "createListing.charLimitReached": "{{count}} belgi limitiga yetildi",
   "createListing.priceSection": "Narx",
   "createListing.priceLabel": "Narx",
   "createListing.currencyLabel": "Valyuta",

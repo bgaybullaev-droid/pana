@@ -267,10 +267,20 @@ export function Layout() {
 	}, [location.pathname]);
 
 	// --- Scroll position restore on route change ---
+	// Only restore scroll for root tabs; inner pages always start at top.
+	const ROOT_TABS = ["/", "/favorites", "/profile"];
+
 	useEffect(() => {
 		const el = scrollRef.current;
 		if (!el) return;
 
+		// Inner pages: always scroll to top
+		if (!ROOT_TABS.includes(location.pathname)) {
+			el.scrollTop = 0;
+			return;
+		}
+
+		// Root tabs: restore saved position
 		const key = getScrollKey(location.pathname);
 		const saved = sessionStorage.getItem(key);
 		if (!saved) return;
@@ -278,9 +288,6 @@ export function Layout() {
 		const target = parseInt(saved, 10);
 		if (isNaN(target) || target <= 0) return;
 
-		// Wait for content to render, then restore.
-		// Use a polling approach: check if scroll height is sufficient,
-		// retry up to ~500ms (10 × 50ms) before giving up.
 		let attempts = 0;
 		const maxAttempts = 10;
 

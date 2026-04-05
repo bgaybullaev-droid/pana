@@ -21,7 +21,7 @@ import {
 	IconHome,
 	IconSearch,
 } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
+import { InnerPage } from "@shared/ui/InnerPage";
 import { claimOlxListing } from "@shared/api/sellerCrawledListings";
 import { EmptyState } from "@shared/ui/EmptyState";
 import { PillTabs } from "@shared/ui/PillTabs";
@@ -138,18 +138,8 @@ function Page() {
 	};
 
 	return (
-		<Container
-			px="sm"
-			py="md"
-			style={{
-				backgroundColor: surface.page,
-				minHeight: "100vh",
-				maxWidth: 980,
-				margin: "0 auto",
-				overflow: "auto",
-			}}
-		>
-			<PageBar title={t("crawled.title")} />
+		<InnerPage title={t("crawled.title")} noPadding>
+			<Container px="sm" py="md">
 			<Stack gap={16}>
 
 				{/* ── Modern Compact Header ── */}
@@ -373,7 +363,8 @@ function Page() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-		</Container>
+			</Container>
+		</InnerPage>
 	);
 }
 

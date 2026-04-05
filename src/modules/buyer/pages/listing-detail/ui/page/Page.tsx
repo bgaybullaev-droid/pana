@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import {
+	ActionIcon,
 	Box,
 	LoadingOverlay,
 	Text,
@@ -11,7 +12,8 @@ import {
 	Button,
 	Container,
 } from "@mantine/core";
-import { IconPhoto } from "@tabler/icons-react";
+import { IconArrowLeft, IconPhoto } from "@tabler/icons-react";
+import { shadows } from "@app/styles/theme";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useAuth } from "@app/providers/useAuth";
 import { getListingShareUrl } from "@shared/lib/constants";
@@ -119,6 +121,27 @@ function Page() {
 					onShare={handleShare}
 				/>
 			)}
+
+			{/* Fixed back button — stays in place during swipe */}
+			<ActionIcon
+				variant="transparent"
+				size={45}
+				onClick={() => navigate(-1)}
+				style={{
+					position: "fixed",
+					bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+					right: 12,
+					zIndex: 10000,
+					backgroundColor: "rgba(255, 255, 255, 0.65)",
+					backdropFilter: "blur(20px) saturate(180%)",
+					WebkitBackdropFilter: "blur(20px) saturate(180%)",
+					border: "1px solid rgba(255, 255, 255, 0.5)",
+					boxShadow: shadows.md,
+					borderRadius: "50%",
+				}}
+			>
+				<IconArrowLeft size={20} stroke={1.8} color="#495057" />
+			</ActionIcon>
 		</Box>
 	);
 }

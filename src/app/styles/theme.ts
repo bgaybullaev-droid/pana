@@ -60,7 +60,7 @@ export const theme = createTheme({
 		TextInput: {
 			defaultProps: {
 				size: "md",
-				radius: "md",
+				radius: "xl",
 			},
 			styles: {
 				input: {
@@ -73,10 +73,16 @@ export const theme = createTheme({
 				},
 			},
 		},
+		NumberInput: {
+			defaultProps: {
+				size: "md",
+				radius: "xl",
+			},
+		},
 		Select: {
 			defaultProps: {
 				size: "md",
-				radius: "md",
+				radius: "xl",
 			},
 		},
 		Card: {

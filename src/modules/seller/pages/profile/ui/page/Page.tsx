@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useUnit } from "effector-react";
 import { formatMonthYear } from "@shared/lib/date";
 import {
-	Container,
 	Stack,
 	Text,
 	TextInput,
@@ -29,6 +28,7 @@ import {
 	IconEdit,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { InnerPage } from "@shared/ui/InnerPage";
 import {
 	$sellerProfile,
 	$isLoadingProfile,
@@ -94,7 +94,7 @@ function Page() {
 	}
 
 	return (
-		<Container size={980} px="md" py="md">
+		<InnerPage title={t("profile.title", "Profile")}>
 			<LoadingOverlay visible={isLoading} />
 			<Stack gap="md">
 				{/* Profile Hero Card */}
@@ -334,7 +334,7 @@ function Page() {
 					</Stack>
 				)}
 			</Stack>
-		</Container>
+		</InnerPage>
 	);
 }
 

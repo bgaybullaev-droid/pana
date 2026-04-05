@@ -40,10 +40,12 @@ interface NavTabProps {
 	onClick: () => void;
 	t: (key: string) => string;
 	iconOnly?: boolean;
+	/** Custom icon element (e.g. user avatar) — replaces default icon rendering */
+	customIcon?: React.ReactNode;
 }
 
 export const NavTab = forwardRef<HTMLButtonElement, NavTabProps>(
-	function NavTab({ item, isActive, badgeValue, onClick, t, iconOnly }, ref) {
+	function NavTab({ item, isActive, badgeValue, onClick, t, iconOnly, customIcon }, ref) {
 		return (
 			<UnstyledButton
 				ref={ref}
@@ -61,24 +63,26 @@ export const NavTab = forwardRef<HTMLButtonElement, NavTabProps>(
 					position: "relative",
 				}}
 			>
-				<Box style={{ position: "relative" }}>
-					{item.labelKey === "nav.home" ? (
-						<HomeFilled size={24} color={isActive ? "#228be6" : "#2C3E50"} />
-					) : item.filledIcon ? (
-						<item.filledIcon
-							size={24}
-							style={{
-								color: isActive ? "#228be6" : "#2C3E50",
-								transition: transitions.spring,
-							}}
-						/>
-					) : (
-						<item.icon
-							size={24}
-							stroke={2}
-							color={isActive ? "#228be6" : "#2C3E50"}
-							style={{ transition: transitions.spring }}
-						/>
+				<Box style={{ position: "relative", height: 26, display: "flex", alignItems: "center", justifyContent: "center" }}>
+					{customIcon || (
+						item.labelKey === "nav.home" ? (
+							<HomeFilled size={24} color={isActive ? "#228be6" : "#2C3E50"} />
+						) : item.filledIcon ? (
+							<item.filledIcon
+								size={24}
+								style={{
+									color: isActive ? "#228be6" : "#2C3E50",
+									transition: transitions.spring,
+								}}
+							/>
+						) : (
+							<item.icon
+								size={24}
+								stroke={2}
+								color={isActive ? "#228be6" : "#2C3E50"}
+								style={{ transition: transitions.spring }}
+							/>
+						)
 					)}
 					{badgeValue > 0 && (
 						<Box
@@ -114,7 +118,7 @@ export const NavTab = forwardRef<HTMLButtonElement, NavTabProps>(
 				</Box>
 				{!iconOnly && (
 					<Text
-						mt={2}
+						mt={1}
 						style={{
 							fontSize: 11,
 							fontWeight: isActive ? 700 : 500,

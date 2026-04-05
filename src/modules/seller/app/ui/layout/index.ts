@@ -1,1 +1,0 @@
-export { SellerLayout } from './SellerLayout';

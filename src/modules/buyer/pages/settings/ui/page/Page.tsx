@@ -39,7 +39,7 @@ import {
 	IconWorldSearch,
 } from "@tabler/icons-react";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
-import { TabBar } from "@shared/ui/TabBar";
+import { RootPage } from "@shared/ui/RootPage";
 import { IconUser } from "@tabler/icons-react";
 import {
 	$sellerStats,
@@ -47,7 +47,7 @@ import {
 	fetchSellerProfile,
 } from "@modules/seller/shared/state";
 import { ProfileCard } from "./ProfileCard";
-import { shadows, radii, surface } from "@app/styles/theme";
+import { shadows, radii } from "@app/styles/theme";
 import { CTAButton } from "./CTAButton";
 import { SectionCard } from "./SectionCard";
 import { SettingsRow } from "./SettingsRow";
@@ -140,11 +140,8 @@ function Page() {
 	};
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page, paddingBottom: 32 }}>
+		<RootPage title={t("settings.title")}>
 			<style>{TAP_STYLE}</style>
-
-			{/* ─── Top Bar (sticky) ─── */}
-			<TabBar title={t("settings.title")} />
 
 			{/* ─── Profile Card ─── */}
 			<ProfileCard
@@ -655,7 +652,7 @@ function Page() {
 					</Button>
 				</Box>
 			</Modal>
-		</Box>
+		</RootPage>
 	);
 }
 

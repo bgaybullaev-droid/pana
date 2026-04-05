@@ -4,6 +4,18 @@
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
 }
 
+/* Force phone input font size even during autofill */
+.phone-input:-webkit-autofill,
+.phone-input:-webkit-autofill:hover,
+.phone-input:-webkit-autofill:focus,
+.phone-input:-webkit-autofill:active {
+  font-size: 16px !important;
+  -webkit-text-fill-color: inherit !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Constrain Drawer content to max-width on wide screens */
 .mantine-Drawer-content {
   max-width: 980px !important;
@@ -202,7 +214,7 @@ body {
 }
 
 .listing-detail-swiper .swiper-pagination {
-  bottom: calc(5rem * var(--mantine-scale, 1)) !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important;
   z-index: 55 !important;
 }
 

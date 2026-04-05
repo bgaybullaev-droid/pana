@@ -7,8 +7,7 @@ import {
 	IconUsers,
 	IconRocket,
 } from "@tabler/icons-react";
-import { PageBar } from "@shared/ui/PageBar";
-import { surface } from "@app/styles/theme";
+import { InnerPage } from "@shared/ui/InnerPage";
 
 const BENEFITS_KEYS = [
 	{ icon: IconRocket, key: "realtors.benefit1" },
@@ -22,9 +21,7 @@ function Page() {
 	const navigate = useNavigate();
 
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
-			<PageBar title={t("settings.forRealtors")} />
-			<Box style={{ padding: 16, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+		<InnerPage title={t("settings.forRealtors")}>
 			{/* Hero */}
 			<Box
 				style={{
@@ -120,8 +117,7 @@ function Page() {
 			>
 				{t("realtors.cta")}
 			</Button>
-			</Box>
-		</Box>
+		</InnerPage>
 	);
 }
 
