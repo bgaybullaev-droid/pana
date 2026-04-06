@@ -22,11 +22,8 @@ export function ProfileCard({
 		<Box
 			style={{
 				backgroundColor: "#FFFFFF",
-				borderRadius: 14,
+				borderRadius: 12,
 				padding: 16,
-				marginLeft: 16,
-				marginRight: 16,
-				marginTop: 16,
 			}}
 		>
 			<Box

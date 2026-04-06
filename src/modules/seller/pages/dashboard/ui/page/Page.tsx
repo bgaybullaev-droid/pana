@@ -58,7 +58,7 @@ function Page() {
 
 	return (
 		<InnerPage title={t("dashboard.title", "Dashboard")} noPadding>
-			<Container px="sm" py="md">
+			<Container px="md" py="md">
 			<Stack gap={16}>
 
 				{/* ── Greeting Card (Compact Mobile) ── */}

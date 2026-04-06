@@ -159,7 +159,7 @@ function Page() {
 
 	return (
 		<InnerPage title={t("editListing.title")} noPadding>
-			<Container px="sm" py="md">
+			<Container px="md" py="md">
 			<LoadingOverlay visible={isUpdating || isUploading} />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack gap="md">

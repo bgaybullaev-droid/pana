@@ -44,6 +44,64 @@ import {
 	$error,
 } from "../../model";
 
+// TODO: Remove mock data before production
+const MOCK_OLX = [
+	{
+		id: "mock-olx-1", olx_id: "olx-1001", url: "https://olx.uz/1001",
+		property_type: "apartment", listing_type: "sell", price: 85000, currency: "USD",
+		rooms: 3, area_sqm: 78, floor: 4, total_floors: 9, district: "yunusobod",
+		address: "ул. Абдуллы Кадыри, 12", description: "Евроремонт, раздельная планировка, встроенная кухня",
+		amenities: ["internet", "ac"], contact_phone: "+998901234567", confidence: 0.95,
+		images: ["https://picsum.photos/seed/olx1/400/300"], source: "olx.uz",
+		crawled_at: new Date().toISOString(), seller_type: "owner", seller_name: "Алишер К.",
+		views_count: 142, posted_date: new Date(Date.now() - 86400000 * 2).toISOString(),
+		building_type: "new", condition: "euro", created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+	},
+	{
+		id: "mock-olx-2", olx_id: "olx-1002", url: "https://olx.uz/1002",
+		property_type: "house", listing_type: "sell", price: 270000, currency: "USD",
+		rooms: 6, area_sqm: 220, floor: null, total_floors: 2, district: "sergeli",
+		address: "Сергелийский р-н", description: "Двухэтажный дом с участком 6 соток, бассейн, гараж",
+		amenities: ["garage", "pool"], contact_phone: "+998931234567", confidence: 0.88,
+		images: ["https://picsum.photos/seed/olx2/400/300"], source: "olx.uz",
+		crawled_at: new Date(Date.now() - 3600000).toISOString(), seller_type: "realtor", seller_name: "Агентство Комфорт",
+		views_count: 89, posted_date: new Date(Date.now() - 86400000).toISOString(),
+		building_type: "secondary", condition: "cosmetic", created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+	},
+	{
+		id: "mock-olx-3", olx_id: "olx-1003", url: "https://olx.uz/1003",
+		property_type: "land", listing_type: "sell", price: 45000, currency: "USD",
+		rooms: null, area_sqm: 800, floor: null, total_floors: null, district: "yashnobod",
+		address: "Яшнободский р-н", description: "Участок под строительство, коммуникации рядом",
+		amenities: null, contact_phone: "+998951234567", confidence: 0.92,
+		images: ["https://picsum.photos/seed/olx3/400/300"], source: "olx.uz",
+		crawled_at: new Date(Date.now() - 7200000).toISOString(), seller_type: "owner", seller_name: null,
+		views_count: 56, posted_date: new Date(Date.now() - 86400000 * 3).toISOString(),
+		building_type: null, condition: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+	},
+];
+
+const MOCK_TELEGRAM = [
+	{
+		id: "mock-tg-1", property_type: "apartment", listing_type: "rent", price: 500, currency: "USD",
+		rooms: 2, area_sqm: 65, floor: 7, total_floors: 12, district: "chilonzor",
+		address: "Чиланзар, 10 квартал", description: "Квартира с мебелью и техникой, рядом метро",
+		amenities: ["internet", "fridge", "washing_machine"], contact_phone: "+998901112233",
+		confidence: 0.91, images: ["https://picsum.photos/seed/tg1/400/300"],
+		raw_text: null, source_channel: "@tashkent_kvartiry", message_id: 12345, signature_hash: null,
+		created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+	},
+	{
+		id: "mock-tg-2", property_type: "commercial", listing_type: "rent", price: 1200, currency: "USD",
+		rooms: null, area_sqm: 120, floor: 1, total_floors: 5, district: "mirobod",
+		address: "Мирабадский р-н, ул. Навои", description: "Помещение под офис или магазин, первая линия",
+		amenities: ["ac"], contact_phone: "+998909998877",
+		confidence: 0.85, images: ["https://picsum.photos/seed/tg2/400/300"],
+		raw_text: null, source_channel: "@arenda_tashkent", message_id: 12346, signature_hash: null,
+		created_at: new Date(Date.now() - 3600000).toISOString(), updated_at: new Date().toISOString(),
+	},
+];
+
 function Page() {
 	const { t } = useTranslation("seller");
 	const navigate = useNavigate();
@@ -74,7 +132,10 @@ function Page() {
 		return () => resetState();
 	}, []);
 
-	const listings = activeTab === "olx" ? olxListings : telegramListings;
+	// TODO: Remove mock fallback before production
+	const effectiveOlx = olxListings.length > 0 ? olxListings : (MOCK_OLX as typeof olxListings);
+	const effectiveTelegram = telegramListings.length > 0 ? telegramListings : (MOCK_TELEGRAM as typeof telegramListings);
+	const listings = activeTab === "olx" ? effectiveOlx : effectiveTelegram;
 	const [claimingId, setClaimingId] = useState<string | null>(null);
 
 	const handleClaimOlx = useCallback(
@@ -139,7 +200,7 @@ function Page() {
 
 	return (
 		<InnerPage title={t("crawled.title")} noPadding>
-			<Container px="sm" py="md">
+			<Container px="md" py="md">
 			<Stack gap={16}>
 
 				{/* ── Modern Compact Header ── */}
@@ -306,35 +367,16 @@ function Page() {
 					) : (
 						<Stack gap="sm">
 							{activeTab === "olx"
-								? olxListings.map((listing) => (
-										<Box
+								? effectiveOlx.map((listing) => (
+										<OLXListingCard
 											key={listing.id}
-											style={{
-												boxShadow: shadows.sm,
-												borderRadius: radii.md,
-												backgroundColor: surface.card,
-												border: "1px solid #f1f5f9",
-											}}
-										>
-											<OLXListingCard
-												listing={listing}
-												onClaim={handleClaimOlx}
-												isClaiming={claimingId === listing.id}
-											/>
-										</Box>
+											listing={listing}
+											onClaim={handleClaimOlx}
+											isClaiming={claimingId === listing.id}
+										/>
 									))
-								: telegramListings.map((listing) => (
-										<Box
-											key={listing.id}
-											style={{
-												boxShadow: shadows.sm,
-												borderRadius: radii.md,
-												backgroundColor: surface.card,
-												border: "1px solid #f1f5f9",
-											}}
-										>
-											<TelegramListingCard listing={listing} />
-										</Box>
+								: effectiveTelegram.map((listing) => (
+										<TelegramListingCard key={listing.id} listing={listing} />
 									))}
 						</Stack>
 					)}

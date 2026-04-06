@@ -49,8 +49,8 @@ import {
 } from '@shared/api/sellerCrawledListings';
 import { EmptyState } from '@shared/ui/EmptyState';
 import { PillTabs } from '@shared/ui/PillTabs';
-import { ListingImageThumbnail } from '@shared/ui/ListingImageThumbnail';
-import { formatPrice, radii, shadows, surface } from '@app/styles/theme';
+import { ListingRow } from '@shared/ui/ListingRow';
+import { radii, shadows, surface } from '@app/styles/theme';
 import { translateDistrict } from '@shared/lib/regions';
 
 interface UnifiedCard {
@@ -294,14 +294,6 @@ function Page() {
     { label: 'Telegram', value: 'telegram', count: telegramTotal },
   ];
 
-  const getPropertyInfo = (card: UnifiedCard): string => {
-    const parts: string[] = [];
-    if (card.rooms) parts.push(`${card.rooms} ${t('listings.rooms')}`);
-    if (card.area) parts.push(`${card.area} ${t('listings.sqm')}`);
-    if (card.district) parts.push(translateDistrict(card.district, t));
-    return parts.join(' · ');
-  };
-
   return (
     <InnerPage
       title={t('listings.myListings')}
@@ -324,7 +316,7 @@ function Page() {
       }
       noPadding
     >
-      <Container px="sm" py="md">
+      <Container px="md" py="md">
       <Stack gap={16}>
 
         {/* ── Modern Compact Header ── */}
@@ -359,160 +351,84 @@ function Page() {
 
         {/* ── Listing cards ── */}
         <Stack gap="xs">
-          {unifiedCards.map((card, index) => {
+          {unifiedCards.map((card) => {
             const isEditable = !!card.status;
-            const isCrawled = !isEditable;
             const borderLeftColor = card.status ? statusColors[card.status] : undefined;
-            const propertyInfo = getPropertyInfo(card);
+
+            const menuActions = isEditable ? (
+              <Menu position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon variant="subtle" radius="xl" size="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }} onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                    <IconDotsVertical size={16} />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item leftSection={<IconEdit size={14} />} onClick={(e) => { e.stopPropagation(); navigate(`/seller/edit/${card.id}`); }}>{t('listings.edit')}</Menu.Item>
+                  {card.status === 'active' ? (
+                    <Menu.Item leftSection={<IconPlayerPause size={14} />} onClick={(e) => { e.stopPropagation(); pauseListing(card.id); }}>{t('listings.pause')}</Menu.Item>
+                  ) : card.status === 'paused' ? (
+                    <Menu.Item leftSection={<IconPlayerPlay size={14} />} onClick={(e) => { e.stopPropagation(); activateListing(card.id); }}>{t('listings.activate')}</Menu.Item>
+                  ) : null}
+                  <Menu.Divider />
+                  <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={(e) => { e.stopPropagation(); handleDeleteClick(card.id); }}>{t('listings.delete')}</Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            ) : card.source === 'olx' && card.rawId ? (
+              <Menu position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon variant="subtle" radius="xl" size="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }} onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                    <IconDotsVertical size={16} />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item leftSection={<IconEdit size={14} />} onClick={(e) => { e.stopPropagation(); handleClaimOlx(card.rawId!); }}>{t('listings.edit')}</Menu.Item>
+                  {card.externalUrl && (
+                    <Menu.Item leftSection={<IconExternalLink size={14} />} component="a" href={card.externalUrl} target="_blank" rel="noopener noreferrer">{t('listings.viewOnOlx')}</Menu.Item>
+                  )}
+                </Menu.Dropdown>
+              </Menu>
+            ) : undefined;
 
             const cardContent = (
-              <Card
-                radius={radii.md}
-                p="xs"
-                style={{
-                  boxShadow: shadows.sm,
-                  border: isCrawled ? '1px dashed #cbd5e1' : '1px solid #f1f5f9',
-                  borderLeft: borderLeftColor ? `4px solid ${borderLeftColor}` : '1px solid #f1f5f9',
-                  backgroundColor: surface.card,
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  cursor: 'pointer',
-                  animation: `fade-in-up 0.4s ease-out ${0.05 + (index * 0.05)}s both`
-                }}
+              <ListingRow
+                imageUrl={card.imageUrl}
+                price={card.price}
+                currency={card.currency}
+                description={card.title}
+                district={card.district}
+                onClick={isEditable ? () => navigate(`/seller/edit/${card.id}`) : undefined}
+                actions={
+                  <Group gap={4} wrap="nowrap">
+                    <Badge variant="light" size="xs" color={sourceColors[card.source]} radius="sm" style={{ fontWeight: 800 }}>
+                      {sourceLabels[card.source]}
+                    </Badge>
+                    {menuActions}
+                  </Group>
+                }
               >
-                <Group wrap="nowrap" gap="sm" align="flex-start">
-                  <Box style={{ width: 80, height: 80, flexShrink: 0, borderRadius: radii.sm, overflow: 'hidden' }}>
-                    <ListingImageThumbnail src={card.imageUrl} />
-                  </Box>
-
-                  <Box style={{ flex: 1, minWidth: 0 }}>
-                    <Group justify="space-between" wrap="nowrap" align="flex-start" gap={4} mb={2}>
-                      <Text size="16px" fw={800} truncate c="dark.9" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                        {formatPrice(card.price, card.currency)}
-                      </Text>
-                      {isEditable && (
-                        <Menu position="bottom-end">
-                          <Menu.Target>
-                            <ActionIcon
-                              variant="transparent"
-                              radius="xl"
-                              size="sm"
-                              color="dark.4"
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            >
-                              <IconDotsVertical size={16} />
-                            </ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            <Menu.Item
-                              leftSection={<IconEdit size={14} />}
-                              onClick={(e) => { e.stopPropagation(); navigate(`/seller/edit/${card.id}`); }}
-                            >
-                              {t('listings.edit')}
-                            </Menu.Item>
-                            {card.status === 'active' ? (
-                              <Menu.Item
-                                leftSection={<IconPlayerPause size={14} />}
-                                onClick={(e) => { e.stopPropagation(); pauseListing(card.id); }}
-                              >
-                                {t('listings.pause')}
-                              </Menu.Item>
-                            ) : card.status === 'paused' ? (
-                              <Menu.Item
-                                leftSection={<IconPlayerPlay size={14} />}
-                                onClick={(e) => { e.stopPropagation(); activateListing(card.id); }}
-                              >
-                                {t('listings.activate')}
-                              </Menu.Item>
-                            ) : null}
-                            <Menu.Divider />
-                            <Menu.Item
-                              leftSection={<IconTrash size={14} />}
-                              color="red"
-                              onClick={(e) => { e.stopPropagation(); handleDeleteClick(card.id); }}
-                            >
-                              {t('listings.delete')}
-                            </Menu.Item>
-                          </Menu.Dropdown>
-                        </Menu>
-                      )}
-                      {card.source === 'olx' && card.rawId && (
-                        <Menu position="bottom-end">
-                          <Menu.Target>
-                            <ActionIcon
-                              variant="transparent"
-                              radius="xl"
-                              size="sm"
-                              color="dark.4"
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            >
-                              <IconDotsVertical size={16} />
-                            </ActionIcon>
-                          </Menu.Target>
-                          <Menu.Dropdown>
-                            <Menu.Item
-                              leftSection={<IconEdit size={14} />}
-                              onClick={(e) => { e.stopPropagation(); handleClaimOlx(card.rawId!); }}
-                            >
-                              {t('listings.edit')}
-                            </Menu.Item>
-                            {card.externalUrl && (
-                              <Menu.Item
-                                leftSection={<IconExternalLink size={14} />}
-                                component="a"
-                                href={card.externalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {t('listings.viewOnOlx')}
-                              </Menu.Item>
-                            )}
-                          </Menu.Dropdown>
-                        </Menu>
-                      )}
-                      {card.source === 'telegram' && card.externalUrl && (
-                        <ActionIcon variant="transparent" component="div" size="sm">
-                          <IconExternalLink size={16} color="#94a3b8" />
-                        </ActionIcon>
-                      )}
-                    </Group>
-
-                    <Text size="12px" c="dark.6" lh={1.3} lineClamp={2} mb={6} fw={500}>
-                      {card.title}
-                    </Text>
-
-                    {propertyInfo && (
-                      <Text size="10px" fw={700} c="dimmed" truncate mb={6} tt="uppercase" style={{ letterSpacing: '0.2px' }}>
-                        {propertyInfo}
-                      </Text>
-                    )}
-
-                    <Group gap={6}>
-                      <Badge variant="light" size="xs" color={sourceColors[card.source]} radius="sm" style={{ fontWeight: 800 }}>
-                        {sourceLabels[card.source]}
-                      </Badge>
-                      {card.status && (
-                        <Badge variant="dot" size="xs" color={borderLeftColor?.replace('#', '') || 'gray'} radius="sm" style={{ border: 'none', background: '#f1f5f9', fontWeight: 800 }}>
-                          {statusLabels[card.status] || card.status}
-                        </Badge>
-                      )}
-                      <Group gap={4} wrap="nowrap" ml="auto">
-                        {card.views_count !== undefined && (
-                          <Group gap={2} wrap="nowrap" bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
-                            <IconEye size={12} color="#64748b" />
-                            <Text size="10px" c="#334155" fw={700}>{card.views_count}</Text>
-                          </Group>
-                        )}
-                        {card.contacts_count !== undefined && card.contacts_count > 0 && (
-                          <Group gap={2} wrap="nowrap" ml={2} bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
-                            <IconPhone size={12} color="#64748b" />
-                            <Text size="10px" c="#334155" fw={700}>{card.contacts_count}</Text>
-                          </Group>
-                        )}
+                {/* Status + stats row */}
+                <Group gap={6} mt={4}>
+                  {card.status && (
+                    <Badge variant="dot" size="xs" color={borderLeftColor?.replace('#', '') || 'gray'} radius="sm" style={{ border: 'none', background: '#f1f5f9', fontWeight: 800 }}>
+                      {statusLabels[card.status] || card.status}
+                    </Badge>
+                  )}
+                  <Group gap={4} wrap="nowrap" ml="auto">
+                    {card.views_count !== undefined && (
+                      <Group gap={2} wrap="nowrap" bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
+                        <IconEye size={12} color="#64748b" />
+                        <Text size="10px" c="#334155" fw={700}>{card.views_count}</Text>
                       </Group>
-                    </Group>
-                  </Box>
+                    )}
+                    {card.contacts_count !== undefined && card.contacts_count > 0 && (
+                      <Group gap={2} wrap="nowrap" ml={2} bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
+                        <IconPhone size={12} color="#64748b" />
+                        <Text size="10px" c="#334155" fw={700}>{card.contacts_count}</Text>
+                      </Group>
+                    )}
+                  </Group>
                 </Group>
-              </Card>
+              </ListingRow>
             );
 
             if (card.source === 'telegram' && card.externalUrl) {

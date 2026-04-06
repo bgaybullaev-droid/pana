@@ -98,7 +98,7 @@ function Page() {
 
 	return (
 		<InnerPage title={t("createListing.title")} noPadding>
-			<Container px="sm" py="md">
+			<Container px="md" py="md">
 			<LoadingOverlay visible={isCreating} />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack gap="md">

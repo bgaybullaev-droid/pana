@@ -155,7 +155,7 @@ function Page() {
 
 			{/* ─── Stats (sellers only) ─── */}
 			{user?.is_seller && (
-				<Box px={16} mt={8} mb={8}>
+				<Box mt={8} mb={8}>
 					<Text fw={600} size="13px" c="dimmed" mb={8}>
 						{ts("dashboard.statsToday")}
 					</Text>

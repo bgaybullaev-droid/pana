@@ -3,6 +3,7 @@ import {
 	useCallback,
 	useRef,
 	useEffect,
+	useMemo,
 	createContext,
 	useContext,
 } from "react";
@@ -34,7 +35,12 @@ import {
 	applyFilters,
 	$searchQuery,
 } from "@modules/buyer/shared/state/model";
-import { radii, surface } from "@app/styles/theme";
+import { radii, shadows, surface } from "@app/styles/theme";
+import {
+	REGIONS,
+	translateRegion,
+	translateDistrict,
+} from "@shared/lib/regions";
 
 interface LayoutContext {
 	openSearch: () => void;
@@ -99,6 +105,53 @@ export function Layout() {
 	const [searchHistory, setSearchHistory] =
 		useState<string[]>(getSearchHistory);
 	const activeSearchQuery = useUnit($searchQuery);
+
+	// Build search suggestions from districts, property types, deal types
+	const searchSuggestions = useMemo(() => {
+		if (!searchQuery || searchQuery.length < 2) return [];
+		const q = searchQuery.toLowerCase();
+		const results: string[] = [];
+
+		// Property types
+		const propertyTypes = ["apartment", "house", "commercial", "land"] as const;
+		for (const pt of propertyTypes) {
+			const label = t(`common.propertyType.${pt}`);
+			if (label.toLowerCase().includes(q)) {
+				results.push(label);
+			}
+		}
+
+		// Deal types
+		const dealLabels = [t("common.buy"), t("common.rent")];
+		for (const dl of dealLabels) {
+			if (dl.toLowerCase().includes(q)) results.push(dl);
+		}
+
+		// Districts
+		for (const region of REGIONS) {
+			const regionName = translateRegion(region.key, t);
+			if (regionName.toLowerCase().includes(q)) {
+				results.push(regionName);
+			}
+			for (const district of region.districts) {
+				const districtName = translateDistrict(district, t);
+				if (districtName.toLowerCase().includes(q)) {
+					results.push(districtName);
+					// Also add combos: "квартира Юнусабадский р-н"
+					for (const pt of propertyTypes) {
+						const ptLabel = t(`common.propertyType.${pt}`);
+						results.push(`${ptLabel} ${districtName}`);
+					}
+				}
+			}
+		}
+
+		// Deduplicate, exclude exact match with query, limit to 6
+		const unique = [...new Set(results)]
+			.filter((r) => r.toLowerCase() !== q)
+			.slice(0, 6);
+		return unique;
+	}, [searchQuery, t]);
 
 	const openSearch = useCallback(() => {
 		setSearchQuery(activeSearchQuery);
@@ -365,53 +418,102 @@ export function Layout() {
 				>
 					{/* Scrollable area */}
 					<Box style={{ flex: 1, overflowY: "auto", maxWidth: 980, margin: "0 auto", width: "100%" }} px="md" pt="md">
-						{/* No query: show history if exists, otherwise show onboarding */}
-						{!searchQuery && searchHistory.length > 0 && (
-							<Box mb="lg">
-								<Group justify="space-between" mb={10}>
-									<Text size="sm" fw={700} c="dark">
-										{t("search.youSearched")}
-									</Text>
-									<UnstyledButton onClick={handleClearHistory}>
-										<Text size="sm" c="dimmed">
-											{t("search.clearAll")}
+						{/* History — filtered by current query, in a card */}
+						{(() => {
+							const filtered = searchQuery
+								? searchHistory.filter((q) => q.toLowerCase().includes(searchQuery.toLowerCase()))
+								: searchHistory;
+							return filtered.length > 0 ? (
+								<Box
+									mb="md"
+									style={{
+										backgroundColor: surface.card,
+										borderRadius: radii.lg,
+										border: "1px solid #e9ecef",
+										boxShadow: shadows.sm,
+										padding: "12px 14px",
+									}}
+								>
+									<Group justify="space-between" mb={10}>
+										<Text size="sm" fw={700} c="dark">
+											{t("search.youSearched")}
+										</Text>
+										{!searchQuery && (
+											<UnstyledButton onClick={handleClearHistory}>
+												<Text size="sm" c="dimmed">
+													{t("search.clearAll")}
+												</Text>
+											</UnstyledButton>
+										)}
+									</Group>
+									<Group gap={8} wrap="wrap">
+										{filtered.map((query) => (
+											<UnstyledButton
+												key={query}
+												onClick={() => handleHistoryClick(query)}
+												style={{
+													display: "flex",
+													alignItems: "center",
+													gap: 6,
+													padding: "6px 12px 6px 10px",
+													borderRadius: radii.full,
+													backgroundColor: surface.muted,
+													border: "1px solid #e9ecef",
+												}}
+											>
+												<IconClock size={14} color="#adb5bd" />
+												<Text size="sm" c="dark.4">
+													{query}
+												</Text>
+												<ActionIcon
+													component="span"
+													variant="transparent"
+													size={16}
+													onClick={(e) => {
+														e.stopPropagation();
+														handleRemoveHistory(query);
+													}}
+													style={{ marginLeft: 2 }}
+												>
+													<IconX size={12} color="#adb5bd" />
+												</ActionIcon>
+											</UnstyledButton>
+										))}
+									</Group>
+								</Box>
+							) : null;
+						})()}
+
+						{/* Suggestions — shown when typing */}
+						{searchQuery && searchSuggestions.length > 0 && (
+							<Box
+								style={{
+									backgroundColor: surface.card,
+									borderRadius: radii.lg,
+									border: "1px solid #e9ecef",
+									boxShadow: shadows.sm,
+									overflow: "hidden",
+								}}
+							>
+								{searchSuggestions.map((suggestion, i) => (
+									<UnstyledButton
+										key={suggestion}
+										onClick={() => handleSearch(suggestion)}
+										style={{
+											display: "flex",
+											alignItems: "center",
+											gap: 12,
+											padding: "12px 14px",
+											width: "100%",
+											borderTop: i > 0 ? "1px solid #f1f3f5" : "none",
+										}}
+									>
+										<IconSearch size={16} color="#adb5bd" style={{ flexShrink: 0 }} />
+										<Text size="sm" c="dark.6">
+											{suggestion}
 										</Text>
 									</UnstyledButton>
-								</Group>
-								<Group gap={8} wrap="wrap">
-									{searchHistory.map((query) => (
-										<UnstyledButton
-											key={query}
-											onClick={() => handleHistoryClick(query)}
-											style={{
-												display: "flex",
-												alignItems: "center",
-												gap: 6,
-												padding: "6px 12px 6px 10px",
-												borderRadius: radii.full,
-												backgroundColor: surface.muted,
-												border: "1px solid #e9ecef",
-											}}
-										>
-											<IconClock size={14} color="#adb5bd" />
-											<Text size="sm" c="dark.4">
-												{query}
-											</Text>
-											<ActionIcon
-												component="span"
-												variant="transparent"
-												size={16}
-												onClick={(e) => {
-													e.stopPropagation();
-													handleRemoveHistory(query);
-												}}
-												style={{ marginLeft: 2 }}
-											>
-												<IconX size={12} color="#adb5bd" />
-											</ActionIcon>
-										</UnstyledButton>
-									))}
-								</Group>
+								))}
 							</Box>
 						)}
 
@@ -521,6 +623,7 @@ export function Layout() {
 								onKeyDown={(e) =>
 									e.key === "Enter" && handleSearch(searchQuery)
 								}
+								enterKeyHint="search"
 								autoFocus
 								radius={radii.xl}
 								style={{ flex: 1 }}
@@ -549,7 +652,10 @@ export function Layout() {
 										"background-color 0.15s ease, border-color 0.15s ease",
 									flexShrink: 0,
 								}}
-								onClick={closeSearch}
+								onClick={() => {
+									setSearchQuery("");
+									closeSearch();
+								}}
 							>
 								<IconX size={20} />
 							</ActionIcon>

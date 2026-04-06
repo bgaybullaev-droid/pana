@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Box, Text } from "@mantine/core";
+import { radii, shadows, surface } from "@app/styles/theme";
 
 interface SectionCardProps {
 	label?: string;
@@ -10,31 +11,27 @@ interface SectionCardProps {
 export function SectionCard({
 	label,
 	children,
-	marginTop = 20,
+	marginTop = 16,
 }: SectionCardProps) {
 	return (
 		<Box style={{ marginTop }}>
 			{label && (
 				<Text
-					style={{
-						fontSize: 12,
-						fontWeight: 600,
-						color: "#8E8E93",
-						textTransform: "uppercase",
-						letterSpacing: 0.8,
-						marginLeft: 32,
-						marginBottom: 6,
-					}}
+					size="xs"
+					fw={600}
+					c="dimmed"
+					tt="uppercase"
+					mb={8}
+					style={{ letterSpacing: 0.5 }}
 				>
 					{label}
 				</Text>
 			)}
 			<Box
 				style={{
-					backgroundColor: "#FFFFFF",
-					borderRadius: 14,
-					marginLeft: 16,
-					marginRight: 16,
+					backgroundColor: surface.card,
+					borderRadius: radii.md,
+					boxShadow: shadows.sm,
 					overflow: "hidden",
 				}}
 			>
