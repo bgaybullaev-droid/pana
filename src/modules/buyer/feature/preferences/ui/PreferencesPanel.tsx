@@ -28,7 +28,7 @@ import {
 import { PreferenceCard } from "./PreferenceCard";
 import { ListingTypeSelector } from "./ListingTypeSelector";
 import { PropertyTypeSelector } from "./PropertyTypeSelector";
-import { $preferences, savePreferencesFx } from "../model";
+import { $preferences, savePreferencesFx, fetchPreferencesFx } from "../model";
 
 interface PreferencesPanelProps {
 	onDone?: () => void;
@@ -38,6 +38,11 @@ export function PreferencesPanel(_props: PreferencesPanelProps = {}) {
 	const { t } = useTranslation("buyer");
 	const saved = useUnit($preferences);
 
+	// Fetch preferences on mount (handles dev mode, page refresh, direct navigation)
+	useEffect(() => {
+		fetchPreferencesFx();
+	}, []);
+
 	// Local form state
 	const [listingTypes, setListingTypes] = useState<string[]>([]);
 	const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
@@ -46,10 +51,11 @@ export function PreferencesPanel(_props: PreferencesPanelProps = {}) {
 	const [districts, setDistricts] = useState<string[]>([]);
 	const [priceRange, setPriceRange] = useState<[number, number]>([0, 500000]);
 	const initializedRef = useRef(false);
+	const userChangedRef = useRef(false);
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 	const pendingSaveRef = useRef<(() => void) | null>(null);
 
-	// Sync from saved preferences on mount
+	// Sync from saved preferences on mount (only once, after fetch completes)
 	useEffect(() => {
 		if (saved && !initializedRef.current) {
 			initializedRef.current = true;
@@ -59,6 +65,12 @@ export function PreferencesPanel(_props: PreferencesPanelProps = {}) {
 			setRegions(saved.regions);
 			setDistricts(saved.districts);
 			setPriceRange([saved.price_min ?? 0, saved.price_max ?? 500000]);
+			// Mark that user hasn't made changes yet — the next state
+			// updates are from the sync above, not from user interaction.
+			// We use requestAnimationFrame to skip the render cycle caused by the sync.
+			requestAnimationFrame(() => {
+				userChangedRef.current = true;
+			});
 		}
 	}, [saved]);
 
@@ -78,9 +90,9 @@ export function PreferencesPanel(_props: PreferencesPanelProps = {}) {
 		});
 	}, [listingTypes, propertyTypes, rooms, regions, districts, priceRange]);
 
-	// Auto-save with debounce
+	// Auto-save with debounce — only after user makes actual changes
 	const autoSave = useCallback(() => {
-		if (!initializedRef.current) return;
+		if (!initializedRef.current || !userChangedRef.current) return;
 		if (debounceRef.current) clearTimeout(debounceRef.current);
 		pendingSaveRef.current = doSave;
 		debounceRef.current = setTimeout(() => {
@@ -89,7 +101,7 @@ export function PreferencesPanel(_props: PreferencesPanelProps = {}) {
 		}, 500);
 	}, [doSave]);
 
-	// Trigger auto-save when any field changes (skip initial sync)
+	// Trigger auto-save when any field changes
 	useEffect(() => {
 		autoSave();
 	}, [autoSave]);

@@ -86,6 +86,15 @@ function Page() {
 	}, [createError, t]);
 
 	const handleSubmit = async (values: typeof form.values) => {
+		if (images.length === 0) {
+			notifications.show({
+				title: t("notifications.error"),
+				message: t("validation.imagesRequired"),
+				color: "red",
+			});
+			return;
+		}
+
 		const uploadedImages = await handleUploadImages();
 
 		const listingData: ListingCreateData = {
@@ -98,176 +107,179 @@ function Page() {
 
 	return (
 		<InnerPage title={t("createListing.title")} noPadding>
-			<Container px="md" py="md">
-			<LoadingOverlay visible={isCreating} />
-			<form onSubmit={form.onSubmit(handleSubmit)}>
-				<Stack gap="md">
-
-					{/* Section: Photos */}
-					<FormSection title={t("createListing.photos")}>
-						{isUploading && (
-							<Box mb="md">
-								<Group justify="space-between" mb={4}>
-									<Text size="12px" c="dimmed">
-										{t("createListing.uploadingPhotos")}
-									</Text>
-									<Text size="12px" fw={600} c="blue">
-										{uploadProgress}%
-									</Text>
-								</Group>
-								<Progress
-									value={uploadProgress}
-									size="sm"
-									radius="xl"
-									color="blue"
-									animated
-								/>
-							</Box>
-						)}
-
-						{images.length === 0 ? (
-							<FileButton onChange={handleAddImages} accept="image/*" multiple>
-								{(props) => (
-									<Box
-										{...props}
-										style={{
-											height: 100,
-											borderRadius: radii.md,
-											border: "2px dashed #bae6fd",
-											backgroundColor: "#f0f9ff",
-											display: "flex",
-											flexDirection: "column",
-											alignItems: "center",
-											justifyContent: "center",
-											cursor: "pointer",
-											gap: 4,
-											transition: "all 0.2s ease",
-										}}
-									>
-										<IconCameraPlus size={28} color="#38bdf8" stroke={1.5} />
-										<Text size="13px" fw={600} c="blue.6">
-											{t("createListing.addPhotos")}
+			<Container px="sm" py="md">
+				<LoadingOverlay visible={isCreating} />
+				<form onSubmit={form.onSubmit(handleSubmit)}>
+					<Stack gap="md">
+						{/* Section: Photos */}
+						<FormSection title={t("createListing.photos")}>
+							{isUploading && (
+								<Box mb="md">
+									<Group justify="space-between" mb={4}>
+										<Text size="12px" c="dimmed">
+											{t("createListing.uploadingPhotos")}
 										</Text>
-										<Text size="11px" c="dimmed">
-											{t("createListing.upTo10")}
+										<Text size="12px" fw={600} c="blue">
+											{uploadProgress}%
 										</Text>
-									</Box>
-								)}
-							</FileButton>
-						) : (
-							<Box>
-								<Group justify="space-between" mb={8}>
-									<Text size="12px" c="dimmed" fw={500}>
-										{t("createListing.photosAdded")}
-									</Text>
-									<Badge size="sm" variant="light" color="blue" radius="sm">
-										{images.length}/10
-									</Badge>
-								</Group>
-								<SimpleGrid cols={3} spacing="xs">
-									{images.map((file, index) => (
+									</Group>
+									<Progress
+										value={uploadProgress}
+										size="sm"
+										radius="xl"
+										color="blue"
+										animated
+									/>
+								</Box>
+							)}
+
+							{images.length === 0 ? (
+								<FileButton
+									onChange={handleAddImages}
+									accept="image/*"
+									multiple
+								>
+									{(props) => (
 										<Box
-											key={index}
+											{...props}
 											style={{
-												position: "relative",
-												aspectRatio: "1",
+												height: 100,
 												borderRadius: radii.md,
-												overflow: "hidden",
-												border: "1px solid #f1f5f9",
+												border: "2px dashed #bae6fd",
+												backgroundColor: "#f0f9ff",
+												display: "flex",
+												flexDirection: "column",
+												alignItems: "center",
+												justifyContent: "center",
+												cursor: "pointer",
+												gap: 4,
+												transition: "all 0.2s ease",
 											}}
 										>
-											<Image
-												src={URL.createObjectURL(file)}
-												alt=""
-												fit="cover"
-												h="100%"
-											/>
-											<ActionIcon
-												variant="filled"
-												color="red"
-												size="sm"
-												radius="xl"
-												style={{ position: "absolute", top: 4, right: 4 }}
-												onClick={() => handleRemoveImage(index)}
-											>
-												<IconX size={14} />
-											</ActionIcon>
+											<IconCameraPlus size={28} color="#38bdf8" stroke={1.5} />
+											<Text size="13px" fw={600} c="blue.6">
+												{t("createListing.addPhotos")}
+											</Text>
+											<Text size="11px" c="dimmed">
+												{t("createListing.upTo10")}
+											</Text>
 										</Box>
-									))}
-									{images.length < 10 && (
-										<FileButton
-											onChange={handleAddImages}
-											accept="image/*"
-											multiple
-										>
-											{(props) => (
-												<Box
-													{...props}
-													style={{
-														aspectRatio: "1",
-														borderRadius: radii.md,
-														border: "2px dashed #cbd5e1",
-														backgroundColor: surface.page,
-														display: "flex",
-														alignItems: "center",
-														justifyContent: "center",
-														cursor: "pointer",
-													}}
-												>
-													<IconCameraPlus
-														size={22}
-														color="#94a3b8"
-														stroke={1.5}
-													/>
-												</Box>
-											)}
-										</FileButton>
 									)}
-								</SimpleGrid>
-							</Box>
-						)}
-					</FormSection>
+								</FileButton>
+							) : (
+								<Box>
+									<Group justify="space-between" mb={8}>
+										<Text size="12px" c="dimmed" fw={500}>
+											{t("createListing.photosAdded")}
+										</Text>
+										<Badge size="sm" variant="light" color="blue" radius="sm">
+											{images.length}/10
+										</Badge>
+									</Group>
+									<SimpleGrid cols={3} spacing="xs">
+										{images.map((file, index) => (
+											<Box
+												key={index}
+												style={{
+													position: "relative",
+													aspectRatio: "1",
+													borderRadius: radii.md,
+													overflow: "hidden",
+													border: "1px solid #f1f5f9",
+												}}
+											>
+												<Image
+													src={URL.createObjectURL(file)}
+													alt=""
+													fit="cover"
+													h="100%"
+												/>
+												<ActionIcon
+													variant="filled"
+													color="red"
+													size="sm"
+													radius="xl"
+													style={{ position: "absolute", top: 4, right: 4 }}
+													onClick={() => handleRemoveImage(index)}
+												>
+													<IconX size={14} />
+												</ActionIcon>
+											</Box>
+										))}
+										{images.length < 10 && (
+											<FileButton
+												onChange={handleAddImages}
+												accept="image/*"
+												multiple
+											>
+												{(props) => (
+													<Box
+														{...props}
+														style={{
+															aspectRatio: "1",
+															borderRadius: radii.md,
+															border: "2px dashed #cbd5e1",
+															backgroundColor: surface.page,
+															display: "flex",
+															alignItems: "center",
+															justifyContent: "center",
+															cursor: "pointer",
+														}}
+													>
+														<IconCameraPlus
+															size={22}
+															color="#94a3b8"
+															stroke={1.5}
+														/>
+													</Box>
+												)}
+											</FileButton>
+										)}
+									</SimpleGrid>
+								</Box>
+							)}
+						</FormSection>
 
-					{/* Shared form fields: Type, Main Info, Parameters, Location, Price, Contact */}
-					<ListingFormFields
-						form={form}
-						regions={regions}
-						districts={districts}
-						onRegionChange={handleRegionChange}
-					/>
+						{/* Shared form fields: Type, Main Info, Parameters, Location, Price, Contact */}
+						<ListingFormFields
+							form={form}
+							regions={regions}
+							districts={districts}
+							onRegionChange={handleRegionChange}
+						/>
+					</Stack>
+				</form>
+
+				{/* Action Buttons */}
+				<Stack mt="xl" gap="sm">
+					<Button
+						type="submit"
+						size="md"
+						fullWidth
+						radius={radii.md}
+						loading={isCreating || isUploading}
+						onClick={() => form.onSubmit(handleSubmit)()}
+						style={{
+							background: "#228be6",
+							border: "none",
+							boxShadow: shadows.accent,
+						}}
+					>
+						{isUploading
+							? t("createListing.uploadingPhotos")
+							: t("createListing.publish")}
+					</Button>
+					<Button
+						variant="light"
+						color="gray"
+						size="md"
+						fullWidth
+						radius={radii.md}
+						onClick={() => navigate(-1)}
+					>
+						{t("createListing.cancel")}
+					</Button>
 				</Stack>
-			</form>
-
-			{/* Action Buttons */}
-			<Stack mt="xl" gap="sm">
-				<Button
-					type="submit"
-					size="md"
-					fullWidth
-					radius={radii.md}
-					loading={isCreating || isUploading}
-					onClick={() => form.onSubmit(handleSubmit)()}
-					style={{
-						background: "#228be6",
-						border: "none",
-						boxShadow: shadows.accent,
-					}}
-				>
-					{isUploading
-						? t("createListing.uploadingPhotos")
-						: t("createListing.publish")}
-				</Button>
-				<Button
-					variant="light"
-					color="gray"
-					size="md"
-					fullWidth
-					radius={radii.md}
-					onClick={() => navigate(-1)}
-				>
-					{t("createListing.cancel")}
-				</Button>
-			</Stack>
 			</Container>
 		</InnerPage>
 	);

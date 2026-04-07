@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,6 +19,8 @@ import {
 	IconTag,
 	IconMessage,
 	IconChecks,
+	IconCircleCheck,
+	IconCircleX,
 } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
 import { formatTimeAgo } from "@shared/lib/date";
@@ -27,6 +29,7 @@ import { useAuth } from "@app/providers/useAuth";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import type { Notification } from "@shared/api/types";
 import { radii } from "@app/styles/theme";
+import { fetchUserStats } from "@shared/state/user/model/events";
 
 // Group notifications by date
 function groupByDate(
@@ -72,92 +75,24 @@ const ICON_CONFIG: Record<
 	{ icon: typeof IconBell; color: string; bg: string }
 > = {
 	comment_reply: { icon: IconMessage, color: "#228be6", bg: "#e7f5ff" },
+	new_comment: { icon: IconMessage, color: "#228be6", bg: "#e7f5ff" },
 	price_drop: { icon: IconTag, color: "#40c057", bg: "#ebfbee" },
 	new_listing: { icon: IconHome, color: "#ff922b", bg: "#fff4e6" },
 	favorite_update: { icon: IconHeart, color: "#ff6b6b", bg: "#fff5f5" },
+	listing_approved: { icon: IconCircleCheck, color: "#40c057", bg: "#ebfbee" },
+	listing_rejected: { icon: IconCircleX, color: "#fa5252", bg: "#fff5f5" },
 };
-
-// TODO: Remove mock data before production
-const MOCK_NOTIFICATIONS: Notification[] = [
-	{
-		id: "mock-1",
-		user_id: "mock",
-		type: "price_drop",
-		title: "Цена снижена!",
-		message: "Квартира в Мирабадском районе подешевела на $5,000 — теперь $85,000",
-		listing_id: null,
-		comment_id: null,
-		actor: null,
-		read: false,
-		created_at: new Date().toISOString(),
-	},
-	{
-		id: "mock-2",
-		user_id: "mock",
-		type: "new_listing",
-		title: "Новое объявление",
-		message: "Появилась 3-комнатная квартира в Юнусабадском районе за $120,000",
-		listing_id: null,
-		comment_id: null,
-		actor: null,
-		read: false,
-		created_at: new Date(Date.now() - 3600000).toISOString(),
-	},
-	{
-		id: "mock-3",
-		user_id: "mock",
-		type: "comment_reply",
-		title: "Ответ на комментарий",
-		message: "Продавец ответил на ваш вопрос: «Да, возможен торг»",
-		listing_id: null,
-		comment_id: null,
-		actor: {
-			id: "seller-1",
-			first_name: "Алишер",
-			last_name: "Каримов",
-			username: "alisher_k",
-			avatar_url: null,
-		},
-		read: true,
-		created_at: new Date(Date.now() - 86400000).toISOString(),
-	},
-	{
-		id: "mock-4",
-		user_id: "mock",
-		type: "favorite_update",
-		title: "Обновление избранного",
-		message: "Дом в Чиланзарском районе был обновлён — добавлены новые фото",
-		listing_id: null,
-		comment_id: null,
-		actor: null,
-		read: true,
-		created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-	},
-	{
-		id: "mock-5",
-		user_id: "mock",
-		type: "new_listing",
-		title: "Подходящее объявление",
-		message: "Участок 10 соток в Ташкентской области за $20,000 — совпадает с вашими предпочтениями",
-		listing_id: null,
-		comment_id: null,
-		actor: null,
-		read: true,
-		created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-	},
-];
 
 function Page() {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
 	const { isAuthenticated } = useAuth();
-	const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
-	const [unreadCount, setUnreadCount] = useState(MOCK_NOTIFICATIONS.filter((n) => !n.read).length);
+	const [unreadCount, setUnreadCount] = useState(0);
 	const [page, setPage] = useState(1);
 	const [hasMore, setHasMore] = useState(true);
-	// TODO: Re-enable after removing mock data
-	// const initializedRef = useRef(false);
+	const initializedRef = useRef(false);
 
 	const loadNotifications = useCallback(
 		async (pageNum: number, reset = false) => {
@@ -181,19 +116,23 @@ function Page() {
 		[],
 	);
 
-	// TODO: Re-enable API call after removing mock data
-	// useEffect(() => {
-	// 	if (!isAuthenticated) return;
-	// 	if (initializedRef.current) return;
-	// 	initializedRef.current = true;
-	// 	loadNotifications(1, true);
-	// }, [isAuthenticated, loadNotifications]);
+	useEffect(() => {
+		if (!isAuthenticated) return;
+		if (initializedRef.current) return;
+		initializedRef.current = true;
+		loadNotifications(1, true);
+	}, [isAuthenticated, loadNotifications]);
 
-	const handleMarkAllAsRead = () => {
-		// TODO: Re-enable API call after removing mock data
-		// notificationsApi.markAsRead();
-		setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-		setUnreadCount(0);
+	const handleMarkAllAsRead = async () => {
+		try {
+			await notificationsApi.markAsRead();
+			setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+			setUnreadCount(0);
+			// Immediately sync global unread badge
+			fetchUserStats();
+		} catch (error) {
+			console.error("Failed to mark all as read:", error);
+		}
 	};
 
 	const handleNotificationClick = async (notification: Notification) => {
@@ -206,6 +145,7 @@ function Page() {
 					),
 				);
 				setUnreadCount((prev) => Math.max(0, prev - 1));
+				fetchUserStats();
 			} catch (error) {
 				console.error("Failed to mark notification as read:", error);
 			}
@@ -271,171 +211,164 @@ function Page() {
 			actions={
 				<UnstyledButton
 					onClick={unreadCount > 0 ? handleMarkAllAsRead : undefined}
-					style={{ display: "flex", alignItems: "center", cursor: unreadCount > 0 ? "pointer" : "default" }}
+					style={{
+						display: "flex",
+						alignItems: "center",
+						cursor: unreadCount > 0 ? "pointer" : "default",
+					}}
 				>
-					<IconChecks size={22} color={unreadCount > 0 ? "#228be6" : "#adb5bd"} stroke={1.8} />
+					<IconChecks
+						size={22}
+						color={unreadCount > 0 ? "#228be6" : "#adb5bd"}
+						stroke={1.8}
+					/>
 				</UnstyledButton>
 			}
 		>
-				{isLoading && notifications.length === 0 ? (
-					<Center py={48}>
-						<Loader size="md" color="blue" />
-					</Center>
-				) : notifications.length === 0 ? (
-					<Box ta="center" py={48}>
-						<Box
-							style={{
-								width: 80,
-								height: 80,
-								borderRadius: radii.full,
-								backgroundColor: "#e7f5ff",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								margin: "0 auto 16px",
-							}}
-						>
-							<IconBell size={36} color="#74c0fc" stroke={1.5} />
-						</Box>
-						<Text fw={600} size="md">
-							{t("notifications.emptyTitle")}
-						</Text>
-						<Text c="dimmed" size="sm" mt={4}>
-							{t("notifications.emptyDescription")}
-						</Text>
+			{isLoading && notifications.length === 0 ? (
+				<Center py={48}>
+					<Loader size="md" color="blue" />
+				</Center>
+			) : notifications.length === 0 ? (
+				<Box ta="center" py={48}>
+					<Box
+						style={{
+							width: 80,
+							height: 80,
+							borderRadius: radii.full,
+							backgroundColor: "#e7f5ff",
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							margin: "0 auto 16px",
+						}}
+					>
+						<IconBell size={36} color="#74c0fc" stroke={1.5} />
 					</Box>
-				) : (
-					<Stack gap="lg">
-						{groupedNotifications.map((group) => (
-							<Box key={group.label}>
-								{/* Date section header */}
-								<Text
-									size="xs"
-									fw={700}
-									c="dimmed"
-									tt="uppercase"
-									mb={8}
-									ml={4}
-								>
-									{group.label}
-								</Text>
+					<Text fw={600} size="md">
+						{t("notifications.emptyTitle")}
+					</Text>
+					<Text c="dimmed" size="sm" mt={4}>
+						{t("notifications.emptyDescription")}
+					</Text>
+				</Box>
+			) : (
+				<Stack gap="lg">
+					{groupedNotifications.map((group) => (
+						<Box key={group.label}>
+							{/* Date section header */}
+							<Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={8} ml={4}>
+								{group.label}
+							</Text>
 
-								<Stack gap={8}>
-									{group.items.map((notification) => {
-										const config = ICON_CONFIG[notification.type] || {
-											icon: IconBell,
-											color: "#868e96",
-											bg: "#f1f3f5",
-										};
-										const Icon = config.icon;
+							<Stack gap={8}>
+								{group.items.map((notification) => {
+									const config = ICON_CONFIG[notification.type] || {
+										icon: IconBell,
+										color: "#868e96",
+										bg: "#f1f3f5",
+									};
+									const Icon = config.icon;
 
-										return (
-											<UnstyledButton
-												key={notification.id}
-												onClick={() => handleNotificationClick(notification)}
-												style={{ display: "block" }}
+									return (
+										<UnstyledButton
+											key={notification.id}
+											onClick={() => handleNotificationClick(notification)}
+											style={{ display: "block" }}
+										>
+											<Box
+												style={{
+													backgroundColor: notification.read
+														? "#f8f9fa"
+														: "white",
+													borderRadius: radii.md,
+													padding: "12px 14px",
+													boxShadow: notification.read
+														? "none"
+														: "0 2px 8px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)",
+													borderLeft: notification.read
+														? "3px solid transparent"
+														: `3px solid ${config.color}`,
+													transition: "all 0.2s ease",
+												}}
 											>
-												<Box
-													style={{
-														backgroundColor: notification.read
-															? "#f8f9fa"
-															: "white",
-														borderRadius: radii.md,
-														padding: "12px 14px",
-														boxShadow: notification.read
-															? "none"
-															: "0 2px 8px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)",
-														borderLeft: notification.read
-															? "3px solid transparent"
-															: `3px solid ${config.color}`,
-														transition: "all 0.2s ease",
-													}}
-												>
-													<Group wrap="nowrap" gap={12}>
-														{notification.actor ? (
-															<Avatar
-																src={notification.actor.avatar_url}
-																size={42}
-																radius="xl"
-																color="blue"
-																style={{ flexShrink: 0 }}
+												<Group wrap="nowrap" gap={12}>
+													{notification.actor ? (
+														<Avatar
+															src={notification.actor.avatar_url}
+															size={42}
+															radius="xl"
+															color="blue"
+															style={{ flexShrink: 0 }}
+														>
+															{notification.actor.first_name[0]}
+														</Avatar>
+													) : (
+														<Box
+															style={{
+																width: 42,
+																height: 42,
+																borderRadius: radii.md,
+																backgroundColor: config.bg,
+																display: "flex",
+																alignItems: "center",
+																justifyContent: "center",
+																flexShrink: 0,
+															}}
+														>
+															<Icon size={20} color={config.color} stroke={2} />
+														</Box>
+													)}
+													<Box style={{ flex: 1, minWidth: 0 }}>
+														<Group justify="space-between" wrap="nowrap" mb={2}>
+															<Text
+																size="sm"
+																fw={notification.read ? 500 : 700}
+																truncate
+																c={notification.read ? "gray.7" : "dark.8"}
 															>
-																{notification.actor.first_name[0]}
-															</Avatar>
-														) : (
-															<Box
-																style={{
-																	width: 42,
-																	height: 42,
-																	borderRadius: radii.md,
-																	backgroundColor: config.bg,
-																	display: "flex",
-																	alignItems: "center",
-																	justifyContent: "center",
-																	flexShrink: 0,
-																}}
-															>
-																<Icon
-																	size={20}
-																	color={config.color}
-																	stroke={2}
-																/>
-															</Box>
-														)}
-														<Box style={{ flex: 1, minWidth: 0 }}>
-															<Group
-																justify="space-between"
-																wrap="nowrap"
-																mb={2}
-															>
-																<Text
-																	size="sm"
-																	fw={notification.read ? 500 : 700}
-																	truncate
-																	c={notification.read ? "gray.7" : "dark.8"}
-																>
-																	{notification.title}
-																</Text>
-																<Text
-																	size="xs"
-																	c="dimmed"
-																	style={{ flexShrink: 0, fontSize: 11 }}
-																>
-																	{formatTimeAgo(notification.created_at)}
-																</Text>
-															</Group>
+																{notification.title}
+															</Text>
 															<Text
 																size="xs"
-																c={notification.read ? "gray.5" : "gray.6"}
-																lineClamp={2}
-																style={{ lineHeight: 1.4 }}
+																c="dimmed"
+																style={{ flexShrink: 0, fontSize: 11 }}
 															>
-																{notification.message}
+																{formatTimeAgo(notification.created_at)}
 															</Text>
-														</Box>
-													</Group>
-												</Box>
-											</UnstyledButton>
-										);
-									})}
-								</Stack>
-							</Box>
-						))}
+														</Group>
+														<Text
+															size="xs"
+															c={notification.read ? "gray.5" : "gray.6"}
+															lineClamp={2}
+															style={{ lineHeight: 1.4 }}
+														>
+															{notification.message}
+														</Text>
+													</Box>
+												</Group>
+											</Box>
+										</UnstyledButton>
+									);
+								})}
+							</Stack>
+						</Box>
+					))}
 
-						{hasMore && (
-							<Center>
-								<Button
-									variant="subtle"
-									onClick={handleLoadMore}
-									loading={isLoading}
-									radius={10}
-								>
-									{t("notifications.loadMore")}
-								</Button>
-							</Center>
-						)}
-					</Stack>
-				)}
+					{hasMore && (
+						<Center>
+							<Button
+								variant="subtle"
+								onClick={handleLoadMore}
+								loading={isLoading}
+								radius={10}
+							>
+								{t("notifications.loadMore")}
+							</Button>
+						</Center>
+					)}
+				</Stack>
+			)}
 		</InnerPage>
 	);
 }

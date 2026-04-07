@@ -249,6 +249,7 @@
   "propertyTypes.commercial": "Коммерция",
   "propertyTypes.land": "Участок",
 
+  "validation.imagesRequired": "Добавьте хотя бы одно фото",
   "validation.priceRequired": "Укажите цену",
   "validation.regionRequired": "Выберите область",
   "validation.districtRequired": "Выберите район",
