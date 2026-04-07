@@ -1,0 +1,2 @@
+/uploads/*  https://ucharmarket.uz/uploads/:splat  200
+/*          /index.html                              200
