@@ -10,7 +10,10 @@
       "Bash(npm install:*)",
       "Bash(netlify login:*)",
       "Bash(netlify sites:create --name ucharmarket-frontend)",
-      "Bash(netlify deploy:*)"
+      "Bash(netlify deploy:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find /c/coding/ucharmarket-frontend/src -type f -name \"*.tsx\" -exec grep -l \"padding\\\\|backgroundColor\" {} \\\\;)",
+      "Bash(find /c/coding/ucharmarket-frontend/src -type f -name \"*.tsx\" -exec grep -l \"p=\\\\|px=\\\\|py=\\\\|pt=\\\\|pb=\\\\|pl=\\\\|pr=\" {} \\\\;)"
     ],
     "additionalDirectories": [
       "c:\\coding\\ucharmarket-frontend\\node_modules\\.vite"
