@@ -1,3 +1,11 @@
+# Proxy /uploads to the backend so images load correctly
+[[redirects]]
+  from = "/uploads/*"
+  to = "https://ucharmarket.uz/uploads/:splat"
+  status = 200
+  force = true
+
+# SPA fallback — must come AFTER more specific rules
 [[redirects]]
   from = "/*"
   to = "/index.html"
