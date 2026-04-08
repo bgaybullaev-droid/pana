@@ -1,0 +1,30 @@
+Всё готово. Компиляция чистая. Вот итог:
+
+Результат
+Новые компоненты
+RootPage.tsx — шаблон для корневых табов
+InnerPage.tsx — шаблон для внутренних страниц
+Section.tsx — секция контента (default/card/list)
+Удалено разделение buyer/seller
+SellerRouter — удалён, routes перенесены в единый UserRouter
+SellerLayout — удалён (включая файлы router/index.ts, layout/index.ts)
+WithBottomNav — удалён (layout единый)
+Shell router — /seller/* route убран, всё через /* → UserRouter
+Миграция страниц
+Шаблон	Страницы
+RootPage	Home, Favorites, Settings
+InnerPage	Notifications, Edit Profile, Become Seller, Preferences, About, FAQ, Support, Privacy, Terms, For Realtors, Seller Dashboard, Seller Listings, Seller Crawled, Seller Create, Seller Edit, Seller Profile, Seller Register
+GradientHeader	Search (промо)
+Full-screen	Listing Detail, Browse, Auth
+Что удалено из страниц
+Все inline <Box mih="100vh" style={{ backgroundColor: surface.page }}> обёртки
+Все прямые импорты TabBar/PageBar в страницах
+Все локальные padding/paddingBottom для safe area
+SubPageLayout (удалён ранее)
+Структура после
+
+src/app/router/Router.tsx     → /admin/* → AdminRouter, /* → UserRouter
+src/shared/ui/RootPage.tsx    → шаблон корневых табов
+src/shared/ui/InnerPage.tsx   → шаблон внутренних страниц
+src/shared/ui/Section.tsx     → секция контента
+src/modules/buyer/app/router/ → единый UserRouter (buyer + seller routes)

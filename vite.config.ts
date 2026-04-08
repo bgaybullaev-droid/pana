@@ -30,7 +30,7 @@ export default defineConfig({
 		port: 7878,
 		proxy: {
 			"/api": {
-				target: "http://localhost:7879",
+				target: "https://ucharmarket.uz",
 				changeOrigin: true,
 			},
 			"/uploads": {
