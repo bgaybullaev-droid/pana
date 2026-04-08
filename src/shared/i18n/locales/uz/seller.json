@@ -3,10 +3,8 @@
   "nav.listings": "E'lonlar",
   "nav.create": "Yaratish",
   "nav.profile": "Profil",
-
   "header.sellerPanel": "Sotuvchi kabineti",
   "header.logout": "Chiqish",
-
   "auth.sellerPanel": "Sotuvchi kabineti",
   "auth.loginSubtitlePhone": "Telefon raqamingiz bilan kiring",
   "auth.loginSubtitleOTP": "Kod Telegram orqali yuborildi",
@@ -21,7 +19,6 @@
   "auth.registerViaTelegram": "Telegram-bot orqali ro'yxatdan o'ting",
   "auth.registerDescription": "Sotuvchi kabinetiga kirish uchun Telegram-botimiz orqali ro'yxatdan o'tishingiz kerak",
   "auth.register": "Ro'yxatdan o'tish",
-
   "dashboard.welcome": "Xush kelibsiz!",
   "dashboard.seller": "Sotuvchi",
   "dashboard.statsToday": "Bugungi statistikangiz",
@@ -36,7 +33,6 @@
   "dashboard.found": "Topilganlar",
   "dashboard.createFirst": "Birinchi e'loningizni yarating",
   "dashboard.createFirstDescription": "Bugundan xaridorlardan so'rovlar olishni boshlang",
-
   "listings.myListings": "Mening e'lonlarim",
   "listings.add": "Qo'shish",
   "listings.all": "Hammasi",
@@ -67,7 +63,6 @@
   "listings.claimLimitTitle": "Kunlik limit",
   "listings.claimLimitMsg": "Kunlik e'lon olish limiti tugadi. Ertaga qayta urinib ko'ring.",
   "listings.claimError": "E'lonni olishda xatolik yuz berdi",
-
   "notifications.done": "Tayyor",
   "notifications.paused": "E'lon to'xtatildi",
   "notifications.activated": "E'lon faollashtirildi",
@@ -79,7 +74,6 @@
   "notifications.warning": "Ogohlantirish",
   "notifications.imageUploadFailed": "Ba'zi rasmlarni yuklash imkoni bo'lmadi.",
   "notifications.profileUpdated": "Profil yangilandi",
-
   "createListing.title": "Yangi e'lon",
   "createListing.listingType": "E'lon turi",
   "createListing.dealType": "Bitim turi",
@@ -124,6 +118,7 @@
   "createListing.cancel": "Bekor qilish",
   "createListing.other": "Boshqa",
   "createListing.enterValue": "Kiriting...",
+  "createListing.multipleAllowed": "Bir nechtasini tanlash mumkin",
   "createListing.additionalInfo": "Qo'shimcha",
   "createListing.negotiable": "Kelishuv narxi",
   "createListing.sellerTypeLabel": "Kim e'lon bermoqda",
@@ -237,22 +232,17 @@
   "createListing.lpIndustrial": "Sanoat",
   "createListing.lpAgri": "Qishloq xo'jaligi",
   "createListing.lpCommercial": "Tijorat",
-
   "editListing.title": "Tahrirlash",
   "editListing.currentPhotos": "Joriy rasmlar",
   "editListing.addNewPhotos": "Yangi rasmlar qo'shish",
   "editListing.save": "O'zgarishlarni saqlash",
-
   "propertyTypes.apartment": "Kvartira",
   "propertyTypes.house": "Uy",
   "propertyTypes.commercial": "Tijorat",
   "propertyTypes.land": "Yer",
-
-  "validation.imagesRequired": "Kamida bitta rasm qo'shing",
   "validation.priceRequired": "Narxni kiriting",
   "validation.regionRequired": "Viloyatni tanlang",
   "validation.districtRequired": "Tumanni tanlang",
-
   "profile.seller": "Sotuvchi",
   "profile.verified": "Tasdiqlangan",
   "profile.memberSince": "Platformada {{date}} dan beri",
@@ -279,7 +269,6 @@
   "profile.save": "Saqlash",
   "profile.contactsSection": "Kontaktlar",
   "profile.hidden": "Yashirin",
-
   "crawled.title": "Platformalar",
   "crawled.subtitle": "Tashqi platformalardagi e'lonlaringiz",
   "crawled.description": "Avtomatik topilgan e'lonlarni osonlikcha toping va ko'chiring.",
@@ -288,19 +277,16 @@
   "crawled.emptyOLX": "Raqamingiz uchun OLX dan e'lonlar topilmadi",
   "crawled.emptyTelegram": "Raqamingiz uchun Telegram dan e'lonlar topilmadi",
   "crawled.totalListings": "{{count}} ta e'lon",
-
   "pending.title": "Ko'rib chiqilmoqda",
   "pending.subtitle": "Hisobingiz tekshirilmoqda",
   "pending.description": "Hisobingiz jamoamiz tomonidan ko'rib chiqilmoqda. Hisob tasdiqlanganda Telegram orqali xabarnoma olasiz.",
   "pending.timeEstimate": "Odatda bu 24 soatdan kam vaqt oladi.",
   "pending.logout": "Chiqish",
-
   "rejected.title": "Hisob rad etildi",
   "rejected.subtitle": "Ro'yxatdan o'tish tasdiqlanmadi",
   "rejected.description": "Afsuski, ro'yxatdan o'tish uchun arizangiz moderatsiya jamoasi tomonidan rad etildi.",
   "rejected.contactSupport": "Agar xato yuz bergan deb hisoblasangiz, Telegram orqali qo'llab-quvvatlash jamoamizga murojaat qiling.",
   "rejected.logout": "Chiqish",
-
   "register.title": "Sotuvchi bo'ling",
   "register.subtitle": "E'lonlarni joylashtiring va boshqaring",
   "register.benefits": "Afzalliklar",
@@ -332,7 +318,6 @@
   "register.successMessage": "Siz muvaffaqiyatli sotuvchi bo'ldingiz",
   "register.orViaTelegram": "Yoki quyidagi orqali ro'yxatdan o'ting",
   "register.cancel": "Bekor qilish",
-
   "errors.loadStats": "Statistikani yuklab bo'lmadi",
   "errors.loadListings": "E'lonlarni yuklab bo'lmadi"
 }

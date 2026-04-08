@@ -48,7 +48,6 @@ function Page() {
 		$editError,
 	]);
 	const initializedRef = useRef<string | null>(null);
-	const errorShownRef = useRef<string | null>(null);
 
 	const {
 		form,
@@ -113,13 +112,13 @@ function Page() {
 	);
 
 	useEffect(() => {
-		if (editError && errorShownRef.current !== editError) {
-			errorShownRef.current = editError;
+		if (editError) {
 			notifications.show({
 				title: t("notifications.error"),
 				message: editError,
 				color: "red",
 			});
+			resetEditState();
 		}
 	}, [editError, t]);
 

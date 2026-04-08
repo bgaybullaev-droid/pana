@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
@@ -38,7 +38,6 @@ function Page() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
 	const [isCreating, createError] = useUnit([$isCreating, $createError]);
-	const errorShownRef = useRef<string | null>(null);
 
 	const {
 		form,
@@ -75,26 +74,17 @@ function Page() {
 	);
 
 	useEffect(() => {
-		if (createError && errorShownRef.current !== createError) {
-			errorShownRef.current = createError;
+		if (createError) {
 			notifications.show({
 				title: t("notifications.error"),
 				message: createError,
 				color: "red",
 			});
+			resetCreateState();
 		}
 	}, [createError, t]);
 
 	const handleSubmit = async (values: typeof form.values) => {
-		if (images.length === 0) {
-			notifications.show({
-				title: t("notifications.error"),
-				message: t("validation.imagesRequired"),
-				color: "red",
-			});
-			return;
-		}
-
 		const uploadedImages = await handleUploadImages();
 
 		const listingData: ListingCreateData = {
@@ -107,10 +97,11 @@ function Page() {
 
 	return (
 		<InnerPage title={t("createListing.title")} noPadding>
-			<Container px="sm" py="md">
+			<Container px="md" py="md">
 				<LoadingOverlay visible={isCreating} />
 				<form onSubmit={form.onSubmit(handleSubmit)}>
 					<Stack gap="md">
+
 						{/* Section: Photos */}
 						<FormSection title={t("createListing.photos")}>
 							{isUploading && (
@@ -134,11 +125,7 @@ function Page() {
 							)}
 
 							{images.length === 0 ? (
-								<FileButton
-									onChange={handleAddImages}
-									accept="image/*"
-									multiple
-								>
+								<FileButton onChange={handleAddImages} accept="image/*" multiple>
 									{(props) => (
 										<Box
 											{...props}

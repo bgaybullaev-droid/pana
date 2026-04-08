@@ -103,12 +103,64 @@ export function useListingForm() {
 			seller_type: "",
 		},
 		validate: {
+			type: (value, values) =>
+				values.property_type !== "land" && !value
+					? t("validation.dealTypeRequired")
+					: null,
 			price: (value, values) =>
 				!values.is_negotiable && (!value || value <= 0)
 					? t("validation.priceRequired")
 					: null,
+			rooms: (value, values) => {
+				const isApt = values.property_type === "apartment";
+				const isHouse = values.property_type === "house";
+				if ((isApt || isHouse) && value === undefined) {
+					return t("validation.roomsRequired");
+				}
+				return null;
+			},
+			area: (value, values) => {
+				if (values.property_type !== "land" && !value) {
+					return t("validation.areaRequired");
+				}
+				return null;
+			},
+			floor: (value, values) => {
+				const isApt = values.property_type === "apartment";
+				const isCom = values.property_type === "commercial";
+				if ((isApt || isCom) && value === undefined) {
+					return t("validation.floorRequired");
+				}
+				return null;
+			},
+			total_floors: (value, values) => {
+				const isApt = values.property_type === "apartment";
+				const isCom = values.property_type === "commercial";
+				const isHouse = values.property_type === "house";
+				if ((isApt || isCom || isHouse) && value === undefined) {
+					return t("validation.totalFloorsRequired");
+				}
+				return null;
+			},
+			building_type: (value, values) =>
+				values.property_type === "apartment" && !value
+					? t("validation.buildingTypeRequired")
+					: null,
+			condition: (value, values) => {
+				const isApt = values.property_type === "apartment";
+				const isCom = values.property_type === "commercial";
+				if ((isApt || isCom) && !value) {
+					return t("validation.conditionRequired");
+				}
+				return null;
+			},
+			is_furnished: (value, values) =>
+				values.property_type !== "land" && !value
+					? t("validation.furnishedRequired")
+					: null,
 			region: (value) => (!value ? t("validation.regionRequired") : null),
 			district: (value) => (!value ? t("validation.districtRequired") : null),
+			latitude: (value) => (!value ? t("validation.mapRequired") : null),
 		},
 	});
 

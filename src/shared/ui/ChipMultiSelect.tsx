@@ -2,6 +2,7 @@ import { Box, Group, Text, UnstyledButton } from "@mantine/core";
 
 interface ChipMultiSelectProps {
 	label?: string;
+	description?: string;
 	options: { value: string; label: string }[];
 	value: string[];
 	onChange: (value: string[]) => void;
@@ -9,6 +10,7 @@ interface ChipMultiSelectProps {
 
 export function ChipMultiSelect({
 	label,
+	description,
 	options,
 	value,
 	onChange,
@@ -24,8 +26,13 @@ export function ChipMultiSelect({
 	return (
 		<Box>
 			{label && (
-				<Text size="sm" fw={500} mb={6}>
+				<Text size="sm" fw={500} mb={description ? 2 : 6}>
 					{label}
+				</Text>
+			)}
+			{description && (
+				<Text size="xs" c="dimmed" mb={6}>
+					{description}
 				</Text>
 			)}
 			<Group gap={8} wrap="wrap">

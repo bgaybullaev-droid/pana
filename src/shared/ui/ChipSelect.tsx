@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 interface ChipSelectProps {
 	label?: string;
-	options: { value: string; label: string }[];
+	options: { value: string; label: string; breakAfter?: boolean }[];
 	value: string | number | undefined;
 	onChange: (value: string | number | undefined) => void;
 	customInputMode?: "numeric" | "decimal" | "text";
@@ -137,12 +137,19 @@ export function ChipSelect({
 			)}
 			<Group gap={8} wrap="wrap">
 				{options.map((opt) => (
-					<ChipButton
+					<div
 						key={opt.value}
-						label={opt.label}
-						active={isPredefined && stringVal === opt.value}
-						onClick={() => handleOptionClick(opt.value)}
-					/>
+						style={{
+							display: "contents",
+						}}
+					>
+						<ChipButton
+							label={opt.label}
+							active={isPredefined && stringVal === opt.value}
+							onClick={() => handleOptionClick(opt.value)}
+						/>
+						{opt.breakAfter && <Box style={{ flexBasis: "100%", height: 0 }} />}
+					</div>
 				))}
 				{customInputMode && (
 					<ChipButton

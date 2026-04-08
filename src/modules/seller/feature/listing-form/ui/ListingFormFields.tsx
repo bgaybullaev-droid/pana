@@ -1,7 +1,6 @@
 import {
 	Textarea,
 	NumberInput,
-	SegmentedControl,
 	Box,
 	Text,
 	Switch,
@@ -349,20 +348,17 @@ export function ListingFormFields({
 					error={form.errors.property_type as string}
 				/>
 				{pt !== "land" && (
-					<Box>
-						<Text size="xs" c="dimmed" mb={6}>
-							{t("createListing.dealType")}
-						</Text>
-						<SegmentedControl
-							fullWidth
-							radius="xl"
-							data={[
-								{ label: t("createListing.sell"), value: "sell" },
-								{ label: t("createListing.rent"), value: "rent" },
-							]}
-							{...form.getInputProps("type")}
-						/>
-					</Box>
+					<ChipSelect
+						label={t("createListing.dealType")}
+						required
+						options={[
+							{ label: t("createListing.sell"), value: "sell" },
+							{ label: t("createListing.rent"), value: "rent" },
+						]}
+						value={form.values.type}
+						onChange={(val) => set("type", (val as string) || "sell")}
+						error={form.errors.type as string}
+					/>
 				)}
 			</FormSection>
 
@@ -383,21 +379,25 @@ export function ListingFormFields({
 				{show.rooms && (
 					<ChipSelect
 						label={t("createListing.rooms")}
+						required
 						options={roomOpts}
 						value={form.values.rooms}
 						onChange={(val) => set("rooms", val as number | undefined)}
 						customInputMode="numeric"
 						customPlaceholder="7, 8, 10..."
+						error={form.errors.rooms as string}
 					/>
 				)}
 				{show.area && (
 					<ChipSelect
 						label={t("createListing.totalArea")}
+						required
 						options={areaOpts}
 						value={form.values.area}
 						onChange={(val) => set("area", val as number | undefined)}
 						customInputMode="decimal"
 						customPlaceholder="94.5, 120..."
+						error={form.errors.area as string}
 					/>
 				)}
 				{show.livingArea && (
@@ -422,11 +422,13 @@ export function ListingFormFields({
 				{show.floor && (
 					<ChipSelect
 						label={t("createListing.floor")}
+						required
 						options={floorOpts}
 						value={form.values.floor}
 						onChange={(val) => set("floor", val as number | undefined)}
 						customInputMode="numeric"
 						customPlaceholder="10, 15..."
+						error={form.errors.floor as string}
 					/>
 				)}
 				{/* Total floors — after individual floor */}
@@ -437,11 +439,13 @@ export function ListingFormFields({
 								? t("createListing.houseStories")
 								: t("createListing.totalFloors")
 						}
+						required
 						options={totalFloorsOpts}
 						value={form.values.total_floors}
 						onChange={(val) => set("total_floors", val as number | undefined)}
 						customInputMode="numeric"
 						customPlaceholder="24, 30..."
+						error={form.errors.total_floors as string}
 					/>
 				)}
 			</FormSection>
@@ -452,6 +456,7 @@ export function ListingFormFields({
 					{show.buildingType && (
 						<ChipSelect
 							label={t("createListing.buildingType")}
+							required
 							options={[
 								{ value: "new", label: t("createListing.buildingNew") },
 								{
@@ -463,22 +468,27 @@ export function ListingFormFields({
 							onChange={(val) =>
 								set("building_type", val as string | undefined)
 							}
+							error={form.errors.building_type as string}
 						/>
 					)}
 					{show.condition && (
 						<ChipSelect
 							label={t("createListing.condition")}
+							required
 							options={conditionOpts}
 							value={form.values.condition}
 							onChange={(val) => set("condition", val as string | undefined)}
+							error={form.errors.condition as string}
 						/>
 					)}
 					{show.furnished && (
 						<ChipSelect
 							label={t("createListing.furnished")}
+							required
 							options={furnishedOpts}
 							value={form.values.is_furnished}
 							onChange={(val) => set("is_furnished", val as string | undefined)}
+							error={form.errors.is_furnished as string}
 						/>
 					)}
 				</FormSection>
@@ -495,12 +505,14 @@ export function ListingFormFields({
 					/>
 					<ChipMultiSelect
 						label={t("createListing.houseCondition")}
+						description={t("createListing.multipleAllowed")}
 						options={houseConditionOpts}
 						value={form.values.house_condition}
 						onChange={(val) => set("house_condition", val)}
 					/>
 					<ChipMultiSelect
 						label={t("createListing.locationType")}
+						description={t("createListing.multipleAllowed")}
 						options={locationTypeOpts}
 						value={form.values.location_type}
 						onChange={(val) => set("location_type", val)}
@@ -513,6 +525,7 @@ export function ListingFormFields({
 				<FormSection title={t("createListing.utilities")}>
 					<ChipMultiSelect
 						label={t("createListing.waterSupply")}
+						description={t("createListing.multipleAllowed")}
 						options={waterSupplyOpts}
 						value={form.values.water_supply}
 						onChange={(val) => set("water_supply", val)}
@@ -528,6 +541,7 @@ export function ListingFormFields({
 					<Box mt={12}>
 						<ChipMultiSelect
 							label={t("createListing.heating")}
+							description={t("createListing.multipleAllowed")}
 							options={heatingOpts}
 							value={form.values.heating}
 							onChange={(val) => set("heating", val)}
@@ -570,6 +584,7 @@ export function ListingFormFields({
 					{show.aptAmenities && (
 						<ChipMultiSelect
 							label={t("createListing.inProperty")}
+							description={t("createListing.multipleAllowed")}
 							options={aptAmenityOpts}
 							value={form.values.amenities}
 							onChange={(val) => set("amenities", val)}
@@ -578,6 +593,7 @@ export function ListingFormFields({
 					{show.houseAmenities && (
 						<ChipMultiSelect
 							label={t("createListing.inHouseProperty")}
+							description={t("createListing.multipleAllowed")}
 							options={houseAmenityOpts}
 							value={form.values.amenities}
 							onChange={(val) => set("amenities", val)}
@@ -587,6 +603,7 @@ export function ListingFormFields({
 						<Box mt={16}>
 							<ChipMultiSelect
 								label={t("createListing.nearby")}
+								description={t("createListing.multipleAllowed")}
 								options={nearbyOpts}
 								value={form.values.nearby_amenities}
 								onChange={(val) => set("nearby_amenities", val)}
@@ -600,25 +617,33 @@ export function ListingFormFields({
 			<FormSection title={t("createListing.locationSection")}>
 				<ChipSelect
 					label={t("createListing.region")}
+					required
 					options={regions}
 					value={form.values.region || undefined}
 					onChange={(val) => {
 						onRegionChange(val ? String(val) : "");
 					}}
+					error={form.errors.region as string}
 				/>
 				{form.values.region && districts.length > 0 && (
 					<ChipSelect
 						label={t("createListing.district")}
+						required
 						options={districts}
 						value={form.values.district || undefined}
 						onChange={(val) => {
 							set("district", val ? String(val) : "");
 						}}
+						error={form.errors.district as string}
 					/>
 				)}
 				<Box mt={8}>
 					<Text size="sm" fw={500} mb={6}>
 						{t("createListing.mapLabel")}
+						<Text span c="red" inherit>
+							{" "}
+							*
+						</Text>
 					</Text>
 					<Suspense
 						fallback={<Box h={220} bg="gray.1" style={{ borderRadius: 12 }} />}
@@ -636,6 +661,11 @@ export function ListingFormFields({
 							onAddressResolved={(addr) => set("address", addr)}
 						/>
 					</Suspense>
+					{form.errors.latitude && (
+						<Text size="xs" c="red" mt={4}>
+							{form.errors.latitude as string}
+						</Text>
+					)}
 				</Box>
 				<Textarea
 					label={t("createListing.addressLabel")}

@@ -244,11 +244,41 @@ export interface ApiError {
 
 // Extract error from response
 export function getApiError(error: unknown): ApiError {
-  if (axios.isAxiosError(error) && error.response?.data?.error) {
-    return error.response.data.error;
-  }
-  return {
-    code: 'UNKNOWN_ERROR',
-    message: 'An unexpected error occurred',
-  };
+	if (axios.isAxiosError(error)) {
+		const data = error.response?.data;
+
+		// Handle explicit error object
+		if (data?.error) {
+			return data.error;
+		}
+
+		// Handle FastAPI validation errors (detail array)
+		if (Array.isArray(data?.detail)) {
+			const firstError = data.detail[0];
+			const field = firstError.loc?.slice(1).join(".") || "unknown";
+			const msg = firstError.msg || "Invalid value";
+
+			return {
+				code: "VALIDATION_ERROR",
+				message: `Validation failed: ${field} - ${msg}`,
+				details: data.detail.map((d: any) => ({
+					field: d.loc?.slice(1).join(".") || "unknown",
+					error: d.msg || "Invalid value",
+				})),
+			};
+		}
+
+		// Handle other error formats (e.g. just {message: "..."})
+		if (data?.message) {
+			return {
+				code: "API_ERROR",
+				message: data.message,
+			};
+		}
+	}
+
+	return {
+		code: "UNKNOWN_ERROR",
+		message: "An unexpected error occurred. Please try again or contact support.",
+	};
 }

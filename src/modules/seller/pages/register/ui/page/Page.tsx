@@ -29,6 +29,7 @@ import {
 	$sellerError,
 	registerAsSeller,
 	registerAsSellerFx,
+	resetSellerState,
 } from "@modules/seller/shared/state";
 import { BenefitRow } from "../main/BenefitRow";
 import { radii, shadows, spacing, surface } from "@app/styles/theme";
@@ -41,7 +42,6 @@ function Page() {
 		$isLoadingProfile,
 		$sellerError,
 	]);
-	const errorShownRef = useRef<string | null>(null);
 	const redirectCheckedRef = useRef(false);
 
 	const form = useForm({
@@ -75,15 +75,15 @@ function Page() {
 
 	// Show error notification
 	useEffect(() => {
-		if (error && errorShownRef.current !== error) {
-			errorShownRef.current = error;
+		if (error) {
 			notifications.show({
 				title: t("notifications.error"),
 				message: error,
 				color: "red",
 			});
+			resetSellerState();
 		}
-	}, [error]);
+	}, [error, t]);
 
 	// Redirect if already registered
 	useEffect(() => {

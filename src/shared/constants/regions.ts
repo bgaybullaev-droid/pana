@@ -90,19 +90,41 @@ export const REGIONS: Record<string, string[]> = {
 export const REGION_KEYS = Object.keys(REGIONS);
 
 export function getRegionOptions(t: TFunction) {
-  return REGION_KEYS.map((key) => ({
+  const priorityKeys = ['toshkent_shahri', 'toshkent_viloyati'];
+  const otherKeys = REGION_KEYS.filter((key) => !priorityKeys.includes(key));
+
+  const priorityOptions = priorityKeys.map((key) => ({
+    value: key,
+    label: t(`locations.region.${key}`, { ns: 'common' }),
+    breakAfter: key === 'toshkent_viloyati',
+  }));
+
+  const otherOptions = otherKeys.map((key) => ({
     value: key,
     label: t(`locations.region.${key}`, { ns: 'common' }),
   }));
+
+  otherOptions.sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+
+  return [...priorityOptions, ...otherOptions];
 }
 
 export function getDistrictOptions(regionKey: string, t: TFunction) {
   const districts = REGIONS[regionKey];
   if (!districts) return [];
-  return districts.map((key) => ({
+
+  const options = districts.map((key) => ({
     value: key,
     label: t(`locations.district.${key}`, { ns: 'common' }),
   }));
+
+  const cities = options.filter((opt) => opt.label.startsWith('г.'));
+  const regularDistricts = options.filter((opt) => !opt.label.startsWith('г.'));
+
+  cities.sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+  regularDistricts.sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+
+  return [...cities, ...regularDistricts];
 }
 
 /** Reverse lookup: find which region a district belongs to */

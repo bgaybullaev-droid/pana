@@ -78,16 +78,31 @@ export function PhoneInput({
 		if (!el) return;
 		const raw = toRaw(el.value);
 		onChangeRef.current(raw);
+		const unformatted = el.value;
+		const prevPos = el.selectionStart ?? unformatted.length;
+		
+		// Calculate non-space characters before cursor
+		let nonSpaceCount = 0;
+		for (let i = 0; i < prevPos; i++) {
+			if (unformatted[i] !== " ") nonSpaceCount++;
+		}
+
 		// Reformat the display
 		const formatted = toDisplay(raw);
 		if (el.value !== formatted) {
-			const prevPos = el.selectionStart ?? formatted.length;
 			el.value = formatted;
-			// Adjust cursor
-			let pos = Math.max(prevPos, PREFIX_LEN);
-			while (pos < formatted.length && formatted[pos] === " ") pos++;
-			pos = Math.min(pos, formatted.length);
-			el.setSelectionRange(pos, pos);
+			// Find position in formatted string
+			let newPos = 0;
+			let count = 0;
+			while (newPos < formatted.length && count < nonSpaceCount) {
+				if (formatted[newPos] !== " ") count++;
+				newPos++;
+			}
+			newPos = Math.max(newPos, PREFIX_LEN);
+			// If we landed exactly before a space (because the format added one)
+			// we might want to skip over it if the user is typing, but usually newPos
+			// naturally jumps over it because the newly typed digit is counted.
+			el.setSelectionRange(newPos, newPos);
 		}
 	}, []);
 

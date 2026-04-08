@@ -3,10 +3,8 @@
   "nav.listings": "Объявления",
   "nav.create": "Создать",
   "nav.profile": "Профиль",
-
   "header.sellerPanel": "Кабинет продавца",
   "header.logout": "Выйти",
-
   "auth.sellerPanel": "Кабинет продавца",
   "auth.loginSubtitlePhone": "Войдите с номером телефона",
   "auth.loginSubtitleOTP": "Код отправлен в Telegram",
@@ -21,7 +19,6 @@
   "auth.registerViaTelegram": "Зарегистрируйтесь через Telegram-бот",
   "auth.registerDescription": "Для доступа к кабинету продавца необходимо зарегистрироваться через нашего Telegram-бота",
   "auth.register": "Зарегистрироваться",
-
   "dashboard.welcome": "Добро пожаловать!",
   "dashboard.seller": "Продавец",
   "dashboard.statsToday": "Вот ваша статистика на сегодня",
@@ -36,7 +33,6 @@
   "dashboard.found": "Найденные",
   "dashboard.createFirst": "Создайте первое объявление",
   "dashboard.createFirstDescription": "Начните получать заявки от покупателей уже сегодня",
-
   "listings.myListings": "Мои объявления",
   "listings.add": "Добавить",
   "listings.all": "Все",
@@ -67,7 +63,6 @@
   "listings.claimLimitTitle": "Дневной лимит",
   "listings.claimLimitMsg": "Дневной лимит переноса объявлений исчерпан. Попробуйте завтра.",
   "listings.claimError": "Ошибка при переносе объявления",
-
   "notifications.done": "Готово",
   "notifications.paused": "Объявление приостановлено",
   "notifications.activated": "Объявление активировано",
@@ -79,7 +74,6 @@
   "notifications.warning": "Предупреждение",
   "notifications.imageUploadFailed": "Не удалось загрузить некоторые фото.",
   "notifications.profileUpdated": "Профиль обновлен",
-
   "createListing.title": "Новое объявление",
   "createListing.listingType": "Тип объявления",
   "createListing.dealType": "Тип сделки",
@@ -94,10 +88,9 @@
   "createListing.mainInfo": "Основная информация",
   "createListing.titleLabel": "Заголовок",
   "createListing.titlePlaceholder": "Например: 3-комн. квартира с ремонтом",
-  "createListing.descriptionLabel": "Описание",
-  "createListing.descriptionPlaceholder": "Опишите вашу недвижимость...",
+  "createListing.descriptionLabel": "Дополнительная информация",
+  "createListing.descriptionPlaceholder": "Добавьте еще информацию, если есть необходимость",
   "createListing.maxChars": "Максимум {{count}} символов",
-
   "createListing.charLimitReached": "Достигнут лимит в {{count}} символов",
   "createListing.priceSection": "Цена",
   "createListing.priceLabel": "Цена",
@@ -125,6 +118,7 @@
   "createListing.cancel": "Отмена",
   "createListing.other": "Другое",
   "createListing.enterValue": "Введите...",
+  "createListing.multipleAllowed": "Можно выбрать несколько",
   "createListing.additionalInfo": "Дополнительно",
   "createListing.negotiable": "Договорная цена",
   "createListing.sellerTypeLabel": "Кто размещает объявление",
@@ -238,22 +232,26 @@
   "createListing.lpIndustrial": "Промышленное",
   "createListing.lpAgri": "Сельское хозяйство",
   "createListing.lpCommercial": "Коммерческое",
-
   "editListing.title": "Редактирование",
   "editListing.currentPhotos": "Текущие фото",
   "editListing.addNewPhotos": "Добавить новые фото",
   "editListing.save": "Сохранить изменения",
-
   "propertyTypes.apartment": "Квартира",
   "propertyTypes.house": "Дом",
   "propertyTypes.commercial": "Коммерция",
   "propertyTypes.land": "Участок",
-
-  "validation.imagesRequired": "Добавьте хотя бы одно фото",
   "validation.priceRequired": "Укажите цену",
   "validation.regionRequired": "Выберите область",
   "validation.districtRequired": "Выберите район",
-
+  "validation.roomsRequired": "Укажите количество комнат",
+  "validation.areaRequired": "Укажите площадь",
+  "validation.floorRequired": "Укажите этаж",
+  "validation.totalFloorsRequired": "Укажите количество этажей",
+  "validation.buildingTypeRequired": "Выберите тип строения",
+  "validation.conditionRequired": "Выберите состояние ремонта",
+  "validation.furnishedRequired": "Укажите наличие мебели",
+  "validation.mapRequired": "Укажите местоположение на карте",
+  "validation.dealTypeRequired": "Выберите тип сделки",
   "profile.seller": "Продавец",
   "profile.verified": "Подтвержден",
   "profile.memberSince": "На платформе с {{date}}",
@@ -280,7 +278,6 @@
   "profile.save": "Сохранить",
   "profile.contactsSection": "Контакты",
   "profile.hidden": "Скрыт",
-
   "crawled.title": "Площадки",
   "crawled.subtitle": "Ваши объявления с внешних площадок",
   "crawled.description": "Легко находите и переносите автоматически найденные объявления.",
@@ -289,19 +286,16 @@
   "crawled.emptyOLX": "Объявления с OLX не найдены для вашего номера",
   "crawled.emptyTelegram": "Объявления из Telegram не найдены для вашего номера",
   "crawled.totalListings": "{{count}} объявлений",
-
   "pending.title": "На рассмотрении",
   "pending.subtitle": "Ваш аккаунт проверяется",
   "pending.description": "Ваш аккаунт находится на рассмотрении нашей команды. Вы получите уведомление в Telegram, когда аккаунт будет подтвержден.",
   "pending.timeEstimate": "Обычно это занимает менее 24 часов.",
   "pending.logout": "Выйти",
-
   "rejected.title": "Аккаунт отклонен",
   "rejected.subtitle": "Регистрация не одобрена",
   "rejected.description": "К сожалению, ваша заявка на регистрацию была отклонена командой модерации.",
   "rejected.contactSupport": "Если вы считаете, что произошла ошибка, свяжитесь с нашей командой поддержки через Telegram.",
   "rejected.logout": "Выйти",
-
   "register.title": "Станьте продавцом",
   "register.subtitle": "Размещайте объявления и управляйте ими",
   "register.benefits": "Преимущества",
@@ -333,7 +327,6 @@
   "register.successMessage": "Вы успешно стали продавцом",
   "register.orViaTelegram": "Или зарегистрируйтесь через",
   "register.cancel": "Отмена",
-
   "errors.loadStats": "Не удалось загрузить статистику",
   "errors.loadListings": "Не удалось загрузить объявления"
 }
