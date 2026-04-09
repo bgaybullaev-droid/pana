@@ -235,6 +235,7 @@ export function useListingForm(isEditMode = false) {
 		description: values.description || undefined,
 		price: values.is_negotiable ? 0 : values.price!,
 		currency: values.currency,
+		is_negotiable: values.is_negotiable,
 		rooms: values.rooms,
 		area: values.area,
 		living_area: values.living_area,

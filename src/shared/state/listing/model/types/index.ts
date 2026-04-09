@@ -32,6 +32,7 @@ export interface ListingCreateData {
 	gas_supply?: string;
 	sewage?: string;
 	is_furnished?: boolean;
+	is_negotiable?: boolean;
 	land_purpose?: string;
 	amenities?: string[];
 	nearby_amenities?: string[];

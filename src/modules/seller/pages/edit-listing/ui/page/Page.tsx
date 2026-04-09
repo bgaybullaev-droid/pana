@@ -35,7 +35,7 @@ import {
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
-import { radii, shadows, spacing, surface } from "@app/styles/theme";
+import { radii, shadows, surface } from "@app/styles/theme";
 
 function Page() {
 	const navigate = useNavigate();
@@ -89,7 +89,8 @@ function Page() {
 				description: editingListing.description || "",
 				price: editingListing.price,
 				currency: editingListing.currency as "USD" | "UZS",
-				is_negotiable: editingListing.is_negotiable ?? (editingListing.price === 0),
+				is_negotiable:
+					editingListing.is_negotiable ?? editingListing.price === 0,
 				rooms: editingListing.rooms ?? undefined,
 				area: editingListing.area ?? undefined,
 				living_area: editingListing.living_area ?? undefined,
@@ -204,15 +205,19 @@ function Page() {
 			is_primary: idx === 0,
 		}));
 
-		const finalImages = [...keptImages, ...uploadedImages].slice(0, 10).map((img, idx) => ({
-			...img,
-			position: idx,
-			is_primary: idx === 0,
-		}));
+		const finalImages = [...keptImages, ...uploadedImages]
+			.slice(0, 10)
+			.map((img, idx) => ({
+				...img,
+				position: idx,
+				is_primary: idx === 0,
+			}));
 
-		const originalImageIds = editingListing?.images?.map(i => i.id).join(',') || '';
-		const currentImageIds = existingImagesList.map(i => i.id).join(',');
-		const isImagesModified = originalImageIds !== currentImageIds || uploadedImages.length > 0;
+		const originalImageIds =
+			editingListing?.images?.map((i) => i.id).join(",") || "";
+		const currentImageIds = existingImagesList.map((i) => i.id).join(",");
+		const isImagesModified =
+			originalImageIds !== currentImageIds || uploadedImages.length > 0;
 
 		const listingData: ListingUpdateData = {
 			...buildListingData(values),
@@ -240,8 +245,9 @@ function Page() {
 		);
 	}
 
-
-	const errorCount = Object.keys(form.errors).length + (totalImageCount === 0 && imageError ? 1 : 0);
+	const errorCount =
+		Object.keys(form.errors).length +
+		(totalImageCount === 0 && imageError ? 1 : 0);
 
 	return (
 		<InnerPage title={t("editListing.title")} noPadding>
@@ -394,7 +400,10 @@ function Page() {
 							}}
 						>
 							<Text size="sm" c="red.8" fw={500} ta="center">
-								{t("createListing.unfilledFieldsSummary", { count: errorCount, defaultValue: `Осталось заполнить ${errorCount} полей. Прокрутите вверх и проверьте.` })}
+								{t("createListing.unfilledFieldsSummary", {
+									count: errorCount,
+									defaultValue: `Осталось заполнить ${errorCount} полей. Прокрутите вверх и проверьте.`,
+								})}
 							</Text>
 						</Box>
 					)}
