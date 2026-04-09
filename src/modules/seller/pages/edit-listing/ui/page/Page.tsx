@@ -63,7 +63,7 @@ function Page() {
 		handleUploadImages,
 		buildListingData,
 		t,
-	} = useListingForm();
+	} = useListingForm(true);
 
 	useEffect(() => {
 		if (id && initializedRef.current !== id) {
@@ -77,6 +77,7 @@ function Page() {
 
 	useEffect(() => {
 		if (editingListing) {
+			console.log("RAW_API_RESPONSE_LISTING:", editingListing);
 			form.setValues({
 				type: editingListing.type as "sell" | "rent",
 				property_type: editingListing.property_type as
@@ -88,17 +89,55 @@ function Page() {
 				description: editingListing.description || "",
 				price: editingListing.price,
 				currency: editingListing.currency as "USD" | "UZS",
+				is_negotiable: editingListing.is_negotiable ?? (editingListing.price === 0),
 				rooms: editingListing.rooms ?? undefined,
 				area: editingListing.area ?? undefined,
+				living_area: editingListing.living_area ?? undefined,
+				kitchen_area: editingListing.kitchen_area ?? undefined,
+				land_area: editingListing.land_area ?? undefined,
 				floor: editingListing.floor ?? undefined,
 				total_floors: editingListing.total_floors ?? undefined,
+				building_type: editingListing.building_type || undefined,
+				condition: editingListing.condition || undefined,
+				house_type: editingListing.house_type || undefined,
+				house_condition: editingListing.house_condition || [],
+				location_type: editingListing.location_type || [],
+				water_supply: editingListing.water_supply || [],
+				electricity: editingListing.electricity || undefined,
+				heating: editingListing.heating || [],
+				gas_supply: editingListing.gas_supply || undefined,
+				sewage: editingListing.sewage || undefined,
+				is_furnished:
+					editingListing.is_furnished === true
+						? "yes"
+						: editingListing.is_furnished === false
+							? "no"
+							: undefined,
+				land_purpose: editingListing.land_purpose || undefined,
+				amenities: editingListing.amenities || [],
+				nearby_amenities: editingListing.nearby_amenities || [],
 				region: editingListing.region || "",
 				district: editingListing.district || "",
 				address: editingListing.address || "",
+				latitude: editingListing.latitude ?? undefined,
+				longitude: editingListing.longitude ?? undefined,
 				phone: editingListing.phone || "",
+				seller_type: editingListing.seller_type || "",
 			});
 		}
 	}, [editingListing]);
+
+	const [existingImagesList, setExistingImagesList] = useState<any[]>([]);
+
+	useEffect(() => {
+		if (editingListing?.images) {
+			setExistingImagesList(editingListing.images);
+		}
+	}, [editingListing?.images]);
+
+	const handleRemoveExistingImage = (imageId: string) => {
+		setExistingImagesList((prev) => prev.filter((img) => img.id !== imageId));
+	};
 
 	useEffectorNotification(
 		updateListingFx,
@@ -124,9 +163,24 @@ function Page() {
 		}
 	}, [editError, t]);
 
+	const existingImageCount = existingImagesList.length;
+	const totalImageCount = existingImageCount + images.length;
+
+	useEffect(() => {
+		if (totalImageCount > 0 && imageError) {
+			setImageError(false);
+		}
+	}, [totalImageCount, imageError]);
+
+	const handleError = () => {
+		if (totalImageCount === 0) {
+			setImageError(true);
+		}
+	};
+
 	const handleSubmit = async (values: typeof form.values) => {
 		if (!id) return;
-		const existingCount = editingListing?.images?.length || 0;
+		const existingCount = existingImagesList.length;
 		const totalImageCount = existingCount + images.length;
 
 		if (totalImageCount === 0) {
@@ -140,9 +194,29 @@ function Page() {
 
 		const uploadedImages = await handleUploadImages(existingCount);
 
+		// Transform kept existing images to the creation format
+		const keptImages = existingImagesList.map((img, idx) => ({
+			original_url: img.original_url,
+			thumbnail_url: img.thumbnail_url,
+			medium_url: img.medium_url,
+			large_url: img.large_url,
+			position: idx,
+			is_primary: idx === 0,
+		}));
+
+		const finalImages = [...keptImages, ...uploadedImages].slice(0, 10).map((img, idx) => ({
+			...img,
+			position: idx,
+			is_primary: idx === 0,
+		}));
+
+		const originalImageIds = editingListing?.images?.map(i => i.id).join(',') || '';
+		const currentImageIds = existingImagesList.map(i => i.id).join(',');
+		const isImagesModified = originalImageIds !== currentImageIds || uploadedImages.length > 0;
+
 		const listingData: ListingUpdateData = {
 			...buildListingData(values),
-			images: uploadedImages.length > 0 ? uploadedImages : undefined,
+			images: isImagesModified ? finalImages : undefined,
 		};
 
 		updateListing({ id, data: listingData });
@@ -166,34 +240,26 @@ function Page() {
 		);
 	}
 
-	const existingImageCount = editingListing?.images?.length || 0;
-	const totalImageCount = existingImageCount + images.length;
+
+	const errorCount = Object.keys(form.errors).length + (totalImageCount === 0 && imageError ? 1 : 0);
 
 	return (
 		<InnerPage title={t("editListing.title")} noPadding>
 			<Container px="md" py="md">
 				<LoadingOverlay visible={isUpdating || isUploading} />
-				<form onSubmit={form.onSubmit(handleSubmit)}>
+				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
-						{/* Shared form fields: Type, Main Info, Price, Parameters, Location, Contact */}
-						<ListingFormFields
-							form={form}
-							regions={regions}
-							districts={districts}
-							onRegionChange={handleRegionChange}
-						/>
-
 						{/* Section: Photos */}
 						<div ref={photoSectionRef}>
 							<FormSection title={t("createListing.photos")} required>
 								{/* Existing images */}
-								{editingListing?.images && editingListing.images.length > 0 && (
+								{existingImagesList.length > 0 && (
 									<Box mb="sm">
 										<Text size="12px" c="dimmed" mb={6} fw={500}>
 											{t("editListing.currentPhotos")}
 										</Text>
 										<SimpleGrid cols={3} spacing="xs">
-											{editingListing.images.map((image) => (
+											{existingImagesList.map((image) => (
 												<Box
 													key={image.id}
 													style={{
@@ -210,6 +276,16 @@ function Page() {
 														fit="cover"
 														h="100%"
 													/>
+													<ActionIcon
+														variant="filled"
+														color="red"
+														size="sm"
+														radius="xl"
+														style={{ position: "absolute", top: 4, right: 4 }}
+														onClick={() => handleRemoveExistingImage(image.id)}
+													>
+														<IconX size={14} />
+													</ActionIcon>
 												</Box>
 											))}
 										</SimpleGrid>
@@ -296,47 +372,60 @@ function Page() {
 							</FormSection>
 						</div>
 
-						{/* Spacer for sticky button */}
-						<Box style={{ height: 70 }} />
+						{/* Shared form fields: Type, Main Info, Parameters, Location, Price, Contact */}
+						<ListingFormFields
+							form={form}
+							regions={regions}
+							districts={districts}
+							onRegionChange={handleRegionChange}
+						/>
 					</Stack>
 				</form>
 
-				{/* Sticky Submit Button */}
-				<Box
-					style={{
-						position: "fixed",
-						bottom: 0,
-						left: 0,
-						right: 0,
-						padding: spacing.card,
-						paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
-						backgroundColor: "rgba(255,255,255,0.9)",
-						backdropFilter: "blur(8px)",
-						WebkitBackdropFilter: "blur(8px)",
-						zIndex: 999,
-						borderTop: "1px solid #f1f5f9",
-					}}
-				>
-					<Box style={{ maxWidth: 980, margin: "0 auto" }}>
-						<Button
-							type="submit"
-							size="md"
-							fullWidth
-							radius={radii.md}
-							loading={isUpdating || isUploading}
-							onClick={() => form.onSubmit(handleSubmit)()}
+				{/* Action Buttons */}
+				<Stack mt="xl" gap="sm">
+					{errorCount > 0 && (
+						<Box
 							style={{
-								background: "#228be6",
-								border: "none",
-								boxShadow: shadows.accent,
+								backgroundColor: "#fee2e2",
+								border: "1px solid #fca5a5",
+								padding: "12px 16px",
+								borderRadius: radii.md,
 							}}
 						>
-							{isUploading
-								? t("createListing.uploadingPhotos")
-								: t("editListing.save")}
-						</Button>
-					</Box>
-				</Box>
+							<Text size="sm" c="red.8" fw={500} ta="center">
+								{t("createListing.unfilledFieldsSummary", { count: errorCount, defaultValue: `Осталось заполнить ${errorCount} полей. Прокрутите вверх и проверьте.` })}
+							</Text>
+						</Box>
+					)}
+					<Button
+						type="submit"
+						size="md"
+						fullWidth
+						radius={radii.md}
+						loading={isUpdating || isUploading}
+						onClick={() => form.onSubmit(handleSubmit, handleError)()}
+						style={{
+							background: "#228be6",
+							border: "none",
+							boxShadow: shadows.accent,
+						}}
+					>
+						{isUploading
+							? t("createListing.uploadingPhotos")
+							: t("editListing.save")}
+					</Button>
+					<Button
+						variant="light"
+						color="gray"
+						size="md"
+						fullWidth
+						radius={radii.md}
+						onClick={() => navigate(-1)}
+					>
+						{t("createListing.cancel")}
+					</Button>
+				</Stack>
 			</Container>
 		</InnerPage>
 	);

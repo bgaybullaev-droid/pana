@@ -56,7 +56,7 @@ export interface ListingFormValues {
 	seller_type: string;
 }
 
-export function useListingForm() {
+export function useListingForm(isEditMode = false) {
 	const { t } = useTranslation("seller");
 	const [images, setImages] = useState<File[]>([]);
 	const [isUploading, setIsUploading] = useState(false);
@@ -143,19 +143,19 @@ export function useListingForm() {
 				return null;
 			},
 			building_type: (value, values) =>
-				values.property_type === "apartment" && !value
+				values.property_type === "apartment" && !value && !isEditMode
 					? t("validation.buildingTypeRequired")
 					: null,
 			condition: (value, values) => {
 				const isApt = values.property_type === "apartment";
 				const isCom = values.property_type === "commercial";
-				if ((isApt || isCom) && !value) {
+				if ((isApt || isCom) && !value && !isEditMode) {
 					return t("validation.conditionRequired");
 				}
 				return null;
 			},
 			is_furnished: (value, values) =>
-				values.property_type !== "land" && !value
+				values.property_type !== "land" && !value && !isEditMode
 					? t("validation.furnishedRequired")
 					: null,
 			region: (value) => (!value ? t("validation.regionRequired") : null),

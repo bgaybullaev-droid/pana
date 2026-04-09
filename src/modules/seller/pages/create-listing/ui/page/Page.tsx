@@ -86,6 +86,18 @@ function Page() {
 		}
 	}, [createError, t]);
 
+	useEffect(() => {
+		if (images.length > 0 && imageError) {
+			setImageError(false);
+		}
+	}, [images.length, imageError]);
+
+	const handleError = () => {
+		if (images.length === 0) {
+			setImageError(true);
+		}
+	};
+
 	const handleSubmit = async (values: typeof form.values) => {
 		if (images.length === 0) {
 			setImageError(true);
@@ -106,11 +118,13 @@ function Page() {
 		createListing(listingData);
 	};
 
-	return (
-		<InnerPage title={t("createListing.title")} noPadding>
-			<Container px="md" py="md">
-				<LoadingOverlay visible={isCreating} />
-				<form onSubmit={form.onSubmit(handleSubmit)}>
+		const errorCount = Object.keys(form.errors).length + (images.length === 0 && imageError ? 1 : 0);
+
+		return (
+			<InnerPage title={t("createListing.title")} noPadding>
+				<Container px="md" py="md">
+					<LoadingOverlay visible={isCreating} />
+					<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
 						{/* Section: Photos */}
 						<div ref={photoSectionRef}>
@@ -265,13 +279,27 @@ function Page() {
 
 				{/* Action Buttons */}
 				<Stack mt="xl" gap="sm">
+					{errorCount > 0 && (
+						<Box
+							style={{
+								backgroundColor: "#fee2e2",
+								border: "1px solid #fca5a5",
+								padding: "12px 16px",
+								borderRadius: radii.md,
+							}}
+						>
+							<Text size="sm" c="red.8" fw={500} ta="center">
+								{t("createListing.unfilledFieldsSummary", { count: errorCount, defaultValue: `У вас ${errorCount === 1 ? 'осталось' : 'осталось'} ${errorCount} незаполненных полей. Прокрутите вверх и заполните их.` })}
+							</Text>
+						</Box>
+					)}
 					<Button
 						type="submit"
 						size="md"
 						fullWidth
 						radius={radii.md}
 						loading={isCreating || isUploading}
-						onClick={() => form.onSubmit(handleSubmit)()}
+						onClick={() => form.onSubmit(handleSubmit, handleError)()}
 						style={{
 							background: "#228be6",
 							border: "none",

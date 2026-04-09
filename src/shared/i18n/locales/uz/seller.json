@@ -116,6 +116,7 @@
   "createListing.phoneDescription": "Ko'rsatilmasa, profildagi telefon ishlatiladi",
   "createListing.publish": "E'lon berish",
   "createListing.cancel": "Bekor qilish",
+  "createListing.unfilledFieldsSummary": "Sizda to'ldirilmagan {{count}} ta maydon qoldi. Yuqoriga qaytib shaklni tekshiring.",
   "createListing.other": "Boshqa",
   "createListing.enterValue": "Kiriting...",
   "createListing.multipleAllowed": "Bir nechtasini tanlash mumkin",

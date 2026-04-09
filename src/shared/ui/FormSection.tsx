@@ -6,9 +6,10 @@ interface FormSectionProps {
   title: ReactNode;
   required?: boolean;
   children: ReactNode;
+  bg?: string;
 }
 
-export function FormSection({ title, required, children }: FormSectionProps) {
+export function FormSection({ title, required, children, bg }: FormSectionProps) {
   return (
     <Box>
       <Text
@@ -24,13 +25,13 @@ export function FormSection({ title, required, children }: FormSectionProps) {
       </Text>
       <Box
         style={{
-          backgroundColor: surface.card,
+          backgroundColor: bg || surface.card,
           borderRadius: radii.md,
           padding: spacing.card,
           boxShadow: shadows.sm,
         }}
       >
-        <Stack gap="sm">
+        <Stack gap={25}>
           {children}
         </Stack>
       </Box>

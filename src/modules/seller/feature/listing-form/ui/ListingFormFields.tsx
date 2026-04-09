@@ -24,6 +24,7 @@ interface ListingFormFieldsProps {
 	regions: { value: string; label: string }[];
 	districts: { value: string; label: string }[];
 	onRegionChange: (value: string) => void;
+	sectionBg?: string;
 }
 
 // ── Visibility helpers (spec Section 3) ──
@@ -69,6 +70,7 @@ export function ListingFormFields({
 	regions,
 	districts,
 	onRegionChange,
+	sectionBg,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
 	const pt = form.values.property_type;
@@ -299,7 +301,7 @@ export function ListingFormFields({
 	return (
 		<>
 			{/* ── Type ── */}
-			<FormSection title={t("createListing.listingType")}>
+			<FormSection title={t("createListing.listingType")} bg={sectionBg}>
 				<ChipSelect
 					label={t("createListing.propertyType")}
 					required
@@ -364,7 +366,7 @@ export function ListingFormFields({
 
 			{/* ── Parameters ── */}
 			{/* Field order changes by property type: houses prioritize land area + stories */}
-			<FormSection title={t("createListing.parameters")}>
+			<FormSection title={t("createListing.parameters")} bg={sectionBg}>
 				{/* Land area — first for houses and land */}
 				{show.landArea && (
 					<ChipSelect
@@ -452,7 +454,7 @@ export function ListingFormFields({
 
 			{/* ── Apartment Attributes ── */}
 			{(show.buildingType || show.condition || show.furnished) && (
-				<FormSection title={t("createListing.aptAttributes")}>
+				<FormSection title={t("createListing.aptAttributes")} bg={sectionBg}>
 					{show.buildingType && (
 						<ChipSelect
 							label={t("createListing.buildingType")}
@@ -496,7 +498,7 @@ export function ListingFormFields({
 
 			{/* ── House-Specific Attributes ── */}
 			{show.houseType && (
-				<FormSection title={t("createListing.houseAttributes")}>
+				<FormSection title={t("createListing.houseAttributes")} bg={sectionBg}>
 					<ChipSelect
 						label={t("createListing.houseType")}
 						options={houseTypeOpts}
@@ -522,7 +524,7 @@ export function ListingFormFields({
 
 			{/* ── Utilities (House only) ── */}
 			{show.utilities && (
-				<FormSection title={t("createListing.utilities")}>
+				<FormSection title={t("createListing.utilities")} bg={sectionBg}>
 					<ChipMultiSelect
 						label={t("createListing.waterSupply")}
 						description={t("createListing.multipleAllowed")}
@@ -530,45 +532,37 @@ export function ListingFormFields({
 						value={form.values.water_supply}
 						onChange={(val) => set("water_supply", val)}
 					/>
-					<Box mt={12}>
-						<ChipSelect
-							label={t("createListing.electricity")}
-							options={yesNoPossibleOpts}
-							value={form.values.electricity}
-							onChange={(val) => set("electricity", val as string | undefined)}
-						/>
-					</Box>
-					<Box mt={12}>
-						<ChipMultiSelect
-							label={t("createListing.heating")}
-							description={t("createListing.multipleAllowed")}
-							options={heatingOpts}
-							value={form.values.heating}
-							onChange={(val) => set("heating", val)}
-						/>
-					</Box>
-					<Box mt={12}>
-						<ChipSelect
-							label={t("createListing.gasSupply")}
-							options={yesNoPossibleOpts}
-							value={form.values.gas_supply}
-							onChange={(val) => set("gas_supply", val as string | undefined)}
-						/>
-					</Box>
-					<Box mt={12}>
-						<ChipSelect
-							label={t("createListing.sewage")}
-							options={sewageOpts}
-							value={form.values.sewage}
-							onChange={(val) => set("sewage", val as string | undefined)}
-						/>
-					</Box>
+					<ChipSelect
+						label={t("createListing.electricity")}
+						options={yesNoPossibleOpts}
+						value={form.values.electricity}
+						onChange={(val) => set("electricity", val as string | undefined)}
+					/>
+					<ChipMultiSelect
+						label={t("createListing.heating")}
+						description={t("createListing.multipleAllowed")}
+						options={heatingOpts}
+						value={form.values.heating}
+						onChange={(val) => set("heating", val)}
+					/>
+					<ChipSelect
+						label={t("createListing.gasSupply")}
+						options={yesNoPossibleOpts}
+						value={form.values.gas_supply}
+						onChange={(val) => set("gas_supply", val as string | undefined)}
+					/>
+					<ChipSelect
+						label={t("createListing.sewage")}
+						options={sewageOpts}
+						value={form.values.sewage}
+						onChange={(val) => set("sewage", val as string | undefined)}
+					/>
 				</FormSection>
 			)}
 
 			{/* ── Land Purpose (Land only) ── */}
 			{show.landPurpose && (
-				<FormSection title={t("createListing.landPurposeSection")}>
+				<FormSection title={t("createListing.landPurposeSection")} bg={sectionBg}>
 					<ChipSelect
 						label={t("createListing.landPurpose")}
 						options={landPurposeOpts}
@@ -580,7 +574,7 @@ export function ListingFormFields({
 
 			{/* ── Amenities ── */}
 			{(show.aptAmenities || show.houseAmenities || show.nearbyAmenities) && (
-				<FormSection title={t("createListing.amenitiesSection")}>
+				<FormSection title={t("createListing.amenitiesSection")} bg={sectionBg}>
 					{show.aptAmenities && (
 						<ChipMultiSelect
 							label={t("createListing.inProperty")}
@@ -600,21 +594,19 @@ export function ListingFormFields({
 						/>
 					)}
 					{show.nearbyAmenities && (
-						<Box mt={16}>
-							<ChipMultiSelect
-								label={t("createListing.nearby")}
-								description={t("createListing.multipleAllowed")}
-								options={nearbyOpts}
-								value={form.values.nearby_amenities}
-								onChange={(val) => set("nearby_amenities", val)}
-							/>
-						</Box>
+						<ChipMultiSelect
+							label={t("createListing.nearby")}
+							description={t("createListing.multipleAllowed")}
+							options={nearbyOpts}
+							value={form.values.nearby_amenities}
+							onChange={(val) => set("nearby_amenities", val)}
+						/>
 					)}
 				</FormSection>
 			)}
 
 			{/* ── Location ── */}
-			<FormSection title={t("createListing.locationSection")}>
+			<FormSection title={t("createListing.locationSection")} bg={sectionBg}>
 				<ChipSelect
 					label={t("createListing.region")}
 					required
@@ -637,7 +629,7 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
-				<Box mt={8}>
+				<Box>
 					<Text size="sm" fw={500} mb={6}>
 						{t("createListing.mapLabel")}
 						<Text span c="red" inherit>
@@ -680,7 +672,7 @@ export function ListingFormFields({
 			</FormSection>
 
 			{/* ── Additional Info + Seller Type ── */}
-			<FormSection title={t("createListing.additionalInfo")}>
+			<FormSection title={t("createListing.additionalInfo")} bg={sectionBg}>
 				<Box>
 					<Textarea
 						label={t("createListing.descriptionLabel")}
@@ -701,7 +693,7 @@ export function ListingFormFields({
 			</FormSection>
 
 			{/* ── Price ── */}
-			<FormSection title={t("createListing.priceSection")}>
+			<FormSection title={t("createListing.priceSection")} bg={sectionBg}>
 				<Box>
 					<Switch
 						label={t("createListing.negotiable")}
@@ -734,7 +726,7 @@ export function ListingFormFields({
 			</FormSection>
 
 			{/* ── Contact ── */}
-			<FormSection title={t("createListing.contactSection")}>
+			<FormSection title={t("createListing.contactSection")} bg={sectionBg}>
 				<ChipSelect
 					label={t("createListing.sellerTypeLabel")}
 					options={[

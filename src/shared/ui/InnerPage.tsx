@@ -16,6 +16,8 @@ interface InnerPageProps {
 	children: ReactNode;
 	/** Disable default content padding (for pages that manage their own) */
 	noPadding?: boolean;
+	/** Optional custom background color */
+	bg?: string;
 }
 
 /**
@@ -29,9 +31,10 @@ export function InnerPage({
 	badge,
 	children,
 	noPadding,
+	bg,
 }: InnerPageProps) {
 	return (
-		<Box mih="100vh" style={{ backgroundColor: surface.page }}>
+		<Box mih="100vh" style={{ backgroundColor: bg || surface.page }}>
 			<PageBar title={title} onBack={onBack} actions={actions} badge={badge} />
 			{noPadding ? (
 				children

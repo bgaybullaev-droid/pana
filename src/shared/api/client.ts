@@ -174,6 +174,10 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    if (error.response?.status === 422) {
+      console.error("422 Validation Error Payload:", JSON.stringify(error.config?.data));
+      console.error("422 Validation Error Response:", JSON.stringify(error.response?.data));
+    }
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     // Skip refresh only for auth mutation endpoints (prevents infinite loops).
