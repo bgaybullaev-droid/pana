@@ -240,6 +240,7 @@
   "propertyTypes.house": "Uy",
   "propertyTypes.commercial": "Tijorat",
   "propertyTypes.land": "Yer",
+  "validation.imagesRequired": "Kamida bitta rasm qo'shing",
   "validation.priceRequired": "Narxni kiriting",
   "validation.regionRequired": "Viloyatni tanlang",
   "validation.districtRequired": "Tumanni tanlang",

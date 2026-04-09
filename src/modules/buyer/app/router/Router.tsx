@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react";
 import { LoadingOverlay } from "@mantine/core";
 import { useAuth } from "@app/providers/useAuth";
 import { Layout } from "../ui/layout";
+import { ErrorBoundary } from "@shared/ui/ErrorBoundary";
 
 // ── User pages (formerly "buyer") ──
 const HomePage = lazy(() =>
@@ -128,8 +129,9 @@ function CrawlerRedirect() {
 
 export function UserRouter() {
 	return (
-		<Suspense fallback={<LoadingOverlay visible />}>
-			<Routes>
+		<ErrorBoundary>
+			<Suspense fallback={<LoadingOverlay visible />}>
+				<Routes>
 				{/* Routes with bottom navigation (unified layout) */}
 				<Route element={<Layout />}>
 					{/* ── General pages ── */}
@@ -167,5 +169,6 @@ export function UserRouter() {
 				<Route path="/browse" element={<BrowsePage />} />
 			</Routes>
 		</Suspense>
+		</ErrorBoundary>
 	);
 }

@@ -85,6 +85,15 @@ function Page() {
 	}, [createError, t]);
 
 	const handleSubmit = async (values: typeof form.values) => {
+		if (images.length === 0) {
+			notifications.show({
+				title: t("notifications.error"),
+				message: t("validation.imagesRequired") || "Add at least one photo",
+				color: "red",
+			});
+			return;
+		}
+
 		const uploadedImages = await handleUploadImages();
 
 		const listingData: ListingCreateData = {
@@ -103,7 +112,7 @@ function Page() {
 					<Stack gap="md">
 
 						{/* Section: Photos */}
-						<FormSection title={t("createListing.photos")}>
+						<FormSection title={t("createListing.photos")} required>
 							{isUploading && (
 								<Box mb="md">
 									<Group justify="space-between" mb={4}>

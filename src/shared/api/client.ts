@@ -246,6 +246,15 @@ export interface ApiError {
 export function getApiError(error: unknown): ApiError {
 	if (axios.isAxiosError(error)) {
 		const data = error.response?.data;
+		const status = error.response?.status;
+
+		// Mask 500 errors to prevent leaking raw SQL or traceback into the UI
+		if (status && status >= 500) {
+			return {
+				code: "SERVER_ERROR",
+				message: "Произошла внутренняя ошибка сервера (Internal Server Error). Пожалуйста, повторите попытку позже.",
+			};
+		}
 
 		// Handle explicit error object
 		if (data?.error) {

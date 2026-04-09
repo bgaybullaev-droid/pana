@@ -3,11 +3,12 @@ import { Box, Text, Stack } from '@mantine/core';
 import { radii, shadows, spacing, surface } from '@app/styles/theme';
 
 interface FormSectionProps {
-  title: string;
+  title: ReactNode;
+  required?: boolean;
   children: ReactNode;
 }
 
-export function FormSection({ title, children }: FormSectionProps) {
+export function FormSection({ title, required, children }: FormSectionProps) {
   return (
     <Box>
       <Text
@@ -19,6 +20,7 @@ export function FormSection({ title, children }: FormSectionProps) {
         style={{ letterSpacing: 0.5 }}
       >
         {title}
+        {required && <span style={{ color: 'var(--mantine-color-red-filled)' }}> *</span>}
       </Text>
       <Box
         style={{

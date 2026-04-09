@@ -6,6 +6,7 @@ import {
 	useMemo,
 	createContext,
 	useContext,
+	Suspense,
 } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -18,6 +19,7 @@ import {
 	TextInput,
 	ThemeIcon,
 	UnstyledButton,
+	LoadingOverlay,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
@@ -382,8 +384,10 @@ export function Layout() {
 					}}
 					className="hide-scrollbar"
 				>
-					<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
-						<Outlet />
+					<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%", position: "relative", minHeight: "100%" }}>
+						<Suspense fallback={<LoadingOverlay visible />}>
+							<Outlet />
+						</Suspense>
 					</Box>
 				</Box>
 

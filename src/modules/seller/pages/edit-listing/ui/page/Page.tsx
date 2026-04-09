@@ -125,6 +125,17 @@ function Page() {
 	const handleSubmit = async (values: typeof form.values) => {
 		if (!id) return;
 		const existingCount = editingListing?.images?.length || 0;
+		const totalImageCount = existingCount + images.length;
+		
+		if (totalImageCount === 0) {
+			notifications.show({
+				title: t("notifications.error"),
+				message: t("validation.imagesRequired") || "Add at least one photo",
+				color: "red",
+			});
+			return;
+		}
+
 		const uploadedImages = await handleUploadImages(existingCount);
 
 		const listingData: ListingUpdateData = {
@@ -172,7 +183,7 @@ function Page() {
 					/>
 
 					{/* Section: Photos */}
-					<FormSection title={t("createListing.photos")}>
+					<FormSection title={t("createListing.photos")} required>
 						{/* Existing images */}
 						{editingListing?.images && editingListing.images.length > 0 && (
 							<Box mb="sm">
