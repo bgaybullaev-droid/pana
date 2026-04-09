@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
@@ -48,6 +48,8 @@ function Page() {
 		$editError,
 	]);
 	const initializedRef = useRef<string | null>(null);
+	const photoSectionRef = useRef<HTMLDivElement>(null);
+	const [imageError, setImageError] = useState(false);
 
 	const {
 		form,
@@ -126,12 +128,12 @@ function Page() {
 		if (!id) return;
 		const existingCount = editingListing?.images?.length || 0;
 		const totalImageCount = existingCount + images.length;
-		
+
 		if (totalImageCount === 0) {
-			notifications.show({
-				title: t("notifications.error"),
-				message: t("validation.imagesRequired") || "Add at least one photo",
-				color: "red",
+			setImageError(true);
+			photoSectionRef.current?.scrollIntoView({
+				behavior: "smooth",
+				block: "start",
 			});
 			return;
 		}
@@ -170,164 +172,171 @@ function Page() {
 	return (
 		<InnerPage title={t("editListing.title")} noPadding>
 			<Container px="md" py="md">
-			<LoadingOverlay visible={isUpdating || isUploading} />
-			<form onSubmit={form.onSubmit(handleSubmit)}>
-				<Stack gap="md">
+				<LoadingOverlay visible={isUpdating || isUploading} />
+				<form onSubmit={form.onSubmit(handleSubmit)}>
+					<Stack gap="md">
+						{/* Shared form fields: Type, Main Info, Price, Parameters, Location, Contact */}
+						<ListingFormFields
+							form={form}
+							regions={regions}
+							districts={districts}
+							onRegionChange={handleRegionChange}
+						/>
 
-					{/* Shared form fields: Type, Main Info, Price, Parameters, Location, Contact */}
-					<ListingFormFields
-						form={form}
-						regions={regions}
-						districts={districts}
-						onRegionChange={handleRegionChange}
-					/>
-
-					{/* Section: Photos */}
-					<FormSection title={t("createListing.photos")} required>
-						{/* Existing images */}
-						{editingListing?.images && editingListing.images.length > 0 && (
-							<Box mb="sm">
-								<Text size="12px" c="dimmed" mb={6} fw={500}>
-									{t("editListing.currentPhotos")}
-								</Text>
-								<SimpleGrid cols={3} spacing="xs">
-									{editingListing.images.map((image) => (
-										<Box
-											key={image.id}
-											style={{
-												position: "relative",
-												aspectRatio: "1",
-												borderRadius: radii.md,
-												overflow: "hidden",
-												border: "1px solid #f1f5f9",
-											}}
-										>
-											<Image
-												src={image.medium_url || image.original_url}
-												alt=""
-												fit="cover"
-												h="100%"
-											/>
-										</Box>
-									))}
-								</SimpleGrid>
-							</Box>
-						)}
-
-						{/* New images */}
-						<Box>
-							<Group justify="space-between" mb={6}>
-								<Text size="12px" c="dimmed" fw={500}>
-									{t("editListing.addNewPhotos")}
-								</Text>
-								<Badge size="sm" variant="light" color="blue" radius="sm">
-									{totalImageCount}/10
-								</Badge>
-							</Group>
-							<SimpleGrid cols={3} spacing="xs">
-								{images.map((file, index) => (
-									<Box
-										key={index}
-										style={{
-											position: "relative",
-											aspectRatio: "1",
-											borderRadius: radii.md,
-											overflow: "hidden",
-											border: "1px solid #f1f5f9",
-										}}
-									>
-										<Image
-											src={URL.createObjectURL(file)}
-											alt=""
-											fit="cover"
-											h="100%"
-										/>
-										<ActionIcon
-											variant="filled"
-											color="red"
-											size="sm"
-											radius="xl"
-											style={{ position: "absolute", top: 4, right: 4 }}
-											onClick={() => handleRemoveImage(index)}
-										>
-											<IconX size={14} />
-										</ActionIcon>
+						{/* Section: Photos */}
+						<div ref={photoSectionRef}>
+							<FormSection title={t("createListing.photos")} required>
+								{/* Existing images */}
+								{editingListing?.images && editingListing.images.length > 0 && (
+									<Box mb="sm">
+										<Text size="12px" c="dimmed" mb={6} fw={500}>
+											{t("editListing.currentPhotos")}
+										</Text>
+										<SimpleGrid cols={3} spacing="xs">
+											{editingListing.images.map((image) => (
+												<Box
+													key={image.id}
+													style={{
+														position: "relative",
+														aspectRatio: "1",
+														borderRadius: radii.md,
+														overflow: "hidden",
+														border: "1px solid #f1f5f9",
+													}}
+												>
+													<Image
+														src={image.medium_url || image.original_url}
+														alt=""
+														fit="cover"
+														h="100%"
+													/>
+												</Box>
+											))}
+										</SimpleGrid>
 									</Box>
-								))}
-								{totalImageCount < 10 && (
-									<FileButton
-										onChange={handleAddImages}
-										accept="image/*"
-										multiple
-									>
-										{(props) => (
+								)}
+
+								{/* New images */}
+								<Box>
+									<Group justify="space-between" mb={6}>
+										<Text size="12px" c="dimmed" fw={500}>
+											{t("editListing.addNewPhotos")}
+										</Text>
+										<Badge size="sm" variant="light" color="blue" radius="sm">
+											{totalImageCount}/10
+										</Badge>
+									</Group>
+									<SimpleGrid cols={3} spacing="xs">
+										{images.map((file, index) => (
 											<Box
-												{...props}
+												key={index}
 												style={{
+													position: "relative",
 													aspectRatio: "1",
 													borderRadius: radii.md,
-													border: "2px dashed #cbd5e1",
-													backgroundColor: surface.page,
-													display: "flex",
-													alignItems: "center",
-													justifyContent: "center",
-													cursor: "pointer",
+													overflow: "hidden",
+													border: "1px solid #f1f5f9",
 												}}
 											>
-												<IconCameraPlus
-													size={22}
-													color="#94a3b8"
-													stroke={1.5}
+												<Image
+													src={URL.createObjectURL(file)}
+													alt=""
+													fit="cover"
+													h="100%"
 												/>
+												<ActionIcon
+													variant="filled"
+													color="red"
+													size="sm"
+													radius="xl"
+													style={{ position: "absolute", top: 4, right: 4 }}
+													onClick={() => handleRemoveImage(index)}
+												>
+													<IconX size={14} />
+												</ActionIcon>
 											</Box>
+										))}
+										{totalImageCount < 10 && (
+											<FileButton
+												onChange={handleAddImages}
+												accept="image/*"
+												multiple
+											>
+												{(props) => (
+													<Box
+														{...props}
+														style={{
+															aspectRatio: "1",
+															borderRadius: radii.md,
+															border: "2px dashed #cbd5e1",
+															backgroundColor: surface.page,
+															display: "flex",
+															alignItems: "center",
+															justifyContent: "center",
+															cursor: "pointer",
+														}}
+													>
+														<IconCameraPlus
+															size={22}
+															color="#94a3b8"
+															stroke={1.5}
+														/>
+													</Box>
+												)}
+											</FileButton>
 										)}
-									</FileButton>
+									</SimpleGrid>
+								</Box>
+								{imageError && totalImageCount === 0 && (
+									<Text size="13px" c="red" mt={4}>
+										{t("validation.imagesRequired") ||
+											"Добавьте хотя бы одно фото"}
+									</Text>
 								)}
-							</SimpleGrid>
-						</Box>
-					</FormSection>
+							</FormSection>
+						</div>
 
-					{/* Spacer for sticky button */}
-					<Box style={{ height: 70 }} />
-				</Stack>
-			</form>
+						{/* Spacer for sticky button */}
+						<Box style={{ height: 70 }} />
+					</Stack>
+				</form>
 
-			{/* Sticky Submit Button */}
-			<Box
-				style={{
-					position: "fixed",
-					bottom: 0,
-					left: 0,
-					right: 0,
-					padding: spacing.card,
-					paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
-					backgroundColor: "rgba(255,255,255,0.9)",
-					backdropFilter: "blur(8px)",
-					WebkitBackdropFilter: "blur(8px)",
-					zIndex: 999,
-					borderTop: "1px solid #f1f5f9",
-				}}
-			>
-				<Box style={{ maxWidth: 980, margin: "0 auto" }}>
-					<Button
-						type="submit"
-						size="md"
-						fullWidth
-						radius={radii.md}
-						loading={isUpdating || isUploading}
-						onClick={() => form.onSubmit(handleSubmit)()}
-						style={{
-							background: "#228be6",
-							border: "none",
-							boxShadow: shadows.accent,
-						}}
-					>
-						{isUploading
-							? t("createListing.uploadingPhotos")
-							: t("editListing.save")}
-					</Button>
+				{/* Sticky Submit Button */}
+				<Box
+					style={{
+						position: "fixed",
+						bottom: 0,
+						left: 0,
+						right: 0,
+						padding: spacing.card,
+						paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+						backgroundColor: "rgba(255,255,255,0.9)",
+						backdropFilter: "blur(8px)",
+						WebkitBackdropFilter: "blur(8px)",
+						zIndex: 999,
+						borderTop: "1px solid #f1f5f9",
+					}}
+				>
+					<Box style={{ maxWidth: 980, margin: "0 auto" }}>
+						<Button
+							type="submit"
+							size="md"
+							fullWidth
+							radius={radii.md}
+							loading={isUpdating || isUploading}
+							onClick={() => form.onSubmit(handleSubmit)()}
+							style={{
+								background: "#228be6",
+								border: "none",
+								boxShadow: shadows.accent,
+							}}
+						>
+							{isUploading
+								? t("createListing.uploadingPhotos")
+								: t("editListing.save")}
+						</Button>
+					</Box>
 				</Box>
-			</Box>
 			</Container>
 		</InnerPage>
 	);
