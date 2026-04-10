@@ -5,7 +5,9 @@
       "Bash(git commit -m ':*)",
       "Bash(git push:*)",
       "Bash(git checkout:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(lsof -ti:7878)",
+      "Skill(commit-commands:commit)"
     ]
   }
 }

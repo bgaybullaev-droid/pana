@@ -156,11 +156,38 @@ export const MapPicker: FC<MapPickerProps> = ({
 	}, [fullscreen]); // Re-create map on fullscreen toggle
 
 	// Update marker position when lat/lng props change externally
+	// (e.g. async data load on edit page)
 	useEffect(() => {
-		if (markerRef.current && lat && lng) {
+		if (!mapRef.current || lat == null || lng == null) return;
+
+		if (markerRef.current) {
+			// Existing marker — update position
 			markerRef.current.setLatLng([lat, lng]);
-			mapRef.current?.setView([lat, lng], mapRef.current.getZoom());
+		} else {
+			// First time receiving coords — create marker
+			const icon = L.divIcon({
+				html: `<div style="
+          width: 28px; height: 28px;
+          background: #228be6;
+          border: 3px solid white;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        "></div>`,
+				iconSize: [28, 28],
+				iconAnchor: [14, 28],
+				className: "",
+			});
+			markerRef.current = L.marker([lat, lng], {
+				icon,
+				draggable: true,
+			}).addTo(mapRef.current);
+			markerRef.current.on("dragend", () => {
+				const pos = markerRef.current!.getLatLng();
+				handlePositionChange(pos.lat, pos.lng);
+			});
 		}
+		mapRef.current.setView([lat, lng], mapRef.current.getZoom());
 	}, [lat, lng]);
 
 	// Pan map when external center changes (region/district selection)

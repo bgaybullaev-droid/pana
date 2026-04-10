@@ -63,7 +63,7 @@ function Page() {
 		handleUploadImages,
 		buildListingData,
 		t,
-	} = useListingForm(true);
+	} = useListingForm();
 
 	useEffect(() => {
 		if (id && initializedRef.current !== id) {
