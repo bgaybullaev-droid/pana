@@ -33,7 +33,7 @@ interface FavoritesPageProps {
 function Page({ embedded = false }: FavoritesPageProps) {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
-	const { isAuthenticated } = useAuth();
+	const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 	const [favorites, isLoading] = useUnit([$favorites, $isLoading]);
 	const initializedRef = useRef(false);
 
@@ -57,6 +57,9 @@ function Page({ embedded = false }: FavoritesPageProps) {
 
 	if (!isAuthenticated) {
 		if (embedded) {
+			if (isAuthLoading) {
+				return <Box ta="center" py={48} px="md" mih={200} pos="relative"><LoadingOverlay visible={true} /></Box>;
+			}
 			return (
 				<Box ta="center" py={48} px="md">
 					<Box

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { formatPhone } from "@shared/lib/formatPhone";
 import { useUnit } from "effector-react";
 import { formatDate, formatDateTime } from "@shared/lib/date";
 import {
@@ -756,7 +757,7 @@ export function Main() {
 						icon={IconPhone}
 						iconBg="linear-gradient(135deg, #10b981, #059669)"
 						label={t("common.phone")}
-						value={listing.phone || listing.seller_phone || t("common.na")}
+						value={(listing.phone || listing.seller_phone) ? formatPhone(listing.phone || listing.seller_phone) : t("common.na")}
 					/>
 				</Box>
 			</Box>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { formatPhone } from "@shared/lib/formatPhone";
 import { formatDate, formatTimeAgo } from "@shared/lib/date";
 import {
 	Text,
@@ -805,7 +806,7 @@ export function Main() {
 								icon={IconPhone}
 								iconBg="linear-gradient(135deg, #10b981, #059669)"
 								label={t("crawledDetail.contactPhone")}
-								value={tg.contact_phone}
+								value={formatPhone(tg.contact_phone)}
 							/>
 						)}
 					</Box>
@@ -826,7 +827,7 @@ export function Main() {
 							icon={IconPhone}
 							iconBg="linear-gradient(135deg, #10b981, #059669)"
 							label={t("common.phone")}
-							value={listing.contact_phone}
+							value={formatPhone(listing.contact_phone)}
 						/>
 					</Box>
 				</Box>

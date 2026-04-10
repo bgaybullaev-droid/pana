@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useUnit } from "effector-react";
 import { useAuth } from "@app/providers/useAuth";
 import { useTelegram } from "@app/providers/useTelegram";
+import { formatPhone } from "@shared/lib/formatPhone";
 import {
 	Box,
 	Text,
@@ -106,7 +107,7 @@ function Page() {
 		(user?.first_name?.[0] || "") + (user?.last_name?.[0] || "") ||
 		user?.username?.[0]?.toUpperCase() ||
 		"U";
-	const phone = user?.phone || "";
+	const phone = user?.phone ? formatPhone(user?.phone) : "";
 
 	const handleLogout = () => {
 		logoutHandlers.close();

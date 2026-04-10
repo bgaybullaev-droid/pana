@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useUnit } from "effector-react";
 import { formatMonthYear } from "@shared/lib/date";
+import { formatPhone } from "@shared/lib/formatPhone";
 import {
 	Stack,
 	Text,
@@ -154,7 +155,7 @@ function Page() {
 					</Group>
 
 					<Text size="sm" c="rgba(255,255,255,0.8)" mt={4}>
-						{sellerProfile.phone}
+						{sellerProfile.phone ? formatPhone(sellerProfile.phone) : ""}
 					</Text>
 					<Text size="xs" c="rgba(255,255,255,0.6)" mt={2}>
 						{t("profile.memberSince", {
@@ -287,7 +288,7 @@ function Page() {
 
 						{/* Contacts */}
 						<FormSection title={t("profile.contactsSection")}>
-							<ContactRow icon={IconPhone} label={sellerProfile.phone}>
+							<ContactRow icon={IconPhone} label={sellerProfile.phone ? formatPhone(sellerProfile.phone) : ""}>
 								{!sellerProfile.phone_public && (
 									<Badge size="xs" color="gray" variant="light">
 										{t("profile.hidden")}

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
+import { formatPhone } from "@shared/lib/formatPhone";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { radii } from "@app/styles/theme";
 
@@ -199,7 +200,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 										component="a"
 										href={`tel:${listing.contact_phone}`}
 									>
-										{listing.contact_phone}
+										{formatPhone(listing.contact_phone)}
 									</Text>
 								</Group>
 							)}

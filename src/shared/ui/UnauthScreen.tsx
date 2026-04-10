@@ -1,9 +1,10 @@
 import { FC, ReactNode } from 'react';
-import { Box } from '@mantine/core';
+import { Box, LoadingOverlay } from '@mantine/core';
 import type { TablerIconsProps } from '@tabler/icons-react';
 import { GradientHeader } from './GradientHeader';
 import { LoginPromptCard } from './LoginPromptCard';
 import { surface } from '@app/styles/theme';
+import { useAuth } from '@app/providers/useAuth';
 
 interface UnauthScreenProps {
   icon: FC<TablerIconsProps>;
@@ -28,6 +29,16 @@ export function UnauthScreen({
   onBack,
   children,
 }: UnauthScreenProps) {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <Box mih="100vh" bg={surface.page} pos="relative">
+        <LoadingOverlay visible={true} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+      </Box>
+    );
+  }
+
   return (
     <Box mih="100vh" bg={surface.page}>
       <GradientHeader icon={icon} title={title} subtitle={subtitle} onBack={onBack} />

@@ -222,37 +222,71 @@ export function PhoneInput({
 					{description}
 				</Text>
 			)}
-			<input
-				ref={inputRef}
-				type="text"
-				inputMode="numeric"
-				autoComplete="off"
-				data-form-type="other"
-				data-lpignore="true"
-				placeholder={placeholder || "+998 XX XXX XX XX"}
-				disabled={disabled}
-				onInput={handleInput}
-				onFocus={handleFocus}
-				onClick={handleClick}
-				onKeyDown={handleKeyDown}
-				onPaste={handlePaste}
-				onBlur={handleBlur}
-				className="phone-input"
-				style={{
-					width: "100%",
-					height: 42,
-					padding: "0 16px",
-					fontSize: 16,
-					fontFamily: "inherit",
-					borderRadius: 9999,
-					border: error
-						? "1.5px solid var(--mantine-color-red-6)"
-						: "1.5px solid var(--mantine-color-gray-2)",
-					outline: "none",
-					backgroundColor: disabled ? "#f8f9fa" : "white",
-					color: disabled ? "#868e96" : "inherit",
-					transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-				}}
+			<Box pos="relative">
+				<Box
+					aria-hidden
+					style={{
+						position: "absolute",
+						inset: 0,
+						backgroundColor: disabled ? "#f8f9fa" : "white",
+						borderRadius: 9999,
+						zIndex: 1,
+					}}
+				/>
+				<Box
+					aria-hidden
+					style={{
+						position: "absolute",
+						inset: 0,
+						padding: "0 16px",
+						fontSize: 16,
+						fontFamily: "inherit",
+						pointerEvents: "none",
+						display: "flex",
+						alignItems: "center",
+						zIndex: 1,
+						border: "1.5px solid transparent",
+						whiteSpace: "pre",
+					}}
+				>
+					<span style={{ color: "transparent" }}>
+						{toDisplay(value) || "+998 "}
+					</span>
+					<span style={{ color: disabled ? "#ced4da" : "#adb5bd" }}>
+						{"+998 -- --- -- --".slice((toDisplay(value) || "+998 ").length)}
+					</span>
+				</Box>
+				<input
+					ref={inputRef}
+					type="text"
+					inputMode="numeric"
+					name="tel"
+					autoComplete="tel"
+					disabled={disabled}
+					onInput={handleInput}
+					onFocus={handleFocus}
+					onClick={handleClick}
+					onKeyDown={handleKeyDown}
+					onPaste={handlePaste}
+					onBlur={handleBlur}
+					className="phone-input"
+					style={{
+						width: "100%",
+						height: 42,
+						padding: "0 16px",
+						fontSize: 16,
+						fontFamily: "inherit",
+						borderRadius: 9999,
+						border: error
+							? "1.5px solid var(--mantine-color-red-6)"
+							: "1.5px solid var(--mantine-color-gray-2)",
+						outline: "none",
+						backgroundColor: "transparent",
+						color: disabled ? "#868e96" : "inherit",
+						transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+						position: "relative",
+						zIndex: 2,
+					}}
 				onFocusCapture={(e) => {
 					const el = e.currentTarget;
 					el.style.borderColor = "var(--mantine-color-blue-5)";
@@ -266,6 +300,7 @@ export function PhoneInput({
 					el.style.boxShadow = "none";
 				}}
 			/>
+			</Box>
 			{error && typeof error === "string" && (
 				<Text size="xs" c="red" mt={4}>
 					{error}

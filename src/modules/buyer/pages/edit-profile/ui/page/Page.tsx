@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/providers/useAuth";
 import { updateProfileFx } from "@shared/state/auth/model/effects";
+import { formatPhone } from "@shared/lib/formatPhone";
 import { radii } from "@app/styles/theme";
 import {
 	Box,
@@ -178,7 +179,7 @@ function Page() {
 										color: "#8E8E93",
 									}}
 								>
-									{user.phone}
+									{formatPhone(user.phone)}
 								</Text>
 							</Box>
 						</Box>
