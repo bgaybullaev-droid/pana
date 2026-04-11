@@ -13,8 +13,8 @@ import {
   Modal,
   Skeleton,
   Button,
-  Card,
-  ThemeIcon,
+  TextInput,
+  ScrollArea
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -27,7 +27,8 @@ import {
   IconEye,
   IconPhone,
   IconBuilding,
-  IconWorldSearch,
+  IconSearch,
+  IconX,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { InnerPage } from '@shared/ui/InnerPage';
@@ -42,22 +43,15 @@ import {
   activateListingFx,
   deleteListingFx,
 } from '@modules/seller/shared/state';
-import type { OLXListing, TelegramListing } from '@shared/api/types';
-import {
-  fetchSellerOLXListings,
-  fetchSellerTelegramListings,
-  claimOlxListing,
-} from '@shared/api/sellerCrawledListings';
+import { seedListingIds, seedListingSource } from '@modules/buyer/shared/state/model/events';
 import { EmptyState } from '@shared/ui/EmptyState';
-import { PillTabs } from '@shared/ui/PillTabs';
 import { ListingRow } from '@shared/ui/ListingRow';
 import { radii, shadows, surface } from '@app/styles/theme';
 import { translateDistrict } from '@shared/lib/regions';
 
 interface UnifiedCard {
   id: string;
-  rawId?: string; // Original UUID for OLX listings (without prefix)
-  source: 'platform' | 'olx' | 'telegram';
+  source: 'platform';
   price: number;
   currency: string;
   title: string;
@@ -68,9 +62,7 @@ interface UnifiedCard {
   status?: string;
   views_count?: number;
   contacts_count?: number;
-  externalUrl?: string;
-  postedDate?: string | null;
-  sourceChannel?: string | null;
+  property_type: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -81,53 +73,17 @@ const statusColors: Record<string, string> = {
   pending: '#228be6',
 };
 
-const sourceColors: Record<string, string> = {
-  platform: 'blue',
-  olx: 'teal',
-  telegram: 'cyan',
-};
-
-const MOCK_OLX = [
-  {
-    id: "mock-olx-1", olx_id: "olx-1001", url: "https://olx.uz/1001",
-    property_type: "apartment", listing_type: "sell", price: 85000, currency: "USD",
-    rooms: 3, area_sqm: 78, floor: 4, total_floors: 9, district: "yunusobod",
-    address: "ул. Абдуллы Кадыри, 12", description: "Квартира с евроремонтом, раздельная планировка, новая мебель и техника.",
-    images: ["https://picsum.photos/seed/olx1/400/300"], source: "olx",
-    posted_date: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: "mock-olx-2", olx_id: "olx-1002", url: "https://olx.uz/1002",
-    property_type: "house", listing_type: "sell", price: 270000, currency: "USD",
-    rooms: 6, area_sqm: 220, district: "sergeli",
-    description: "Просторный дом с участком",
-    images: ["https://picsum.photos/seed/olx2/400/300"], source: "olx",
-    posted_date: new Date(Date.now() - 86400000).toISOString(),
-  }
-];
-
-const MOCK_TELEGRAM = [
-  {
-    id: "mock-tg-1", property_type: "apartment", listing_type: "rent", price: 500, currency: "USD",
-    rooms: 2, area_sqm: 65, district: "chilonzor",
-    description: "Сдаётся квартира в Чиланзаре, рядом метро, развитая инфраструктура.",
-    images: ["https://picsum.photos/seed/tg1/400/300"], source_channel: "@tashkent_kvartiry",
-  }
-];
-
 function Page() {
   const navigate = useNavigate();
   const { t } = useTranslation('seller');
-  const [filter, setFilter] = useState('all');
+  const { t: tBuyer } = useTranslation('buyer');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [listingToDelete, setListingToDelete] = useState<string | null>(null);
   const [listings, isLoading] = useUnit([$sellerListings, $isLoadingListings]);
 
-  const [olxListings, setOlxListings] = useState<OLXListing[]>([]);
-  const [telegramListings, setTelegramListings] = useState<TelegramListing[]>([]);
-  const [isCrawledLoading, setIsCrawledLoading] = useState(true);
-  const [olxTotal, setOlxTotal] = useState(0);
-  const [telegramTotal, setTelegramTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPropertyType, setSelectedPropertyType] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('active');
 
   const statusLabels: Record<string, string> = {
     active: t('listings.statusActive'),
@@ -137,33 +93,8 @@ function Page() {
     pending: t('listings.statusPending'),
   };
 
-  const sourceLabels: Record<string, string> = {
-    platform: t('listings.platform'),
-    olx: 'OLX',
-    telegram: 'Telegram',
-  };
-
   useEffect(() => {
     fetchSellerListings({});
-  }, []);
-
-  useEffect(() => {
-    setIsCrawledLoading(true);
-    Promise.all([
-      fetchSellerOLXListings({ page: 1, per_page: 100 }).catch(() => ({ items: [], total: 0 })),
-      fetchSellerTelegramListings({ page: 1, per_page: 100 }).catch(() => ({ items: [], total: 0 })),
-    ]).then(([olxRes, tgRes]) => {
-      const finalOlxItems = olxRes.items.length > 0 ? olxRes.items : MOCK_OLX;
-      const finalOlxTotal = olxRes.total > 0 ? olxRes.total : MOCK_OLX.length;
-      const finalTgItems = tgRes.items.length > 0 ? tgRes.items : MOCK_TELEGRAM;
-      const finalTgTotal = tgRes.total > 0 ? tgRes.total : MOCK_TELEGRAM.length;
-
-      setOlxListings(finalOlxItems as any);
-      setOlxTotal(finalOlxTotal);
-      setTelegramListings(finalTgItems as any);
-      setTelegramTotal(finalTgTotal);
-      setIsCrawledLoading(false);
-    });
   }, []);
 
   useEffect(() => {
@@ -183,34 +114,85 @@ function Page() {
 
   const propertyTypeLabel = (type: string) => {
     const map: Record<string, string> = {
-      apartment: t('propertyTypes.apartment'),
-      house: t('propertyTypes.house'),
-      commercial: t('propertyTypes.commercial'),
-      land: t('propertyTypes.land'),
+      apartment: t('propertyTypes.apartment', 'Apartments'),
+      house: t('propertyTypes.house', 'Houses'),
+      commercial: t('propertyTypes.commercial', 'Commercial'),
+      land: t('propertyTypes.land', 'Land'),
     };
     return map[type] || type;
   };
 
-  const getListingSource = (sourceType?: string | null): 'platform' | 'olx' => {
-    if (sourceType?.toUpperCase() === 'CLAIMED') return 'olx';
-    return 'platform';
-  };
+  // Only consider standard platform listings (exclude unapproved crawled ones)
+  const platformListings = useMemo(() => {
+    return listings.filter((l) => {
+       const sourceType = l.source_type?.toUpperCase();
+       return sourceType !== 'CLAIMED';
+    });
+  }, [listings]);
+
+  const ALL_PROPERTY_TYPES = ['apartment', 'house', 'commercial', 'land'];
+  const ALL_STATUSES = ['active', 'paused', 'pending', 'expired', 'sold'];
+
+  // Count exactly how many platform listings match each type
+  const propertyCounts = useMemo(() => {
+    // Only count listings that match the CURRENT selectedStatus
+    const relevantListings = platformListings.filter(l => !selectedStatus || l.status === selectedStatus);
+    const counts: Record<string, number> = { all: relevantListings.length };
+    ALL_PROPERTY_TYPES.forEach(type => {
+      counts[type] = 0;
+    });
+    
+    relevantListings.forEach((l) => {
+        if (l.property_type && counts[l.property_type] !== undefined) {
+             counts[l.property_type]++;
+        }
+    });
+    return counts;
+  }, [platformListings, selectedStatus]);
+
+  // Count exactly how many platform listings match each status
+  const statusCounts = useMemo(() => {
+    // Only count listings that match the CURRENT selectedPropertyType
+    const relevantListings = platformListings.filter(l => !selectedPropertyType || l.property_type === selectedPropertyType);
+    const counts: Record<string, number> = { all: relevantListings.length };
+    ALL_STATUSES.forEach(s => {
+      counts[s] = 0;
+    });
+
+    relevantListings.forEach((l) => {
+        if (l.status && counts[l.status] !== undefined) {
+             counts[l.status]++;
+        }
+    });
+    return counts;
+  }, [platformListings, selectedPropertyType]);
 
   const unifiedCards = useMemo((): UnifiedCard[] => {
     const cards: UnifiedCard[] = [];
 
-    // Platform listings
-    for (const l of listings) {
-      const source = getListingSource(l.source_type);
-      if (filter !== 'all' && filter !== source) continue;
+    for (const l of platformListings) {
+      // Filter by property type and status
+      if (selectedPropertyType && l.property_type !== selectedPropertyType) continue;
+      if (selectedStatus && l.status !== selectedStatus) continue;
+
+      const generatedTitle = l.title || `${l.rooms ? `${l.rooms}-${t('listings.rooms')} ` : ''}${propertyTypeLabel(l.property_type)}${l.district ? ` ${t('listings.inDistrict', { district: translateDistrict(l.district, t) })}` : ''}`;
+      
+      // Filter by search query
+      if (searchQuery.trim() !== '') {
+          const query = searchQuery.toLowerCase();
+          const districtName = l.district ? translateDistrict(l.district, t).toLowerCase() : '';
+          
+          if (!generatedTitle.toLowerCase().includes(query) && !districtName.includes(query)) {
+              continue;
+          }
+      }
+
       cards.push({
         id: l.id,
-        source,
+        source: 'platform',
         price: l.price,
         currency: l.currency,
-        title:
-          l.title ||
-          `${l.rooms ? `${l.rooms}-${t('listings.rooms')} ` : ''}${propertyTypeLabel(l.property_type)}${l.district ? ` ${t('listings.inDistrict', { district: translateDistrict(l.district, t) })}` : ''}`,
+        title: generatedTitle,
         imageUrl: l.primary_image_url,
         rooms: l.rooms,
         area: l.area,
@@ -218,49 +200,12 @@ function Page() {
         status: l.status,
         views_count: l.views_count,
         contacts_count: l.contacts_count,
+        property_type: l.property_type,
       });
     }
 
-    if (filter === 'all' || filter === 'olx') {
-      for (const l of olxListings) {
-        const img = l.images && l.images.length > 0 ? l.images[0] : null;
-        cards.push({
-          id: `olx-${l.id}`,
-          rawId: l.id,
-          source: 'olx',
-          price: l.price,
-          currency: l.currency,
-          title: l.description ? l.description.substring(0, 80) : `${l.property_type} — ${l.listing_type}`,
-          imageUrl: typeof img === 'string' ? img : null,
-          rooms: l.rooms,
-          area: l.area_sqm,
-          district: l.district,
-          externalUrl: l.url,
-          postedDate: l.posted_date,
-        });
-      }
-    }
-
-    if (filter === 'all' || filter === 'telegram') {
-      for (const l of telegramListings) {
-        const img = l.images && l.images.length > 0 ? l.images[0] : null;
-        cards.push({
-          id: `tg-${l.id}`,
-          source: 'telegram',
-          price: l.price,
-          currency: l.currency,
-          title: l.description ? l.description.substring(0, 80) : `${l.property_type} — ${l.listing_type}`,
-          imageUrl: typeof img === 'string' ? img : null,
-          rooms: l.rooms,
-          area: l.area_sqm,
-          district: l.district,
-          sourceChannel: l.source_channel,
-        });
-      }
-    }
-
     return cards;
-  }, [listings, olxListings, telegramListings, filter, t]);
+  }, [platformListings, selectedPropertyType, searchQuery, t]);
 
   const handleDeleteClick = (listingId: string) => {
     setListingToDelete(listingId);
@@ -271,116 +216,115 @@ function Page() {
     if (listingToDelete) deleteListing(listingToDelete);
   };
 
-  const [claimingId, setClaimingId] = useState<string | null>(null);
-
-  const handleClaimOlx = async (olxId: string) => {
-    if (claimingId) return;
-    setClaimingId(olxId);
-    try {
-      const listing = await claimOlxListing(olxId);
-      setOlxListings((prev) => prev.filter((l) => l.id !== olxId));
-      setOlxTotal((prev) => Math.max(0, prev - 1));
-      notifications.show({
-        title: t('notifications.done'),
-        message: t('listings.claimSuccess'),
-        color: 'green',
-      });
-      navigate(`/edit/${listing.id}`);
-    } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 409) {
-        notifications.show({
-          title: t('listings.alreadyClaimed'),
-          message: t('listings.alreadyClaimedMsg'),
-          color: 'yellow',
-        });
-        fetchSellerOLXListings({ page: 1, per_page: 100 })
-          .then((olx) => { setOlxListings(olx.items); setOlxTotal(olx.total); })
-          .catch(() => { });
-        fetchSellerListings({});
-      } else if (status === 429) {
-        notifications.show({
-          title: t('listings.claimLimitTitle'),
-          message: t('listings.claimLimitMsg'),
-          color: 'red',
-        });
-      } else {
-        notifications.show({
-          title: t('notifications.error'),
-          message: t('listings.claimError'),
-          color: 'red',
-        });
-      }
-    } finally {
-      setClaimingId(null);
-    }
-  };
-
-
-  const allLoading = isLoading && isCrawledLoading;
-  const platformCount = listings.filter((l) => getListingSource(l.source_type) === 'platform').length;
-  const claimedOlxCount = listings.filter((l) => l.source_type?.toUpperCase() === 'CLAIMED').length;
-  const totalCount = listings.length + olxTotal + telegramTotal;
-
-  const filters = [
-    { label: t('listings.all', 'All'), value: 'all', count: totalCount },
-    { label: t('listings.platformActive', 'My Active'), value: 'platform', count: platformCount },
-    { label: t('listings.foundOlx', 'Found on OLX'), value: 'olx', count: olxTotal + claimedOlxCount },
-    { label: t('listings.foundTelegram', 'Found on Telegram'), value: 'telegram', count: telegramTotal },
-  ];
-
   return (
     <InnerPage
       title={t('listings.myListings')}
-      actions={
-        <Button
-          leftSection={<IconPlus size={16} stroke={2} />}
-          radius="xl"
-          size="sm"
-          style={{
-            background: '#228be6',
-            border: 'none',
-            boxShadow: shadows.accent,
-            padding: '0 12px',
-            height: 32,
-          }}
-          onClick={() => navigate('/seller/create')}
-        >
-          {t('listings.add', 'New')}
-        </Button>
-      }
       noPadding
     >
       <Container px="md" py="md">
       <Stack gap={16}>
 
-        {/* ── Modern Compact Header ── */}
+        {/* ── Search and Filters ── */}
         <Box style={{ animation: 'fade-in 0.4s ease-out' }}>
-          {/* ── Context / Stats Block ── */}
-          <Card radius={radii.md} p="sm" mb="sm" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', boxShadow: 'none' }}>
-            <Group wrap="nowrap" gap="sm">
-              <ThemeIcon variant="light" color="blue" size={36} radius="md">
-                <IconWorldSearch size={18} />
-              </ThemeIcon>
-              <Box style={{ flex: 1 }}>
-                <Text size="13px" fw={700} c="dark.9">
-                  {t("listings.crawledContextTitle", "We found your listings!")}
-                </Text>
-                <Text size="11px" c="dimmed" mt={2} lh={1.3}>
-                  {t("listings.crawledContextDesc", "Check the OLX and Telegram tabs below. Approve them to publish on the platform.")}
+          <TextInput
+            placeholder={tBuyer('search.title', 'Search')}
+            radius="xl"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+            leftSection={<IconSearch size={20} color="#adb5bd" />}
+            rightSection={
+              searchQuery ? (
+                <ActionIcon variant="filled" size={18} radius="50%" color="gray.5" onClick={() => setSearchQuery('')}>
+                  <IconX size={10} color="white" />
+                </ActionIcon>
+              ) : null
+            }
+            styles={{
+              input: {
+                backgroundColor: '#ffffff',
+                border: '1px solid #ced4da',
+                boxShadow: shadows.md,
+                height: 46,
+              }
+            }}
+          />
+
+          <ScrollArea scrollbarSize={0} type="never" offsetScrollbars={false} mt={12}>
+            <Box style={{ display: "flex", gap: 8 }}>
+              <Box
+                onClick={() => setSelectedPropertyType(null)}
+                style={{
+                  padding: "5px 15px", /* slightly adjusted to account for border width */
+                  borderRadius: radii.full,
+                  backgroundColor: selectedPropertyType === null ? "#228be6" : "#f1f3f5",
+                  border: selectedPropertyType === null ? "1px solid #228be6" : "1px solid #ced4da",
+                  boxShadow: shadows.md,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <Text size="xs" fw={600} c={selectedPropertyType === null ? "white" : "gray.7"}>
+                  {t('listings.all', 'All')} ({propertyCounts['all']})
                 </Text>
               </Box>
-            </Group>
-          </Card>
+              {ALL_PROPERTY_TYPES.map((type) => {
+                const isSelected = selectedPropertyType === type;
+                return (
+                  <Box
+                    key={type}
+                    onClick={() => setSelectedPropertyType(type)}
+                    style={{
+                      padding: "5px 15px",
+                      borderRadius: radii.full,
+                      backgroundColor: isSelected ? "#228be6" : "#f1f3f5",
+                      border: isSelected ? "1px solid #228be6" : "1px solid #ced4da",
+                      boxShadow: shadows.md,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <Text size="xs" fw={600} c={isSelected ? "white" : "gray.7"}>
+                      {propertyTypeLabel(type)} ({propertyCounts[type]})
+                    </Text>
+                  </Box>
+                );
+              })}
+            </Box>
+          </ScrollArea>
 
-          {/* ── Pill-style filter chips inside a subtle card ── */}
-          <Card radius={radii.md} p={4} style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
-            <PillTabs tabs={filters} activeValue={filter} onChange={setFilter} />
-          </Card>
+          <ScrollArea scrollbarSize={0} type="never" offsetScrollbars={false} mt={8}>
+            <Box style={{ display: "flex", gap: 8 }}>
+              {ALL_STATUSES.map((status) => {
+                const isSelected = selectedStatus === status;
+                return (
+                  <Box
+                    key={status}
+                    onClick={() => setSelectedStatus(status)}
+                    style={{
+                      padding: "5px 15px",
+                      borderRadius: radii.full,
+                      backgroundColor: isSelected ? "#228be6" : "#f1f3f5",
+                      border: isSelected ? "1px solid #228be6" : "1px solid #ced4da",
+                      boxShadow: shadows.md,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <Text size="xs" fw={600} c={isSelected ? "white" : "gray.7"}>
+                      {statusLabels[status] || status} ({statusCounts[status]})
+                    </Text>
+                  </Box>
+                );
+              })}
+            </Box>
+          </ScrollArea>
         </Box>
 
         {/* ── Loading skeletons ── */}
-        {(isLoading || isCrawledLoading) && unifiedCards.length === 0 && (
+        {isLoading && unifiedCards.length === 0 && (
           <Stack gap="sm" style={{ animation: 'fade-in-up 0.4s ease-out 0.1s both' }}>
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} height={100} radius={12} />
@@ -389,14 +333,14 @@ function Page() {
         )}
 
         {/* ── Empty state ── */}
-        {!allLoading && unifiedCards.length === 0 && (
+        {!isLoading && unifiedCards.length === 0 && (
           <Box style={{ animation: 'fade-in-up 0.4s ease-out 0.1s both', marginTop: 32 }}>
             <EmptyState
-              icon={IconBuilding}
-              title={filter === 'all' ? t('listings.emptyAll') : t('listings.emptySource')}
-              description={t('listings.emptyDescription')}
-              actionLabel={t('listings.createListing')}
-              onAction={() => navigate('/seller/create')}
+              icon={searchQuery || selectedPropertyType || selectedStatus ? IconSearch : IconBuilding}
+              title={searchQuery || selectedPropertyType || selectedStatus ? t('listings.emptySearch', 'No listings found') : t('listings.emptyAll')}
+              description={searchQuery || selectedPropertyType || selectedStatus ? '' : t('listings.emptyDescription')}
+              actionLabel={searchQuery || selectedPropertyType || selectedStatus ? undefined : t('listings.createListing')}
+              onAction={searchQuery || selectedPropertyType || selectedStatus ? undefined : () => navigate('/seller/create')}
             />
           </Box>
         )}
@@ -425,71 +369,54 @@ function Page() {
                   <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={(e) => { e.stopPropagation(); handleDeleteClick(card.id); }}>{t('listings.delete')}</Menu.Item>
                 </Menu.Dropdown>
               </Menu>
-            ) : (card.source === 'olx' || card.source === 'telegram') && (card.rawId || card.id) ? (
-              <Button 
-                size="compact-xs" 
-                radius="xl" 
-                color="teal" 
-                variant="light"
-                loading={claimingId === (card.rawId || card.id)} 
-                onClick={(e) => { e.stopPropagation(); handleClaimOlx((card.rawId || card.id).replace(/^(olx-|tg-)/, '')); }}
-                style={{ fontSize: 11, padding: '0 8px', height: 22 }}
-              >
-                {t('listings.edit', 'Редактировать')}
-              </Button>
-            ) : undefined;
+            ) : null;
 
-            const cardContent = (
-              <ListingRow
-                imageUrl={card.imageUrl}
-                price={card.price}
-                currency={card.currency}
-                description={card.title}
-                district={card.district}
-                onClick={isEditable ? () => navigate(`/seller/edit/${card.id}`) : undefined}
-                actions={
-                  <Group gap={4} wrap="nowrap">
-                    <Badge variant="light" size="xs" color={sourceColors[card.source]} radius="sm" style={{ fontWeight: 800 }}>
-                      {sourceLabels[card.source]}
-                    </Badge>
-                    {menuActions}
-                  </Group>
-                }
-              >
-                {/* Status + stats row */}
-                <Group gap={6} mt={4}>
-                  {card.status && (
-                    <Badge variant="dot" size="xs" color={borderLeftColor?.replace('#', '') || 'gray'} radius="sm" style={{ border: 'none', background: '#f1f5f9', fontWeight: 800 }}>
-                      {statusLabels[card.status] || card.status}
-                    </Badge>
-                  )}
-                  <Group gap={4} wrap="nowrap" ml="auto">
-                    {card.views_count !== undefined && (
-                      <Group gap={2} wrap="nowrap" bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
-                        <IconEye size={12} color="#64748b" />
-                        <Text size="10px" c="#334155" fw={700}>{card.views_count}</Text>
-                      </Group>
+            return (
+              <Box key={card.id}>
+                <ListingRow
+                  imageUrl={card.imageUrl}
+                  price={card.price}
+                  currency={card.currency}
+                  description={card.title}
+                  district={card.district}
+                  onClick={() => {
+                    // Seed the swiper purely with the currently SEARCHED/FILTERED array order
+                    const activeIds = unifiedCards.map(c => c.id);
+                    seedListingIds(activeIds);
+                    seedListingSource('finite');
+                    navigate(`/listings/${card.id}`);
+                  }}
+                  actions={
+                    <Group gap={4} wrap="nowrap">
+                      {menuActions}
+                    </Group>
+                  }
+                >
+                  {/* Status + stats row */}
+                  <Group gap={6} mt={4}>
+                    {card.status && (
+                      <Badge variant="dot" size="xs" color={borderLeftColor?.replace('#', '') || 'gray'} radius="sm" style={{ border: 'none', background: '#f1f5f9', fontWeight: 800 }}>
+                         {statusLabels[card.status] || card.status}
+                      </Badge>
                     )}
-                    {card.contacts_count !== undefined && card.contacts_count > 0 && (
-                      <Group gap={2} wrap="nowrap" ml={2} bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
-                        <IconPhone size={12} color="#64748b" />
-                        <Text size="10px" c="#334155" fw={700}>{card.contacts_count}</Text>
-                      </Group>
-                    )}
+                    <Group gap={4} wrap="nowrap" ml="auto">
+                      {card.views_count !== undefined && (
+                         <Group gap={2} wrap="nowrap" bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
+                           <IconEye size={12} color="#64748b" />
+                           <Text size="10px" c="#334155" fw={700}>{card.views_count}</Text>
+                         </Group>
+                      )}
+                      {card.contacts_count !== undefined && card.contacts_count > 0 && (
+                         <Group gap={2} wrap="nowrap" ml={2} bg="#f1f5f9" px={6} py={2} style={{ borderRadius: 6 }}>
+                           <IconPhone size={12} color="#64748b" />
+                           <Text size="10px" c="#334155" fw={700}>{card.contacts_count}</Text>
+                         </Group>
+                      )}
+                    </Group>
                   </Group>
-                </Group>
-              </ListingRow>
+                </ListingRow>
+              </Box>
             );
-
-            if (card.source === 'telegram' && card.externalUrl) {
-              return (
-                <Box component="a" key={card.id} href={card.externalUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                  {cardContent}
-                </Box>
-              );
-            }
-
-            return <Box key={card.id} onClick={() => { if (isEditable) navigate(`/seller/edit/${card.id}`) }}>{cardContent}</Box>;
           })}
         </Stack>
       </Stack>
@@ -507,20 +434,55 @@ function Page() {
 
       <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title={<Text fw={700} size="lg" style={{ fontFamily: 'Outfit, sans-serif' }}>{t('listings.deleteTitle', 'Delete Listing')}</Text>} centered radius={radii.lg} overlayProps={{ blur: 4, backgroundOpacity: 0.4 }} padding="md">
         <Stack gap="md">
-          <Text size="sm" c="dimmed" lh={1.4}>
-            {t('listings.deleteConfirm', 'Are you sure you want to permanently delete this listing?')}
-          </Text>
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={() => setDeleteModalOpen(false)} radius="xl" size="sm" style={{ border: 'none', background: surface.muted, color: '#475569' }}>
-              {t('listings.cancel')}
-            </Button>
-            <Button color="red" onClick={confirmDelete} radius="xl" size="sm">
-              {t('listings.delete')}
-            </Button>
-          </Group>
+           <Text size="sm" c="dimmed" lh={1.4}>
+             {t('listings.deleteConfirm', 'Are you sure you want to permanently delete this listing?')}
+           </Text>
+           <Group justify="flex-end" gap="sm">
+             <Button variant="default" onClick={() => setDeleteModalOpen(false)} radius="xl" size="sm" style={{ border: 'none', background: surface.muted, color: '#475569' }}>
+               {t('listings.cancel')}
+             </Button>
+             <Button color="red" onClick={confirmDelete} radius="xl" size="sm">
+               {t('listings.delete')}
+             </Button>
+           </Group>
         </Stack>
       </Modal>
       </Container>
+      <Box
+        style={{
+          position: 'fixed',
+          bottom: 84, // slightly above the 72px tall tab bar
+          left: 0,
+          right: 0,
+          pointerEvents: 'none',
+          zIndex: 100,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        <Box
+          style={{
+            maxWidth: 500,
+            margin: '0 auto',
+            padding: '0 12px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <ActionIcon
+            size={56}
+            radius="xl"
+            style={{
+              pointerEvents: 'auto',
+              background: '#228be6',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(34, 139, 230, 0.4)'
+            }}
+            onClick={() => navigate('/seller/create')}
+          >
+            <IconPlus size={28} stroke={2.2} />
+          </ActionIcon>
+        </Box>
+      </Box>
     </InnerPage>
   );
 }

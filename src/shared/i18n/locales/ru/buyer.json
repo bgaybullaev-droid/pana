@@ -51,6 +51,7 @@
   "listing.area": "м²",
   "listing.noPhoto": "Нет фото",
   "listing.noImages": "Нет изображений",
+  "listing.imageLoadError": "Ошибка загрузки фото",
   "listing.perMonth": "/мес",
 
   "comments.title": "Комментарии",

@@ -37,6 +37,7 @@ import {
 	IconEye,
 	IconPhone,
 	IconHeart,
+	IconSearch,
 } from "@tabler/icons-react";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import { RootPage } from "@shared/ui/RootPage";
@@ -295,6 +296,11 @@ function Page() {
 					icon={IconClipboardList}
 					label={t("settings.myListings")}
 					onClick={() => navigate("/seller/listings")}
+				/>
+				<SettingsRow
+					icon={IconSearch}
+					label={ts("dashboard.found") || "Найденные"}
+					onClick={() => navigate("/seller/found")}
 				/>
 				<SettingsRow
 					icon={IconWallet}

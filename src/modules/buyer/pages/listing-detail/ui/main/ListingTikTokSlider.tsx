@@ -1,7 +1,6 @@
 import { FC, useRef, useState, useEffect, useCallback } from 'react';
 import { Box, Text, Transition } from '@mantine/core';
 import { ListingSlideContent } from './ListingSlideContent';
-import { ensureNearbyResolved } from '../../model';
 import type { UnifiedListing } from '@shared/api/types';
 
 interface ListingTikTokSliderProps {
@@ -10,8 +9,13 @@ interface ListingTikTokSliderProps {
   initialListingId: string;
   onLoadMore: () => void;
   hasMore: boolean;
-  onLike: (id: string) => void;
-  onShare: (id: string) => void;
+  onLike?: (id: string) => void;
+  onShare?: (id: string) => void;
+  onVisibleItemChange?: (id: string) => void;
+  onCommentAdded?: (id: string) => void;
+  onClaim?: (id: string) => void;
+  onReject?: (id: string) => void;
+  mode?: "buyer" | "seller-crawled";
 }
 
 // Full screen — no tab bar on listing detail
@@ -31,6 +35,11 @@ export const ListingTikTokSlider: FC<ListingTikTokSliderProps> = ({
   hasMore,
   onLike,
   onShare,
+  onVisibleItemChange,
+  onCommentAdded,
+  onClaim,
+  onReject,
+  mode = "buyer",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fetchNextPageRef = useRef(false);
@@ -78,6 +87,31 @@ export const ListingTikTokSlider: FC<ListingTikTokSliderProps> = ({
     return () => clearTimeout(timer);
   }, [showGetReady]);
 
+  // Handle keyboard up/down navigation explicitly
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in inputs or textareas
+      const tagName = document.activeElement?.tagName;
+      if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+        return;
+      }
+      
+      const container = containerRef.current;
+      if (!container) return;
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        container.scrollBy({ top: -container.clientHeight, behavior: 'smooth' });
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        container.scrollBy({ top: container.clientHeight, behavior: 'smooth' });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Scroll handler — tracks visible index + infinite loading
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
@@ -96,8 +130,8 @@ export const ListingTikTokSlider: FC<ListingTikTokSliderProps> = ({
       // Pass the listing ID (not index) so the model can map to the
       // correct position in the full seedIds array.
       const visibleId = slideIds[newIndex];
-      if (visibleId) {
-        ensureNearbyResolved(visibleId);
+      if (visibleId && onVisibleItemChange) {
+        onVisibleItemChange(visibleId);
       }
     }
 
@@ -190,6 +224,10 @@ export const ListingTikTokSlider: FC<ListingTikTokSliderProps> = ({
                   isActive={isActive}
                   onLike={onLike}
                   onShare={onShare}
+                  onCommentAdded={onCommentAdded}
+                  onClaim={onClaim}
+                  onReject={onReject}
+                  mode={mode}
                 />
               ) : (
                 // Lightweight placeholder — preserves scroll height, no Swiper / images

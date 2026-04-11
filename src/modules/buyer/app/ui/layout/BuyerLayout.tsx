@@ -48,12 +48,14 @@ interface LayoutContext {
 	openSearch: () => void;
 	searchOpen: boolean;
 	scrollRef: React.RefObject<HTMLDivElement | null>;
+	headerVisible: boolean;
 }
 
 const LayoutCtx = createContext<LayoutContext>({
 	openSearch: () => {},
 	searchOpen: false,
 	scrollRef: { current: null },
+	headerVisible: true,
 });
 export const useLayoutContext = () => useContext(LayoutCtx);
 
@@ -107,6 +109,46 @@ export function Layout() {
 	const [searchHistory, setSearchHistory] =
 		useState<string[]>(getSearchHistory);
 	const activeSearchQuery = useUnit($searchQuery);
+	const [headerVisible, setHeaderVisible] = useState(true);
+	const lastScrollY = useRef(0);
+	const scrollTicking = useRef(false);
+
+	// --- Header Visibility Scroll Tracker ---
+	useEffect(() => {
+		const el = scrollRef.current;
+		if (!el) return;
+
+		const handleScroll = () => {
+			if (!scrollTicking.current) {
+				window.requestAnimationFrame(() => {
+					const currentScrollY = el.scrollTop;
+					const delta = currentScrollY - lastScrollY.current;
+
+					// iOS bounce protection: ignore scrolls above top
+					if (currentScrollY <= 0) {
+						setHeaderVisible(true);
+						lastScrollY.current = 0;
+						scrollTicking.current = false;
+						return;
+					}
+
+					// Standard logic: hide on scroll down (threshold 60px), show on scroll up
+					if (delta > 15 && currentScrollY > 80) {
+						setHeaderVisible(false);
+					} else if (delta < -20 || currentScrollY <= 40) {
+						setHeaderVisible(true);
+					}
+
+					lastScrollY.current = currentScrollY;
+					scrollTicking.current = false;
+				});
+				scrollTicking.current = true;
+			}
+		};
+
+		el.addEventListener("scroll", handleScroll, { passive: true });
+		return () => el.removeEventListener("scroll", handleScroll);
+	}, []);
 
 	// Build search suggestions from districts, property types, deal types
 	const searchSuggestions = useMemo(() => {
@@ -365,7 +407,7 @@ export function Layout() {
 	}, [location.pathname]);
 
 	return (
-		<LayoutCtx.Provider value={{ openSearch, searchOpen, scrollRef }}>
+		<LayoutCtx.Provider value={{ openSearch, searchOpen, scrollRef, headerVisible }}>
 			<Box
 				style={{
 					display: "flex",
@@ -635,8 +677,8 @@ export function Layout() {
 								onBlur={() => setSearchFocused(false)}
 								styles={{
 									input: {
-										backgroundColor: searchFocused ? surface.page : surface.muted,
-										border: searchFocused ? "1px solid #dee2e6" : "none",
+										backgroundColor: "#ffffff",
+										border: "1px solid #dee2e6",
 										height: 45,
 										fontSize: 16,
 										transition:
@@ -650,8 +692,8 @@ export function Layout() {
 								size={45}
 								radius="50%"
 								style={{
-									backgroundColor: searchFocused ? surface.page : surface.muted,
-									border: searchFocused ? "1px solid #dee2e6" : "none",
+									backgroundColor: "#ffffff",
+									border: "1px solid #dee2e6",
 									transition:
 										"background-color 0.15s ease, border-color 0.15s ease",
 									flexShrink: 0,

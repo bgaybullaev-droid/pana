@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
 import {
 	IconHeart,
 	IconMessageCircle,
@@ -20,6 +21,9 @@ import {
 	IconEye,
 	IconMapPin,
 	IconPhone,
+	IconCheck,
+	IconTrash,
+	IconPhoto,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
@@ -28,7 +32,6 @@ import { formatPrice } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
 import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
 import { MapDrawer } from "../dialogs/MapDrawer";
-import { commentAdded } from "../../model";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -36,8 +39,12 @@ import "swiper/css/pagination";
 interface ListingSlideContentProps {
 	listing: UnifiedListing;
 	isActive: boolean;
-	onLike: (id: string) => void;
-	onShare: (id: string) => void;
+	onLike?: (id: string) => void;
+	onShare?: (id: string) => void;
+	onCommentAdded?: (id: string) => void;
+	onClaim?: (id: string) => void;
+	onReject?: (id: string) => void;
+	mode?: "buyer" | "seller-crawled";
 }
 
 const shadow = "0 1px 4px rgba(0,0,0,0.6)";
@@ -47,6 +54,10 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 	isActive,
 	onLike,
 	onShare,
+	onCommentAdded,
+	onClaim,
+	onReject,
+	mode = "buyer",
 }) => {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
@@ -55,6 +66,11 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 	);
 	const [descriptionOpen, setDescriptionOpen] = useState(false);
 	const [mapOpen, setMapOpen] = useState(false);
+	const [failedImages, setFailedImages] = useState<number[]>([]);
+
+	const handleImageError = (index: number) => {
+		setFailedImages((prev) => [...prev, index]);
+	};
 	const [titleExpanded, setTitleExpanded] = useState(false);
 
 	const handleTitleTap = () => {
@@ -65,6 +81,30 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 			setTitleExpanded(false);
 		}
 	};
+
+	const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
+
+	// Explicit keyboard support for horizontal swiping
+	useEffect(() => {
+		if (!isActive || !swiperInstance) return;
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			const tagName = document.activeElement?.tagName;
+			if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") {
+				return;
+			}
+			if (e.key === "ArrowLeft") {
+				e.preventDefault();
+				swiperInstance.slidePrev();
+			} else if (e.key === "ArrowRight") {
+				e.preventDefault();
+				swiperInstance.slideNext();
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [isActive, swiperInstance]);
 
 	useEffect(() => {
 		const handler = (e: Event) => setShowInfo((e as CustomEvent).detail);
@@ -100,6 +140,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 			{/* ── Horizontal Image Swiper (full screen background) ── */}
 			{listing.images.length > 0 ? (
 				<Swiper
+					onSwiper={setSwiperInstance}
 					pagination={{ dynamicBullets: true }}
 					modules={[Pagination]}
 					style={{ height: "100%", width: "100%" }}
@@ -107,13 +148,34 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 				>
 					{listing.images.map((image, index) => (
 						<SwiperSlide key={index}>
-							<img
-								src={image.url}
-								alt={listing.title || listing.description || "Listing image"}
-								loading={isActive && index === 0 ? "eager" : "lazy"}
-								decoding="async"
-								style={{ width: "100%", height: "100%", objectFit: "cover" }}
-							/>
+							{!failedImages.includes(index) ? (
+								<img
+									src={image.url}
+									alt={listing.title || listing.description || "Listing image"}
+									loading={isActive && index === 0 ? "eager" : "lazy"}
+									decoding="async"
+									style={{ width: "100%", height: "100%", objectFit: "cover" }}
+									onError={() => handleImageError(index)}
+								/>
+							) : (
+								<Box
+									style={{
+										width: "100%",
+										height: "100%",
+										display: "flex",
+										flexDirection: "column",
+										alignItems: "center",
+										justifyContent: "center",
+										background: "#1a1a1a",
+										gap: 12,
+									}}
+								>
+									<IconPhoto size={48} color="#444" />
+									<Text c="dimmed" size="sm">
+										{t("listing.imageLoadError")}
+									</Text>
+								</Box>
+							)}
 						</SwiperSlide>
 					))}
 				</Swiper>
@@ -123,12 +185,17 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 						width: "100%",
 						height: "100%",
 						display: "flex",
+						flexDirection: "column",
 						alignItems: "center",
 						justifyContent: "center",
-						background: "#333",
+						background: "#1a1a1a",
+						gap: 16,
 					}}
 				>
-					<Text c="white">{t("listing.noImages")}</Text>
+					<IconPhoto size={64} color="#333" />
+					<Text c="dimmed" fw={500}>
+						{t("listing.noImages")}
+					</Text>
 				</Box>
 			)}
 
@@ -159,43 +226,82 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 					zIndex: 50,
 					position: "absolute",
 					bottom: "calc(10rem * var(--mantine-scale))",
-					right: "calc(0.5rem * var(--mantine-scale))",
+					right: 12,
+					width: 56,
 				}}
 			>
 				<Stack gap={18} align="center">
-					{/* Like */}
-					<Stack gap={1} align="center">
-						<ActionIcon
-							variant="transparent"
-							size={36}
-							onClick={() => onLike(listing.id)}
-						>
-							<IconHeart
-								size={30}
-								fill={listing.is_favorited ? "red" : "none"}
-								color={listing.is_favorited ? "red" : "white"}
-								style={{ filter: `drop-shadow(${shadow})` }}
-							/>
-						</ActionIcon>
-						<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
-							{listing.favorites_count || 0}
-						</Text>
-					</Stack>
+					{mode === "buyer" ? (
+						<Stack gap={1} align="center">
+							<ActionIcon
+								variant="transparent"
+								size={36}
+								onClick={() => onLike?.(listing.id)}
+							>
+								<IconHeart
+									size={30}
+									fill={listing.is_favorited ? "red" : "none"}
+									color={listing.is_favorited ? "red" : "white"}
+									style={{ filter: `drop-shadow(${shadow})` }}
+								/>
+							</ActionIcon>
+							<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
+								{listing.favorites_count || 0}
+							</Text>
+						</Stack>
+					) : (
+						<Stack gap={18} align="center">
+							<Stack gap={1} align="center">
+								<ActionIcon
+									variant="transparent"
+									size={36}
+									onClick={() => onClaim?.(listing.id)}
+								>
+									<IconCheck
+										size={30}
+										color="#4dabf7"
+										style={{ filter: `drop-shadow(${shadow})` }}
+									/>
+								</ActionIcon>
+								<Text size="xs" fw={700} c="#4dabf7" style={{ textShadow: shadow }}>
+									Это моё
+								</Text>
+							</Stack>
+							<Stack gap={1} align="center">
+								<ActionIcon
+									variant="transparent"
+									size={36}
+									onClick={() => onReject?.(listing.id)}
+								>
+									<IconTrash
+										size={30}
+										color="#ff8787"
+										style={{ filter: `drop-shadow(${shadow})` }}
+									/>
+								</ActionIcon>
+								<Text size="xs" fw={700} c="#ff8787" style={{ textShadow: shadow }}>
+									Не моё
+								</Text>
+							</Stack>
+						</Stack>
+					)}
 
-					{/* Description (comment icon opens details) */}
-					<Stack gap={1} align="center">
-						<ActionIcon
-							variant="transparent"
-							size={36}
-							onClick={() => setDescriptionOpen(true)}
-						>
-							<IconMessageCircle
-								size={30}
-								color="white"
-								style={{ filter: `drop-shadow(${shadow})` }}
-							/>
-						</ActionIcon>
-					</Stack>
+
+					{mode === "buyer" && (
+						<Stack gap={1} align="center">
+							<ActionIcon
+								variant="transparent"
+								size={36}
+								onClick={() => setDescriptionOpen(true)}
+							>
+								<IconMessageCircle
+									size={30}
+									color="white"
+									style={{ filter: `drop-shadow(${shadow})` }}
+								/>
+							</ActionIcon>
+						</Stack>
+					)}
 
 					{/* Views */}
 					<Stack gap={1} align="center">
@@ -247,19 +353,21 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 					)}
 
 					{/* Share */}
-					<Stack gap={1} align="center">
-						<ActionIcon
-							variant="transparent"
-							size={36}
-							onClick={() => onShare(listing.id)}
-						>
-							<IconShare
-								size={28}
-								color="white"
-								style={{ filter: `drop-shadow(${shadow})` }}
-							/>
-						</ActionIcon>
-					</Stack>
+					{mode === "buyer" && (
+						<Stack gap={1} align="center">
+							<ActionIcon
+								variant="transparent"
+								size={36}
+								onClick={() => onShare?.(listing.id)}
+							>
+								<IconShare
+									size={28}
+									color="white"
+									style={{ filter: `drop-shadow(${shadow})` }}
+								/>
+							</ActionIcon>
+						</Stack>
+					)}
 				</Stack>
 			</Box>
 
@@ -268,7 +376,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 			<Box
 				pos="absolute"
 				left={0}
-				right={60}
+				right={80}
 				style={{ zIndex: 10, bottom: "calc(7rem * var(--mantine-scale))" }}
 				px={12}
 			>
@@ -405,7 +513,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 				opened={descriptionOpen}
 				onClose={() => setDescriptionOpen(false)}
 				listing={listing}
-				onCommentAdded={() => commentAdded(listing.id)}
+				onCommentAdded={() => onCommentAdded?.(listing.id)}
 			/>
 
 			{/* ── Map Drawer ── */}

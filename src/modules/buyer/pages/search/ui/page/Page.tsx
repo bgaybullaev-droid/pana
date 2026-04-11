@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -87,6 +87,17 @@ function Page() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [priceRange, setPriceRange] = useState<[number, number]>([0, 500000]);
 	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+	const searchInputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		// Small delay to ensure any page transitions have completed
+		const timer = setTimeout(() => {
+			if (searchInputRef.current) {
+				searchInputRef.current.focus();
+			}
+		}, 100);
+		return () => clearTimeout(timer);
+	}, []);
 
 	const handleSearch = () => {
 		const params = new URLSearchParams();
@@ -211,6 +222,8 @@ function Page() {
 						}}
 					>
 						<TextInput
+							ref={searchInputRef}
+							autoFocus
 							placeholder={searchFocused ? "" : t("search.title")}
 							leftSection={<IconSearch size={18} color="#adb5bd" />}
 							value={searchQuery}

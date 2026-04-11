@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Box, Image } from '@mantine/core';
 import { IconPhoto } from '@tabler/icons-react';
 import { radii } from '@app/styles/theme';
@@ -8,6 +9,8 @@ interface ListingImageThumbnailProps {
 }
 
 export function ListingImageThumbnail({ src, size = 96 }: ListingImageThumbnailProps) {
+  const [error, setError] = useState(false);
+
   return (
     <Box
       style={{
@@ -19,8 +22,8 @@ export function ListingImageThumbnail({ src, size = 96 }: ListingImageThumbnailP
         backgroundColor: 'var(--mantine-color-gray-1)',
       }}
     >
-      {src ? (
-        <Image src={src} alt="" w={size} h={size} fit="cover" />
+      {src && !error ? (
+        <Image src={src} alt="" w={size} h={size} fit="cover" onError={() => setError(true)} />
       ) : (
         <Box
           style={{

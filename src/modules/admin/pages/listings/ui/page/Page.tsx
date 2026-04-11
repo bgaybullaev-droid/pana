@@ -135,6 +135,16 @@ function Page() {
     parseInt(searchParams.get('page') || '1', 10)
   );
   const lastParamsRef = useRef<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -188,12 +198,14 @@ function Page() {
       {/* Search */}
       <Box className="admin-filter-bar" style={{ marginBottom: 8 }}>
         <TextInput
+          ref={searchInputRef}
+          autoFocus
           placeholder={t('listings.searchPlaceholder')}
           leftSection={<IconSearch size={16} color="#94a3b8" />}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           styles={{
-            input: { border: '1px solid rgba(0, 0, 0, 0.06)', borderRadius: 12, background: '#f8fafc' },
+            input: { border: '1px solid #dee2e6', borderRadius: 12, background: '#ffffff' },
           }}
         />
       </Box>

@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Box, Text } from "@mantine/core";
 import { surface } from "@app/styles/theme";
+import { useLayoutContext } from "@modules/buyer/app/ui/layout/BuyerLayout";
 
 interface TabBarProps {
 	title?: string;
@@ -17,6 +18,7 @@ interface TabBarProps {
  * When `children` is provided, height is auto and inner content is unconstrained.
  */
 export function TabBar({ title, actions, children, blur }: TabBarProps) {
+	const { headerVisible } = useLayoutContext();
 	const bg = blur
 		? {
 				backgroundColor: "rgba(255,255,255,0.92)",
@@ -27,6 +29,7 @@ export function TabBar({ title, actions, children, blur }: TabBarProps) {
 
 	return (
 		<Box
+			component="header"
 			style={{
 				position: "sticky",
 				top: 0,
@@ -36,6 +39,9 @@ export function TabBar({ title, actions, children, blur }: TabBarProps) {
 				marginLeft: "calc(-50vw + 50%)",
 				marginRight: "calc(-50vw + 50%)",
 				width: "100vw",
+				transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+				transition: "transform 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
+				willChange: "transform",
 			}}
 		>
 			{children || (

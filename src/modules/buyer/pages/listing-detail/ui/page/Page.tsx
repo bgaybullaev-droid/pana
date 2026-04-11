@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import {
-	ActionIcon,
 	Box,
 	LoadingOverlay,
 	Text,
@@ -11,6 +10,7 @@ import {
 	Title,
 	Button,
 	Container,
+	UnstyledButton,
 } from "@mantine/core";
 import { IconArrowLeft, IconPhoto } from "@tabler/icons-react";
 import { shadows } from "@app/styles/theme";
@@ -27,6 +27,7 @@ import {
 	pageOpened,
 	loadMore,
 	toggleFavorite,
+	ensureNearbyResolved,
 } from "../../model";
 
 // UUID validation helper
@@ -119,29 +120,54 @@ function Page() {
 					hasMore={hasMore}
 					onLike={handleLike}
 					onShare={handleShare}
+					onVisibleItemChange={ensureNearbyResolved}
 				/>
 			)}
 
 			{/* Fixed back button — stays in place during swipe */}
-			<ActionIcon
-				variant="transparent"
-				size={45}
-				onClick={() => navigate(-1)}
+			<Box
 				style={{
 					position: "fixed",
-					bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
-					right: 12,
+					bottom: 0,
+					left: 0,
+					right: 0,
+					paddingBottom: "env(safe-area-inset-bottom, 0px)",
 					zIndex: 10000,
-					backgroundColor: "rgba(255, 255, 255, 0.65)",
-					backdropFilter: "blur(20px) saturate(180%)",
-					WebkitBackdropFilter: "blur(20px) saturate(180%)",
-					border: "1px solid rgba(255, 255, 255, 0.5)",
-					boxShadow: shadows.md,
-					borderRadius: "50%",
+					pointerEvents: "none",
 				}}
 			>
-				<IconArrowLeft size={20} stroke={1.8} color="#495057" />
-			</ActionIcon>
+				<Box
+					style={{
+						maxWidth: 500,
+						margin: "0 auto",
+						position: "relative",
+						height: 72, // Match BottomNav height (4px top + 56px button + 12px bottom)
+					}}
+				>
+					<UnstyledButton
+						onClick={() => navigate(-1)}
+						style={{
+							position: "absolute",
+							bottom: 12,
+							right: 12,
+							width: 56,
+							height: 56,
+							borderRadius: "50%",
+							backgroundColor: "rgba(255, 255, 255, 0.65)",
+							backdropFilter: "blur(20px) saturate(180%)",
+							WebkitBackdropFilter: "blur(20px) saturate(180%)",
+							border: "1px solid rgba(255, 255, 255, 0.5)",
+							boxShadow: shadows.md,
+							pointerEvents: "auto",
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+						}}
+					>
+						<IconArrowLeft size={24} stroke={1.8} color="#495057" />
+					</UnstyledButton>
+				</Box>
+			</Box>
 		</Box>
 	);
 }

@@ -285,7 +285,9 @@ function Page() {
 							minWidth: 0,
 							height: 46,
 							borderRadius: radii.xl,
-							backgroundColor: surface.muted,
+							backgroundColor: "#ffffff",
+							border: "1px solid #ced4da",
+							boxShadow: shadows.md,
 							display: "flex",
 							alignItems: "center",
 							paddingLeft: 16,
@@ -393,9 +395,11 @@ function Page() {
 								key={value}
 								onClick={() => handleQuickFilter(value)}
 								style={{
-									padding: "6px 16px",
+									padding: "5px 15px",
 									borderRadius: radii.full,
 									backgroundColor: isSelected ? "#228be6" : "#f1f3f5",
+									border: isSelected ? "1px solid #228be6" : "1px solid #ced4da",
+									boxShadow: shadows.md,
 									cursor: "pointer",
 									whiteSpace: "nowrap",
 									transition: "all 0.2s ease",
