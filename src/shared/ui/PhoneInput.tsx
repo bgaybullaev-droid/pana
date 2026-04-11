@@ -69,7 +69,7 @@ export function PhoneInput({
 		const el = inputRef.current;
 		if (!el) return;
 		el.value = toDisplay(value);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const syncFromInput = useCallback(() => {
@@ -79,7 +79,7 @@ export function PhoneInput({
 		onChangeRef.current(raw);
 		const unformatted = el.value;
 		const prevPos = el.selectionStart ?? unformatted.length;
-		
+
 		// Calculate non-space characters before cursor
 		let nonSpaceCount = 0;
 		for (let i = 0; i < prevPos; i++) {
@@ -185,7 +185,10 @@ export function PhoneInput({
 
 		// animationstart fires when autofill applies :-webkit-autofill
 		const handleAnimation = (e: AnimationEvent) => {
-			if (e.animationName?.includes("auto-fill") || e.animationName?.includes("autofill")) {
+			if (
+				e.animationName?.includes("auto-fill") ||
+				e.animationName?.includes("autofill")
+			) {
 				syncFromInput();
 			}
 		};
@@ -203,7 +206,10 @@ export function PhoneInput({
 
 		return () => {
 			el.removeEventListener("change", handleChange);
-			el.removeEventListener("animationstart", handleAnimation as EventListener);
+			el.removeEventListener(
+				"animationstart",
+				handleAnimation as EventListener,
+			);
 			clearInterval(interval);
 			clearTimeout(timeout);
 		};
@@ -286,19 +292,19 @@ export function PhoneInput({
 						position: "relative",
 						zIndex: 2,
 					}}
-				onFocusCapture={(e) => {
-					const el = e.currentTarget;
-					el.style.borderColor = "var(--mantine-color-blue-5)";
-					el.style.boxShadow = "0 0 0 3px rgba(64, 167, 227, 0.1)";
-				}}
-				onBlurCapture={(e) => {
-					const el = e.currentTarget;
-					el.style.borderColor = error
-						? "var(--mantine-color-red-6)"
-						: "var(--mantine-color-gray-2)";
-					el.style.boxShadow = "none";
-				}}
-			/>
+					onFocusCapture={(e) => {
+						const el = e.currentTarget;
+						el.style.borderColor = "var(--mantine-color-blue-5)";
+						el.style.boxShadow = "0 0 0 3px rgba(64, 167, 227, 0.1)";
+					}}
+					onBlurCapture={(e) => {
+						const el = e.currentTarget;
+						el.style.borderColor = error
+							? "var(--mantine-color-red-6)"
+							: "var(--mantine-color-gray-2)";
+						el.style.boxShadow = "none";
+					}}
+				/>
 			</Box>
 			{error && typeof error === "string" && (
 				<Text size="xs" c="red" mt={4}>
