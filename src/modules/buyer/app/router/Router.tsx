@@ -86,11 +86,6 @@ const SellerListingsPage = lazy(() =>
 		default: m.SellerListings.Page,
 	})),
 );
-const CrawledListingsPage = lazy(() =>
-	import("@modules/seller/pages/crawled-listings").then((m) => ({
-		default: m.CrawledListings.Page,
-	})),
-);
 const CreateListingPage = lazy(() =>
 	import("@modules/seller/pages/create-listing").then((m) => ({
 		default: m.CreateListing.Page,
@@ -157,7 +152,6 @@ export function UserRouter() {
 					<Route path="/seller/register" element={<SellerRegisterPage />} />
 					<Route path="/seller/dashboard" element={<SellerRoute><SellerDashboardPage /></SellerRoute>} />
 					<Route path="/seller/listings" element={<SellerRoute><SellerListingsPage /></SellerRoute>} />
-					<Route path="/seller/crawled" element={<SellerRoute><CrawledListingsPage /></SellerRoute>} />
 					<Route path="/seller/create" element={<SellerRoute><CreateListingPage /></SellerRoute>} />
 					<Route path="/seller/edit/:id" element={<SellerRoute><EditListingPage /></SellerRoute>} />
 					<Route path="/seller/profile" element={<SellerRoute><SellerProfileEditPage /></SellerRoute>} />

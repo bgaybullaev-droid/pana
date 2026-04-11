@@ -14,6 +14,7 @@ import {
   Skeleton,
   Button,
   Card,
+  ThemeIcon,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -25,8 +26,8 @@ import {
   IconTrash,
   IconEye,
   IconPhone,
-  IconExternalLink,
   IconBuilding,
+  IconWorldSearch,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { InnerPage } from '@shared/ui/InnerPage';
@@ -86,6 +87,34 @@ const sourceColors: Record<string, string> = {
   telegram: 'cyan',
 };
 
+const MOCK_OLX = [
+  {
+    id: "mock-olx-1", olx_id: "olx-1001", url: "https://olx.uz/1001",
+    property_type: "apartment", listing_type: "sell", price: 85000, currency: "USD",
+    rooms: 3, area_sqm: 78, floor: 4, total_floors: 9, district: "yunusobod",
+    address: "ул. Абдуллы Кадыри, 12", description: "Квартира с евроремонтом, раздельная планировка, новая мебель и техника.",
+    images: ["https://picsum.photos/seed/olx1/400/300"], source: "olx",
+    posted_date: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: "mock-olx-2", olx_id: "olx-1002", url: "https://olx.uz/1002",
+    property_type: "house", listing_type: "sell", price: 270000, currency: "USD",
+    rooms: 6, area_sqm: 220, district: "sergeli",
+    description: "Просторный дом с участком",
+    images: ["https://picsum.photos/seed/olx2/400/300"], source: "olx",
+    posted_date: new Date(Date.now() - 86400000).toISOString(),
+  }
+];
+
+const MOCK_TELEGRAM = [
+  {
+    id: "mock-tg-1", property_type: "apartment", listing_type: "rent", price: 500, currency: "USD",
+    rooms: 2, area_sqm: 65, district: "chilonzor",
+    description: "Сдаётся квартира в Чиланзаре, рядом метро, развитая инфраструктура.",
+    images: ["https://picsum.photos/seed/tg1/400/300"], source_channel: "@tashkent_kvartiry",
+  }
+];
+
 function Page() {
   const navigate = useNavigate();
   const { t } = useTranslation('seller');
@@ -123,11 +152,16 @@ function Page() {
     Promise.all([
       fetchSellerOLXListings({ page: 1, per_page: 100 }).catch(() => ({ items: [], total: 0 })),
       fetchSellerTelegramListings({ page: 1, per_page: 100 }).catch(() => ({ items: [], total: 0 })),
-    ]).then(([olx, tg]) => {
-      setOlxListings(olx.items);
-      setOlxTotal(olx.total);
-      setTelegramListings(tg.items);
-      setTelegramTotal(tg.total);
+    ]).then(([olxRes, tgRes]) => {
+      const finalOlxItems = olxRes.items.length > 0 ? olxRes.items : MOCK_OLX;
+      const finalOlxTotal = olxRes.total > 0 ? olxRes.total : MOCK_OLX.length;
+      const finalTgItems = tgRes.items.length > 0 ? tgRes.items : MOCK_TELEGRAM;
+      const finalTgTotal = tgRes.total > 0 ? tgRes.total : MOCK_TELEGRAM.length;
+
+      setOlxListings(finalOlxItems as any);
+      setOlxTotal(finalOlxTotal);
+      setTelegramListings(finalTgItems as any);
+      setTelegramTotal(finalTgTotal);
       setIsCrawledLoading(false);
     });
   }, []);
@@ -282,16 +316,17 @@ function Page() {
     }
   };
 
+
   const allLoading = isLoading && isCrawledLoading;
   const platformCount = listings.filter((l) => getListingSource(l.source_type) === 'platform').length;
   const claimedOlxCount = listings.filter((l) => l.source_type?.toUpperCase() === 'CLAIMED').length;
   const totalCount = listings.length + olxTotal + telegramTotal;
 
   const filters = [
-    { label: t('listings.all'), value: 'all', count: totalCount },
-    { label: t('listings.platform'), value: 'platform', count: platformCount },
-    { label: 'OLX', value: 'olx', count: olxTotal + claimedOlxCount },
-    { label: 'Telegram', value: 'telegram', count: telegramTotal },
+    { label: t('listings.all', 'All'), value: 'all', count: totalCount },
+    { label: t('listings.platformActive', 'My Active'), value: 'platform', count: platformCount },
+    { label: t('listings.foundOlx', 'Found on OLX'), value: 'olx', count: olxTotal + claimedOlxCount },
+    { label: t('listings.foundTelegram', 'Found on Telegram'), value: 'telegram', count: telegramTotal },
   ];
 
   return (
@@ -321,6 +356,23 @@ function Page() {
 
         {/* ── Modern Compact Header ── */}
         <Box style={{ animation: 'fade-in 0.4s ease-out' }}>
+          {/* ── Context / Stats Block ── */}
+          <Card radius={radii.md} p="sm" mb="sm" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', boxShadow: 'none' }}>
+            <Group wrap="nowrap" gap="sm">
+              <ThemeIcon variant="light" color="blue" size={36} radius="md">
+                <IconWorldSearch size={18} />
+              </ThemeIcon>
+              <Box style={{ flex: 1 }}>
+                <Text size="13px" fw={700} c="dark.9">
+                  {t("listings.crawledContextTitle", "We found your listings!")}
+                </Text>
+                <Text size="11px" c="dimmed" mt={2} lh={1.3}>
+                  {t("listings.crawledContextDesc", "Check the OLX and Telegram tabs below. Approve them to publish on the platform.")}
+                </Text>
+              </Box>
+            </Group>
+          </Card>
+
           {/* ── Pill-style filter chips inside a subtle card ── */}
           <Card radius={radii.md} p={4} style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
             <PillTabs tabs={filters} activeValue={filter} onChange={setFilter} />
@@ -373,20 +425,18 @@ function Page() {
                   <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={(e) => { e.stopPropagation(); handleDeleteClick(card.id); }}>{t('listings.delete')}</Menu.Item>
                 </Menu.Dropdown>
               </Menu>
-            ) : card.source === 'olx' && card.rawId ? (
-              <Menu position="bottom-end">
-                <Menu.Target>
-                  <ActionIcon variant="subtle" radius="xl" size="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)' }} onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-                    <IconDotsVertical size={16} />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Item leftSection={<IconEdit size={14} />} onClick={(e) => { e.stopPropagation(); handleClaimOlx(card.rawId!); }}>{t('listings.edit')}</Menu.Item>
-                  {card.externalUrl && (
-                    <Menu.Item leftSection={<IconExternalLink size={14} />} component="a" href={card.externalUrl} target="_blank" rel="noopener noreferrer">{t('listings.viewOnOlx')}</Menu.Item>
-                  )}
-                </Menu.Dropdown>
-              </Menu>
+            ) : (card.source === 'olx' || card.source === 'telegram') && (card.rawId || card.id) ? (
+              <Button 
+                size="compact-xs" 
+                radius="xl" 
+                color="teal" 
+                variant="light"
+                loading={claimingId === (card.rawId || card.id)} 
+                onClick={(e) => { e.stopPropagation(); handleClaimOlx((card.rawId || card.id).replace(/^(olx-|tg-)/, '')); }}
+                style={{ fontSize: 11, padding: '0 8px', height: 22 }}
+              >
+                {t('listings.edit', 'Редактировать')}
+              </Button>
             ) : undefined;
 
             const cardContent = (

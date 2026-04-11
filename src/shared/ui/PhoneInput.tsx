@@ -47,7 +47,6 @@ export function PhoneInput({
 	value,
 	onChange,
 	label,
-	placeholder,
 	description,
 	error,
 	disabled,

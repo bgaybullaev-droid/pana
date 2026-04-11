@@ -24,7 +24,6 @@ import {
 	IconPhone,
 	IconHeart,
 	IconUser,
-	IconWorldSearch,
 	IconArrowRight,
 	IconBuildingStore,
 	IconSparkles,
@@ -202,20 +201,6 @@ function Page() {
 											<IconUser size={18} />
 										</Center>
 										<Text fw={600} size="13px" c="dark.8">{t("dashboard.profile", "Profile")}</Text>
-									</Group>
-									<IconArrowRight size={16} color="#cbd5e1" />
-								</Group>
-							</Card>
-						</UnstyledButton>
-
-						<UnstyledButton onClick={() => navigate("/seller/crawled")}>
-							<Card radius={radii.md} p="sm" style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
-								<Group wrap="nowrap" justify="space-between">
-									<Group wrap="nowrap" gap="sm">
-										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: surface.page, color: '#10b981' }}>
-											<IconWorldSearch size={18} />
-										</Center>
-										<Text fw={600} size="13px" c="dark.8">{t("dashboard.found", "Found Listings")}</Text>
 									</Group>
 									<IconArrowRight size={16} color="#cbd5e1" />
 								</Group>
