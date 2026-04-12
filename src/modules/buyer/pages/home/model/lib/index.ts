@@ -18,3 +18,22 @@ export const buildFeedParams = (
 	region: filters.region,
 	district: filters.district,
 });
+
+export const isParamsMatchingFilters = (
+	params: UnifiedFeedParams,
+	filters: HomeFilters,
+): boolean => {
+	// Compare all filter fields (ignore page/per_page)
+	const compare = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+
+	return (
+		params.q === filters.q &&
+		params.type === filters.type &&
+		params.property_type === filters.property_type &&
+		compare(params.rooms, filters.rooms) &&
+		params.price_min === filters.price_min &&
+		params.price_max === filters.price_max &&
+		compare(params.region, filters.region) &&
+		compare(params.district, filters.district)
+	);
+};

@@ -4,13 +4,13 @@ import {
 	IconHeart,
 	IconBed,
 	IconRuler,
-	IconStairs,
+	IconBuilding,
 	IconMapPin,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ListingListItem } from "@shared/api/types";
 import { formatPrice, gradients, radii, shadows, spacing, surface } from "@app/styles/theme";
-import { translateDistrict } from "@shared/lib/regions";
+import { translateDistrict, translateRegion, getRegionForDistrict } from "@shared/lib/regions";
 
 interface ListingCardProps {
 	listing: ListingListItem;
@@ -32,12 +32,29 @@ export const ListingCard: FC<ListingCardProps> = ({
 	const formattedPrice = formatPrice(listing.price, listing.currency);
 
 	const propertyLabel = t(
-		`common.propertyType.${listing.property_type}`,
-		listing.property_type,
+		`card.propertyType.${listing.property_type}`,
+		t(`common.propertyType.${listing.property_type}`, listing.property_type),
 	);
-	const districtLabel =
-		translateDistrict(listing.district, t) || t("listing.defaultDistrict");
-	const standardTitle = `${propertyLabel}, ${districtLabel}`;
+	
+	let actualRegionKey = listing.region;
+	if (!actualRegionKey && listing.district) {
+		actualRegionKey = getRegionForDistrict(listing.district) || null;
+	}
+
+	const regionLabel = translateRegion(actualRegionKey, t);
+	const districtRawLabel = translateDistrict(listing.district, t);
+	
+	const locationParts = [];
+	if (regionLabel && regionLabel !== districtRawLabel) {
+		locationParts.push(regionLabel);
+	}
+	if (districtRawLabel) {
+		locationParts.push(districtRawLabel);
+	}
+	
+	const fullLocationLabel = locationParts.length > 0 
+		? locationParts.join(", ") 
+		: t("listing.defaultDistrict");
 
 	// Building type + condition text (e.g. "Новостройка, Евроремонт")
 	// Only show translated values — skip unknown raw values from crawlers
@@ -45,14 +62,26 @@ export const ListingCard: FC<ListingCardProps> = ({
 	const KNOWN_CONDITIONS = ["euro", "cosmetic", "needs_repair", "rough"];
 	const KNOWN_LAND_PURPOSES = ["private", "industrial"];
 
-	const tagParts: string[] = [];
+	let buildingTypeStr = null;
 	if (
 		listing.building_type &&
 		KNOWN_BUILDING_TYPES.includes(listing.building_type)
 	) {
-		tagParts.push(t(`listing.buildingType.${listing.building_type}`));
+		buildingTypeStr = t(`listing.buildingType.${listing.building_type}`);
 	}
-	if (listing.condition && KNOWN_CONDITIONS.includes(listing.condition)) {
+
+	const titleSuffix = listing.property_type === "apartment" && buildingTypeStr
+		? `, ${buildingTypeStr.toLowerCase()}`
+		: "";
+
+	const standardTitle = `${propertyLabel}${titleSuffix}, ${fullLocationLabel}`;
+
+	const tagParts: string[] = [];
+	if (
+		listing.property_type !== "land" &&
+		listing.condition &&
+		KNOWN_CONDITIONS.includes(listing.condition)
+	) {
 		tagParts.push(t(`listing.condition.${listing.condition}`));
 	}
 	if (
@@ -215,28 +244,54 @@ export const ListingCard: FC<ListingCardProps> = ({
 					style={{
 						padding: spacing.cardCompact,
 						minWidth: 0,
-						...(layout === "grid" ? { height: 82, overflow: "hidden" } : {}),
+						...(layout === "grid" ? { height: 104, overflow: "hidden" } : {}),
 					}}
 				>
 					<Text
 						size="xs"
 						fw={600}
 						c="dark.7"
-						mb={3}
+						mb={2}
 						truncate
 						style={{ fontFamily: "var(--mantine-font-family-headings)" }}
 					>
-						{standardTitle}
+						{propertyLabel}
+						{titleSuffix && (
+							<Text span c="gray.6" fw={500}>
+								{titleSuffix}
+							</Text>
+						)}
 					</Text>
+
+					<Box
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: 4,
+							marginBottom: 6,
+							minWidth: 0,
+							overflow: "hidden",
+						}}
+					>
+						<IconMapPin
+							size={13}
+							color="var(--mantine-color-gray-5)"
+							stroke={2}
+							style={{ flexShrink: 0 }}
+						/>
+						<Text size="xs" c="gray.6" fw={500} truncate>
+							{fullLocationLabel}
+						</Text>
+					</Box>
 
 					{/* Info chips — area, rooms, floor */}
 					<Box
 						style={{
 							display: "flex",
-							gap: 5,
+							gap: 6,
 							alignItems: "center",
 							minWidth: 0,
-							minHeight: 14,
+							minHeight: 16,
 						}}
 					>
 						{listing.area != null && (
@@ -244,16 +299,16 @@ export const ListingCard: FC<ListingCardProps> = ({
 								style={{
 									display: "flex",
 									alignItems: "center",
-									gap: 2,
+									gap: 3,
 									flexShrink: 0,
 								}}
 							>
 								<IconRuler
-									size={11}
+									size={13}
 									color="var(--mantine-color-gray-5)"
 									stroke={2}
 								/>
-								<Text size="9px" c="gray.6" fw={500}>
+								<Text size="xs" c="gray.6" fw={500}>
 									{listing.area} {t("common.sqm")}
 								</Text>
 							</Box>
@@ -263,16 +318,16 @@ export const ListingCard: FC<ListingCardProps> = ({
 								style={{
 									display: "flex",
 									alignItems: "center",
-									gap: 2,
+									gap: 3,
 									flexShrink: 0,
 								}}
 							>
 								<IconBed
-									size={11}
+									size={13}
 									color="var(--mantine-color-gray-5)"
 									stroke={2}
 								/>
-								<Text size="9px" c="gray.6" fw={500}>
+								<Text size="xs" c="gray.6" fw={500}>
 									{listing.rooms} {t("common.rooms")}
 								</Text>
 							</Box>
@@ -282,53 +337,28 @@ export const ListingCard: FC<ListingCardProps> = ({
 								style={{
 									display: "flex",
 									alignItems: "center",
-									gap: 2,
+									gap: 3,
 									flexShrink: 0,
 								}}
 							>
-								<IconStairs
-									size={11}
+								<IconBuilding
+									size={13}
 									color="var(--mantine-color-gray-5)"
 									stroke={2}
 								/>
-								<Text size="9px" c="gray.6" fw={500}>
+								<Text size="xs" c="gray.6" fw={500}>
 									{listing.floor}/{listing.total_floors || "?"}
 								</Text>
 							</Box>
 						)}
 					</Box>
 
-					{/* District — always rendered to keep card height uniform */}
-					<Box
-						style={{
-							display: "flex",
-							alignItems: "center",
-							gap: 2,
-							marginTop: 3,
-							minWidth: 0,
-							overflow: "hidden",
-							visibility: listing.district ? "visible" : "hidden",
-						}}
-					>
-						<IconMapPin
-							size={11}
-							color="var(--mantine-color-gray-5)"
-							stroke={2}
-							style={{ flexShrink: 0 }}
-						/>
-						<Text size="9px" c="gray.5" fw={500} truncate>
-							{listing.district
-								? translateDistrict(listing.district, t)
-								: "\u00A0"}
-						</Text>
-					</Box>
-
 					{/* Building type + condition — always rendered to keep card height uniform */}
 					<Text
-						size="9px"
+						size="xs"
 						c="blue.5"
 						fw={500}
-						mt={2}
+						mt={4}
 						truncate
 						style={{ visibility: tagLine ? "visible" : "hidden" }}
 					>

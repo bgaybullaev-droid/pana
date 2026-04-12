@@ -1,4 +1,8 @@
 {
+  "card.propertyType.apartment": "Kvartira",
+  "card.propertyType.house": "Uy",
+  "card.propertyType.commercial": "Tijorat ko'chmas mulki",
+  "card.propertyType.land": "Yer uchastkasi",
   "nav.home": "Bosh sahifa",
   "nav.search": "Qidiruv",
   "nav.favorites": "Sevimlilar",

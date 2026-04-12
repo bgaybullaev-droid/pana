@@ -15,27 +15,61 @@ import {
   searchQueryChanged,
 } from '../events';
 import { $page, $filters, $hasMore, $rawItems, $total, $error } from '../stores';
-import { buildFeedParams } from '../lib';
+import { buildFeedParams, isParamsMatchingFilters } from '../lib';
 
 // Wire .on() handlers
-$page.on(fetchFeedFx.done, (_, { params }) => params.page + 1);
-
 $filters
   .on(filtersChanged, (state, updates) => ({ ...state, ...updates }))
   .on(searchQueryChanged, (state, q) => ({ ...state, q: q || undefined }));
 
-$rawItems.on(fetchFeedFx.doneData, (state, data) => {
-  if (data.page === 1) {
-    return data.items;
-  }
-  return [...state, ...data.items];
+// Handle successful feed fetches with filter-matching guard
+sample({
+  clock: fetchFeedFx.done,
+  source: { currentFilters: $filters, items: $rawItems },
+  filter: ({ currentFilters }, { params }) => isParamsMatchingFilters(params, currentFilters),
+  fn: ({ items }, { result }) => {
+    if (result.page === 1) {
+      return result.items || [];
+    }
+    // Simple deduplication just in case
+    const existingIds = new Set(items.map(item => item.id));
+    const newItems = result.items.filter(item => !existingIds.has(item.id));
+    return [...items, ...newItems];
+  },
+  target: $rawItems,
 });
 
-$total.on(fetchFeedFx.doneData, (_, data) => data.total);
+sample({
+  clock: fetchFeedFx.done,
+  source: $filters,
+  filter: (currentFilters, { params }) => isParamsMatchingFilters(params, currentFilters),
+  fn: (_, { result }) => result.total,
+  target: $total,
+});
 
-$hasMore.on(fetchFeedFx.doneData, (_, data) => data.page < data.total_pages);
+sample({
+  clock: fetchFeedFx.done,
+  source: $filters,
+  filter: (currentFilters, { params }) => isParamsMatchingFilters(params, currentFilters),
+  fn: (_, { result }) => result.page < result.total_pages,
+  target: $hasMore,
+});
 
-$error.on(fetchFeedFx.failData, (_, error) => getApiError(error).message);
+sample({
+  clock: fetchFeedFx.done,
+  source: $filters,
+  filter: (currentFilters, { params }) => isParamsMatchingFilters(params, currentFilters),
+  fn: (_, { params }) => params.page + 1,
+  target: $page,
+});
+
+sample({
+  clock: fetchFeedFx.fail,
+  source: $filters,
+  filter: (currentFilters, { params }) => isParamsMatchingFilters(params, currentFilters),
+  fn: (_, { error }) => getApiError(error).message,
+  target: $error,
+});
 
 // On page open, fetch page 1 and load favorite IDs
 sample({

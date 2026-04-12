@@ -267,9 +267,7 @@ function Page() {
 				? undefined
 				: (propertyType as HomeFilters["property_type"]),
 		});
-		setTimeout(() => {
-			applyFiltersAndClearScroll();
-		}, 0);
+		applyFiltersAndClearScroll();
 	};
 
 	// Search header content (rendered inside RootPage's TabBar)

@@ -148,7 +148,7 @@ export function Layout() {
 
 		el.addEventListener("scroll", handleScroll, { passive: true });
 		return () => el.removeEventListener("scroll", handleScroll);
-	}, []);
+	}, [location.pathname]);
 
 	// Build search suggestions from districts, property types, deal types
 	const searchSuggestions = useMemo(() => {

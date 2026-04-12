@@ -429,12 +429,12 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 									radius="sm"
 								>
 									{listing.property_type === "apartment"
-										? t("common.propertyType.apartment").toUpperCase()
+										? t("card.propertyType.apartment").toUpperCase()
 										: listing.property_type === "house"
-											? t("common.propertyType.house").toUpperCase()
+											? t("card.propertyType.house").toUpperCase()
 											: listing.property_type === "commercial"
-												? t("common.propertyType.commercial").toUpperCase()
-												: t("common.propertyType.land").toUpperCase()}
+												? t("card.propertyType.commercial").toUpperCase()
+												: t("card.propertyType.land").toUpperCase()}
 								</Badge>
 								<Badge
 									size="xs"

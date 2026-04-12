@@ -16,7 +16,7 @@ export const REGIONS: RegionData[] = [
     districts: [
       'bektemir', 'chilonzor', 'mirzo_ulugbek', 'mirobod',
       'olmazor', 'sergeli', 'shayxontohur', 'uchtepa',
-      'yakkasaroy', 'yashnobod', 'yunusobod',
+      'yakkasaroy', 'yashnobod', 'yunusobod', 'yangihayot',
     ],
   },
   {
@@ -156,10 +156,50 @@ export function getRegionKeys(): string[] {
   return REGIONS.map((r) => r.key);
 }
 
-/** Look up the region a district belongs to */
-export function getRegionForDistrict(districtKey: string): string | undefined {
-  return _districtToRegion.get(districtKey);
+export function normalizeLocationKey(key: string | null | undefined, type: 'region' | 'district' = 'district'): string {
+  if (!key) return '';
+  let normalized = key.toLowerCase().replace(/['`’]/g, '').replace(/[\s-]/g, '_');
+  
+  const aliases = type === 'region' ? REGION_ALIASES : DISTRICT_ALIASES;
+  if (aliases[normalized]) {
+    normalized = aliases[normalized];
+  }
+  return normalized;
 }
+
+/** Look up the region a district belongs to */
+export function getRegionForDistrict(districtKey: string | null | undefined): string | undefined {
+  if (!districtKey) return undefined;
+  const normalized = normalizeLocationKey(districtKey, 'district');
+  return _districtToRegion.get(normalized);
+}
+
+const REGION_ALIASES: Record<string, string> = {
+  'samarkand': 'samarqand',
+  'bukhara': 'buxoro',
+  'fergana': 'fargona',
+  'tashkent': 'toshkent_shahri',
+  'tashkent_city': 'toshkent_shahri',
+};
+
+const DISTRICT_ALIASES: Record<string, string> = {
+  'yashnabad': 'yashnobod',
+  'yunusabad': 'yunusobod',
+  'mirobad': 'mirobod',
+  'almazar': 'olmazor',
+  'almazarki': 'olmazor',
+  'chilonzar': 'chilonzor',
+  'chilanzar': 'chilonzor',
+  'shayhantahur': 'shayxontohur',
+  'shaynabad': 'shayxontohur', // common typo
+  'samarkand': 'samarqand_sh',
+  'bukhara': 'buxoro_sh',
+  'fergana': 'fargona_sh',
+  'tashkent': 'toshkent_shahri',
+  'tashkent_city': 'toshkent_shahri',
+  'yakkasaray': 'yakkasaroy',
+  'yangikhayot': 'yangihayot',
+};
 
 /**
  * Translate a region key to a display name.
@@ -170,7 +210,8 @@ export function translateRegion(
   t: (k: string, options?: Record<string, unknown>) => string,
 ): string {
   if (!key) return '';
-  const result = t(`common:locations.region.${key}`, { defaultValue: '' });
+  const normalizedKey = normalizeLocationKey(key, 'region');
+  const result = t(`common:locations.region.${normalizedKey}`, { defaultValue: '' });
   return result || key;
 }
 
@@ -183,6 +224,7 @@ export function translateDistrict(
   t: (k: string, options?: Record<string, unknown>) => string,
 ): string {
   if (!key) return '';
-  const result = t(`common:locations.district.${key}`, { defaultValue: '' });
+  const normalizedKey = normalizeLocationKey(key, 'district');
+  const result = t(`common:locations.district.${normalizedKey}`, { defaultValue: '' });
   return result || key;
 }

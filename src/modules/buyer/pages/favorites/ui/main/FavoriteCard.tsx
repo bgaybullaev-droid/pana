@@ -22,7 +22,7 @@ export function FavoriteCard({ listing, onClick, onRemove }: FavoriteCardProps) 
       isRent={listing.type === 'rent'}
       description={
         listing.title ||
-        `${t(`common.propertyType.${listing.property_type}`, listing.property_type)}${
+        `${t(`card.propertyType.${listing.property_type}`, listing.property_type)}${
           listing.rooms ? `, ${listing.rooms} ${t('common.rooms')}` : ''
         }`
       }

@@ -53,10 +53,10 @@ export const ListingCard: FC<ListingCardProps> = ({ listing }) => {
   };
 
   const propertyTypeLabels: Record<string, string> = {
-    apartment: t('common.propertyType.apartment'),
-    house: t('common.propertyType.house'),
-    commercial: t('common.propertyType.commercial'),
-    land: t('common.propertyType.land'),
+    apartment: t('card.propertyType.apartment'),
+    house: t('card.propertyType.house'),
+    commercial: t('card.propertyType.commercial'),
+    land: t('card.propertyType.land'),
   };
 
   const listingTypeLabels: Record<string, string> = {

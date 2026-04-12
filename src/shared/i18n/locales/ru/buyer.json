@@ -1,4 +1,9 @@
 {
+  "card.propertyType.apartment": "Квартира",
+  "card.propertyType.house": "Дом",
+  "card.propertyType.commercial": "Коммерческая недвижимость",
+  "card.propertyType.land": "Земельный участок",
+
   "nav.home": "Главная",
   "nav.search": "Поиск",
   "nav.favorites": "Избранное",
@@ -41,9 +46,9 @@
   "listing.buildingType.new": "Новостройка",
   "listing.buildingType.secondary": "Вторичка",
   "listing.condition.euro": "Евроремонт",
-  "listing.condition.cosmetic": "Косметический",
-  "listing.condition.needs_repair": "Треб. ремонта",
-  "listing.condition.rough": "Черновая",
+  "listing.condition.cosmetic": "Косметический ремонт",
+  "listing.condition.needs_repair": "Без ремонта",
+  "listing.condition.rough": "Черновая отделка",
   "listing.landPurpose.private": "Для частного строительства",
   "listing.landPurpose.industrial": "Для промышленного назначения",
   "listing.viewsLabel": "просмотров",
