@@ -18,7 +18,7 @@ interface PageBarProps {
  */
 export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 	const navigate = useNavigate();
-	const { isTelegramWebApp } = useTelegram();
+	const { webApp } = useTelegram();
 	const handleBack = onBack || (() => navigate(-1));
 
 	return (
@@ -42,7 +42,7 @@ export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 				}}
 			>
 				{/* Back button */}
-				{!isTelegramWebApp ? (
+				{(!webApp || webApp.platform === 'unknown') ? (
 					<ActionIcon
 						variant="default"
 						size={40}
