@@ -42,7 +42,7 @@ export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 				}}
 			>
 				{/* Back button */}
-				{(!webApp || webApp.platform === 'unknown') ? (
+				{(!webApp?.initData && !navigator.userAgent.includes('Telegram')) ? (
 					<ActionIcon
 						variant="default"
 						size={40}
