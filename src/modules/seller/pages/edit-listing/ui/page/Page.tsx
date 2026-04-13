@@ -251,7 +251,7 @@ function Page() {
 
 	return (
 		<InnerPage title={t("editListing.title")} noPadding>
-			<Container px="md" py="md">
+			<Container px="md" pt="md" pb={160}>
 				<LoadingOverlay visible={isUpdating || isUploading} />
 				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
@@ -388,53 +388,101 @@ function Page() {
 					</Stack>
 				</form>
 
-				{/* Action Buttons */}
-				<Stack mt="xl" gap="sm">
-					{errorCount > 0 && (
-						<Box
-							style={{
-								backgroundColor: "#fee2e2",
-								border: "1px solid #fca5a5",
-								padding: "12px 16px",
-								borderRadius: radii.md,
-							}}
-						>
-							<Text size="sm" c="red.8" fw={500} ta="center">
-								{t("createListing.unfilledFieldsSummary", {
-									count: errorCount,
-									defaultValue: `Осталось заполнить ${errorCount} полей. Прокрутите вверх и проверьте.`,
-								})}
-							</Text>
-						</Box>
-					)}
-					<Button
-						type="submit"
-						size="md"
-						fullWidth
-						radius={radii.md}
-						loading={isUpdating || isUploading}
-						onClick={() => form.onSubmit(handleSubmit, handleError)()}
+				{/* Fixed Action Buttons Panel */}
+				<Box
+					style={{
+						position: "fixed",
+						bottom: 0,
+						left: 0,
+						right: 0,
+						paddingBottom: "env(safe-area-inset-bottom, 0px)",
+						zIndex: 10001,
+						pointerEvents: "none",
+					}}
+				>
+					<Box
 						style={{
-							background: "#228be6",
-							border: "none",
-							boxShadow: shadows.accent,
+							padding: "4px 12px 12px",
+							maxWidth: 500,
+							margin: "0 auto",
 						}}
 					>
-						{isUploading
-							? t("createListing.uploadingPhotos")
-							: t("editListing.save")}
-					</Button>
-					<Button
-						variant="light"
-						color="gray"
-						size="md"
-						fullWidth
-						radius={radii.md}
-						onClick={() => navigate(-1)}
-					>
-						{t("createListing.cancel")}
-					</Button>
-				</Stack>
+						{errorCount > 0 && (
+							<Box
+								style={{
+									backgroundColor: "#fee2e2",
+									border: "1px solid #fca5a5",
+									padding: "10px 16px",
+									borderRadius: 20,
+									marginBottom: 12,
+									pointerEvents: "auto",
+									boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+								}}
+							>
+								<Text size="xs" c="red.8" fw={500} ta="center">
+									{t("createListing.unfilledFieldsSummary", {
+										count: errorCount,
+										defaultValue: `Осталось заполнить ${errorCount} полей. Прокрутите вверх.`,
+									})}
+								</Text>
+							</Box>
+						)}
+						<Box
+							style={{
+								display: "flex",
+								alignItems: "center",
+								height: 56,
+								pointerEvents: "auto",
+								gap: "10px",
+							}}
+						>
+							<Button
+								style={{ flex: 1 }}
+								h="100%"
+								radius={100}
+								c="#495057"
+								fw={600}
+								fz={14}
+								onClick={() => navigate(-1)}
+								styles={{
+									root: { 
+										backgroundColor: "rgba(255, 255, 255, 0.55)",
+										backdropFilter: "blur(20px) saturate(180%)",
+										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+										border: "1px solid rgba(0, 0, 0, 0.12)",
+										boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+									},
+								}}
+							>
+								{t("createListing.cancel")}
+							</Button>
+							<Button
+								type="submit"
+								style={{ flex: 1 }}
+								h="100%"
+								radius={100}
+								c="white"
+								fw={600}
+								fz={14}
+								loading={isUpdating || isUploading}
+								onClick={() => form.onSubmit(handleSubmit, handleError)()}
+								styles={{
+									root: { 
+										backgroundColor: "rgba(64, 167, 227, 0.55)",
+										backdropFilter: "blur(20px) saturate(180%)",
+										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+										boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)",
+										border: "1px solid rgba(255, 255, 255, 0.2)",
+									},
+								}}
+							>
+								{isUploading
+									? t("createListing.uploadingPhotos")
+									: t("editListing.save")}
+							</Button>
+						</Box>
+					</Box>
+				</Box>
 			</Container>
 		</InnerPage>
 	);

@@ -26,16 +26,17 @@
   "common.currencySum": "сум",
   "common.noListings": "Нет объявлений",
   "common.cancel": "Отмена",
+  "action.apply": "Применить",
 
   "common.propertyType.apartment": "Квартира",
   "common.propertyType.house": "Дом",
   "common.propertyType.commercial": "Коммерция",
-  "common.propertyType.land": "Участок",
+  "common.propertyType.land": "Земля",
 
   "common.propertyTypePlural.apartment": "Квартиры",
   "common.propertyTypePlural.house": "Дома",
   "common.propertyTypePlural.commercial": "Коммерция",
-  "common.propertyTypePlural.land": "Участки",
+  "common.propertyTypePlural.land": "Земля",
 
   "common.roomsOption.studio": "Студия",
 

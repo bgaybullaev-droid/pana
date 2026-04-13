@@ -143,6 +143,10 @@ export function BottomNavigation({
 		}
 	};
 
+	if (location.pathname.startsWith("/seller/create") || location.pathname.startsWith("/seller/edit")) {
+		return null;
+	}
+
 	return (
 		<Box
 			component="nav"

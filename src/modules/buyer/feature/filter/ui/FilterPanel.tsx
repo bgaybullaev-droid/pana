@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import { Box, Stack, Button, ActionIcon, Group, Divider } from '@mantine/core';
-import { IconRefresh } from '@tabler/icons-react';
+import { Box, Stack, Button, Group, Divider } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 import { useUnit } from 'effector-react';
 import { SortingChips } from './SortingChips';
 import { RegionChips } from './RegionChips';
@@ -21,6 +21,7 @@ interface FilterPanelProps {
 }
 
 export const FilterPanel: FC<FilterPanelProps> = ({ onApply }) => {
+  const { t } = useTranslation('buyer');
   const [filterState, regions] = useUnit([$filterState, $regions]);
 
   const handleApply = () => {
@@ -33,7 +34,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({ onApply }) => {
   };
 
   return (
-    <Box p="md" h="95%">
+    <Box p="md" pb={100} h="100%" style={{ overflowY: "auto" }}>
       <Stack justify="space-between" h="100%">
         <Stack gap="xl">
           {/* Sorting */}
@@ -58,33 +59,72 @@ export const FilterPanel: FC<FilterPanelProps> = ({ onApply }) => {
           />
         </Stack>
 
-        {/* Action Buttons */}
-        <Stack gap="xs">
-          <Group justify="space-between" align="center">
-            <ActionIcon variant="subtle" size={32} onClick={handleReset}>
-              <IconRefresh size={18} />
-            </ActionIcon>
-          </Group>
-
-          <Button
-            fullWidth
-            h={34}
-            radius={10}
-            bg="#40A7E3"
-            fw={500}
-            fz={12}
-            mt={30}
-            mb={10}
-            styles={{
-              root: {
-                border: '1px solid #DCDCDC',
-              },
+        {/* Fixed Action Buttons Panel */}
+        <Box
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            zIndex: 10001,
+            pointerEvents: "none",
+          }}
+        >
+          <Box
+            style={{
+              padding: "4px 12px 12px",
+              maxWidth: 500,
+              margin: "0 auto",
             }}
-            onClick={handleApply}
           >
-            Apply Filters
-          </Button>
-        </Stack>
+            <Box
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: 56,
+                pointerEvents: "auto",
+                gap: "10px",
+              }}
+            >
+              <Button
+                style={{ flex: 1 }}
+                h="100%"
+                radius={100}
+                c="#495057"
+                fw={600}
+                fz={14}
+                onClick={handleReset}
+                styles={{
+                  root: {
+                    backgroundColor: "rgba(255, 255, 255, 0.65)",
+                    backdropFilter: "blur(20px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                    border: "1px solid rgba(255, 255, 255, 0.5)",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+                  },
+                }}
+              >
+                {t("filter.reset", { defaultValue: "Сбросить" })}
+              </Button>
+              <Button
+                style={{ flex: 1 }}
+                h="100%"
+                radius={100}
+                bg="#40A7E3"
+                c="white"
+                fw={600}
+                fz={14}
+                onClick={handleApply}
+                styles={{
+                  root: { boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)" },
+                }}
+              >
+                {t("filter.apply", { defaultValue: "Применить" })}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
       </Stack>
     </Box>
   );

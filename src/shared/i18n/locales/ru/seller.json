@@ -250,7 +250,7 @@
   "propertyTypes.apartment": "Квартира",
   "propertyTypes.house": "Дом",
   "propertyTypes.commercial": "Коммерция",
-  "propertyTypes.land": "Участок",
+  "propertyTypes.land": "Земля",
   "validation.imagesRequired": "Добавьте хотя бы одно фото",
   "validation.priceRequired": "Укажите цену",
   "validation.regionRequired": "Выберите область",

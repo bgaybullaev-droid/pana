@@ -28,8 +28,8 @@ export const isParamsMatchingFilters = (
 
 	return (
 		params.q === filters.q &&
-		params.type === filters.type &&
-		params.property_type === filters.property_type &&
+		compare(params.type, filters.type) &&
+		compare(params.property_type, filters.property_type) &&
 		compare(params.rooms, filters.rooms) &&
 		params.price_min === filters.price_min &&
 		params.price_max === filters.price_max &&

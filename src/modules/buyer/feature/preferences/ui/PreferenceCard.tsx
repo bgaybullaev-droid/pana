@@ -10,6 +10,8 @@ interface PreferenceCardProps {
   title: string;
   description?: string;
   children: ReactNode;
+  isActive?: boolean;
+  badge?: React.ReactNode;
 }
 
 export function PreferenceCard({
@@ -19,6 +21,8 @@ export function PreferenceCard({
   title,
   description,
   children,
+  isActive,
+  badge,
 }: PreferenceCardProps) {
   return (
     <Box
@@ -27,6 +31,8 @@ export function PreferenceCard({
         borderRadius: radii.lg,
         padding: spacing.card,
         boxShadow: shadows.md,
+        border: isActive ? "1px solid #40c057" : "1px solid transparent",
+        transition: "border-color 150ms ease",
       }}
     >
       <Group gap={12} mb={description ? 6 : 14} align="center" wrap="nowrap">
@@ -39,9 +45,12 @@ export function PreferenceCard({
           <Icon size={20} stroke={1.8} />
         </ThemeIcon>
         <Stack gap={2}>
-          <Text size="sm" fw={700} lh={1.2}>
-            {title}
-          </Text>
+          <Group gap={6} align="center">
+            <Text size="sm" fw={700} lh={1.2}>
+              {title}
+            </Text>
+            {badge}
+          </Group>
           {description && (
             <Text size="xs" c="dimmed" lh={1.3}>
               {description}

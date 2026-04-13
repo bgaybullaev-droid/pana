@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { UnstyledButton, Text, Box } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
+import { shadows } from "@app/styles/theme";
 
 interface CTAButtonProps {
 	label: string;
@@ -11,7 +12,7 @@ export function CTAButton({ label, onClick }: CTAButtonProps) {
 	const [pressed, setPressed] = useState(false);
 
 	return (
-		<Box style={{ padding: "12px 16px 0" }}>
+		<Box style={{ padding: "12px 0 8px" }}>
 			<UnstyledButton
 				onClick={onClick}
 				onMouseDown={() => setPressed(true)}
@@ -26,8 +27,9 @@ export function CTAButton({ label, onClick }: CTAButtonProps) {
 					gap: 8,
 					width: "100%",
 					height: 50,
-					borderRadius: 14,
+					borderRadius: 9999,
 					backgroundColor: pressed ? "#1557B0" : "#1A73E8",
+					boxShadow: "0 4px 12px rgba(26, 115, 232, 0.3)",
 					transform: pressed ? "scale(0.98)" : "scale(1)",
 					transition: "all 120ms ease-out",
 				}}

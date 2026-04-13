@@ -19,6 +19,9 @@ import {
 	RangeSlider,
 	ScrollArea,
 	UnstyledButton,
+	SegmentedControl,
+	Accordion,
+	Badge,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -29,17 +32,25 @@ import {
 	IconAdjustments,
 	IconArrowsSort,
 	IconTags,
-	IconBuildingEstate,
-	IconDoor,
 	IconCash,
+	IconDoor,
 	IconMapPin,
-	IconKey,
-	IconCalendarEvent,
-	IconBuildingSkyscraper,
-	IconHome2,
-	IconBuildingCommunity,
-	IconTrees,
+	IconBuildingEstate,
+	IconRulerMeasure,
+	IconTools,
+	IconBuilding,
+	IconHome,
+	IconArmchair,
 } from "@tabler/icons-react";
+import {
+	getConditionOpts,
+	getBuildingTypeOpts,
+	getHouseTypeOpts,
+	getAptAmenityOpts,
+	getHouseAmenityOpts,
+	getWaterSupplyOpts,
+} from "@shared/constants/mockupFilters";
+import { DealTypeGrid, PropertyTypeGrid } from "@shared/ui/FilterCards";
 import { transitions, shadows, radii, surface } from "@app/styles/theme";
 import { PreferenceCard } from "@modules/buyer/feature/preferences/ui/PreferenceCard";
 import {
@@ -90,7 +101,7 @@ const QUICK_FILTER_VALUES = [
 ] as const;
 
 function Page() {
-	const { t } = useTranslation("buyer");
+	const { t } = useTranslation(["buyer", "seller"]);
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [
@@ -130,12 +141,19 @@ function Page() {
 		0, 500000,
 	]);
 	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+	const [draftFilters, setDraftFilters] = useState<HomeFilters>(filters);
 
+	// Sync drawer values when it opens
 	useEffect(() => {
-		const min = filters.price_min || 0;
-		const max = filters.price_max || (filters.type === "rent" ? 5000 : 500000);
-		setLocalPriceRange([min, max]);
-	}, [filters.price_min, filters.price_max, filters.type]);
+		if (drawerOpened) {
+			setDraftFilters(filters);
+			const min = filters.price_min || 0;
+			const isRentOnly = filters.type?.length === 1 && filters.type[0] === "rent";
+			const max = filters.price_max || (isRentOnly ? 5000 : 500000);
+			setLocalPriceRange([min, max]);
+			setSelectedRegion(filters.region?.[0] || null);
+		}
+	}, [drawerOpened, filters]);
 
 	// Initialize from URL params
 	useEffect(() => {
@@ -144,10 +162,8 @@ function Page() {
 
 		const urlFilters: Partial<HomeFilters> = {};
 		const q = searchParams.get("q");
-		const type = searchParams.get("type") as "sell" | "rent" | null;
-		const propertyType = searchParams.get(
-			"property_type",
-		) as HomeFilters["property_type"];
+		const type = searchParams.get("type");
+		const propertyType = searchParams.get("property_type");
 		const rooms = searchParams.get("rooms");
 		const priceMin = searchParams.get("price_min");
 		const priceMax = searchParams.get("price_max");
@@ -155,8 +171,8 @@ function Page() {
 		const district = searchParams.get("district");
 
 		if (q) urlFilters.q = q;
-		if (type) urlFilters.type = type;
-		if (propertyType) urlFilters.property_type = propertyType;
+		if (type) urlFilters.type = type.split(",") as any;
+		if (propertyType) urlFilters.property_type = propertyType.split(",") as any;
 		if (rooms) urlFilters.rooms = rooms.split(",").map(Number);
 		if (priceMin) urlFilters.price_min = Number(priceMin);
 		if (priceMax) urlFilters.price_max = Number(priceMax);
@@ -180,15 +196,28 @@ function Page() {
 		pageOpened();
 	}, [searchParams]);
 
-	// Count active filters (excluding search query)
 	const activeFilterCount = [
-		filters.type,
-		filters.property_type,
+		filters.type?.length,
+		filters.property_type?.length,
 		filters.rooms?.length,
 		filters.price_min,
 		filters.price_max,
 		filters.region?.length,
 		filters.district?.length,
+		// Mockups
+		filters.area_min,
+		filters.area_max,
+		filters.building_type?.length,
+		filters.condition?.length,
+		filters.house_type?.length,
+		filters.house_condition?.length,
+		filters.furnished?.length,
+		filters.amenities?.length,
+		filters.water_supply?.length,
+		filters.electricity?.length,
+		filters.heating?.length,
+		filters.gas_supply?.length,
+		filters.sewage?.length,
 	].filter(Boolean).length;
 
 	const handleCardClick = useCallback(
@@ -248,26 +277,48 @@ function Page() {
 		setSearchParams({});
 	};
 
+	const handleApplyDraft = () => {
+		filtersChanged(draftFilters);
+		applyFiltersAndClearScroll();
+		closeDrawer();
+	};
+
+	const handleClearDraft = () => {
+		handleClearFilters();
+		setDraftFilters({});
+		closeDrawer();
+	};
+
 	const handleTypeChange = (value: string) => {
-		clearScrollPosition("/");
-		const newMax = value === "rent" ? 5000 : 500000;
+		let newTypes = draftFilters.type ? [...draftFilters.type] : [];
+		if (newTypes.includes(value as any)) {
+			newTypes = newTypes.filter((v) => v !== value);
+		} else {
+			newTypes.push(value as any);
+		}
+
+		const isRentOnly = newTypes.length === 1 && newTypes[0] === "rent";
+		const newMax = isRentOnly ? 5000 : 500000;
 		setLocalPriceRange([0, newMax]);
-		filtersChanged({
-			type: value as "sell" | "rent",
+		setDraftFilters((prev) => ({
+			...prev,
+			type: newTypes.length > 0 ? newTypes : undefined,
 			price_min: undefined,
 			price_max: undefined,
-		});
-		applyFiltersAndClearScroll();
+		}));
 	};
 
 	const handleQuickFilter = (propertyType: string) => {
-		const isSame = filters.property_type === propertyType;
-		filtersChanged({
-			property_type: isSame
-				? undefined
-				: (propertyType as HomeFilters["property_type"]),
-		});
-		applyFiltersAndClearScroll();
+		let newProps = draftFilters.property_type ? [...draftFilters.property_type] : [];
+		if (newProps.includes(propertyType as any)) {
+			newProps = newProps.filter((p) => p !== propertyType);
+		} else {
+			newProps.push(propertyType as any);
+		}
+		setDraftFilters((prev) => ({
+			...prev,
+			property_type: newProps.length > 0 ? newProps : undefined,
+		}));
 	};
 
 	// Search header content (rendered inside RootPage's TabBar)
@@ -324,22 +375,47 @@ function Page() {
 								<IconX size={10} color="white" />
 							</ActionIcon>
 						)}
-						<ActionIcon
-							variant="subtle"
-							color="dark"
-							size={32}
-							radius="xl"
-							onClick={(e) => {
-								e.stopPropagation();
-								openDrawer();
-							}}
-						>
-							<IconAdjustments
-								size={20}
-								stroke={1.6}
-								style={{ transform: "rotate(90deg)" }}
-							/>
-						</ActionIcon>
+						<Box style={{ position: "relative" }}>
+							<ActionIcon
+								variant="subtle"
+								color="dark"
+								size={32}
+								radius="xl"
+								onClick={(e) => {
+									e.stopPropagation();
+									openDrawer();
+								}}
+							>
+								<IconAdjustments
+									size={20}
+									stroke={1.6}
+									style={{ transform: "rotate(90deg)" }}
+								/>
+							</ActionIcon>
+							{activeFilterCount > 0 && (
+								<Box
+									style={{
+										position: "absolute",
+										top: -2,
+										right: -2,
+										minWidth: 16,
+										height: 16,
+										borderRadius: 8,
+										backgroundColor: "#228be6",
+										border: "2px solid #ffffff",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										padding: "0 4px",
+										pointerEvents: "none",
+									}}
+								>
+									<Text size="9px" fw={800} c="white" style={{ lineHeight: 1 }}>
+										{activeFilterCount}
+									</Text>
+								</Box>
+							)}
+						</Box>
 					</UnstyledButton>
 					<Box
 						style={{ position: "relative", cursor: "pointer" }}
@@ -382,44 +458,6 @@ function Page() {
 					</Box>
 				</Group>
 			</Box>
-
-			{/* Quick filter chips */}
-			<ScrollArea scrollbarSize={0} type="never" offsetScrollbars={false}>
-				<Box px="md" pb="sm" style={{ display: "flex", gap: 6, maxWidth: 980, margin: "0 auto" }}>
-					{QUICK_FILTER_VALUES.map((value) => {
-						const isSelected = filters.property_type === value;
-						return (
-							<Box
-								key={value}
-								onClick={() => handleQuickFilter(value)}
-								style={{
-									padding: "5px 15px",
-									borderRadius: radii.full,
-									backgroundColor: isSelected ? "#228be6" : "#f1f3f5",
-									border: isSelected ? "1px solid #228be6" : "1px solid #ced4da",
-									boxShadow: shadows.md,
-									cursor: "pointer",
-									whiteSpace: "nowrap",
-									transition: "all 0.2s ease",
-									flexShrink: 0,
-									WebkitTapHighlightColor: "transparent",
-									outline: "none",
-									userSelect: "none",
-								}}
-							>
-								<Text
-									size="xs"
-									fw={600}
-									c={isSelected ? "white" : "gray.7"}
-									style={{ lineHeight: 1.3 }}
-								>
-									{t(`common.propertyTypePlural.${value}`)}
-								</Text>
-							</Box>
-						);
-					})}
-				</Box>
-			</ScrollArea>
 		</>
 	);
 
@@ -430,6 +468,65 @@ function Page() {
 			? "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
 			: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
 
+	const ptArray = draftFilters.property_type || [];
+	const isApt = ptArray.includes("apartment");
+	const isHouse = ptArray.includes("house");
+	const isCom = ptArray.includes("commercial");
+	const hasAnyType = ptArray.length > 0;
+
+	const showMockup = {
+		buildingType: !hasAnyType || isApt,
+		condition: !hasAnyType || isApt || isCom || isHouse,
+		houseType: !hasAnyType || isHouse,
+		amenities: !hasAnyType || isApt || isHouse || isCom,
+		utilities: !hasAnyType || isHouse,
+	};
+
+	const MockupBadge = <Badge color="gray" variant="light" size="xs">Mockup</Badge>;
+
+	const renderChipGroup = (
+		options: { value: string; label: string }[],
+		value: string[] = [],
+		onChange: (v: string[]) => void
+	) => {
+		const toggle = (optValue: string) => {
+			if (value.includes(optValue)) {
+				onChange(value.filter((v) => v !== optValue));
+			} else {
+				onChange([...value, optValue]);
+			}
+		};
+
+		return (
+			<Group gap={8} wrap="wrap">
+				{options.map((opt) => {
+					const isActive = value.includes(opt.value);
+					return (
+						<UnstyledButton
+							key={opt.value}
+							onClick={() => toggle(opt.value)}
+							style={{
+								height: 36,
+								padding: "0 16px",
+								fontSize: 13,
+								fontWeight: 600,
+								borderRadius: 18,
+								backgroundColor: isActive ? "#228be6" : "#f1f3f5",
+								color: isActive ? "#fff" : "#495057",
+								display: "inline-flex",
+								alignItems: "center",
+								cursor: "pointer",
+								transition: "all 0.15s ease",
+							}}
+						>
+							{opt.label}
+						</UnstyledButton>
+					);
+				})}
+			</Group>
+		);
+	};
+
 	const FilterDrawer = (
 		<Drawer
 			opened={drawerOpened}
@@ -437,6 +534,7 @@ function Page() {
 			withCloseButton={false}
 			position="bottom"
 			size="auto"
+			zIndex={10001}
 			styles={{
 				content: {
 					borderRadius: "20px 20px 0 0",
@@ -515,6 +613,7 @@ function Page() {
 							iconColor="#FF6E01"
 							iconBg="#FFF4E6"
 							title={t("search.sortBy")}
+							isActive={sortBy !== "recommended"}
 						>
 							<Chip.Group
 								multiple={false}
@@ -558,75 +657,12 @@ function Page() {
 							iconBg="#e7f5ff"
 							title={t("preferences.listingType")}
 							description={t("preferences.desc.listingType")}
+							isActive={(draftFilters.type?.length ?? 0) > 0}
 						>
-							<Group grow gap={10}>
-								{(
-									[
-										{
-											value: "sell",
-											icon: IconKey,
-											color: "#228be6",
-											bg: "#e7f5ff",
-											label: t("common.buy"),
-										},
-										{
-											value: "rent",
-											icon: IconCalendarEvent,
-											color: "#40c057",
-											bg: "#ebfbee",
-											label: t("common.rentAction"),
-										},
-									] as const
-								).map(({ value, icon: Icon, color, bg, label }) => {
-									const selected = filters.type === value;
-									return (
-										<UnstyledButton
-											key={value}
-											onClick={() => handleTypeChange(value)}
-										>
-											<Box
-												style={{
-													backgroundColor: selected ? bg : surface.page,
-													borderRadius: radii.md,
-													padding: "18px 12px",
-													textAlign: "center",
-													border: selected
-														? `2px solid ${color}`
-														: "2px solid #e9ecef",
-													transition: transitions.spring,
-													transform: selected ? "translateY(-1px)" : "none",
-													boxShadow: selected
-														? `0 4px 12px ${color}25`
-														: "none",
-												}}
-											>
-												<Box
-													style={{
-														width: 48,
-														height: 48,
-														borderRadius: radii.md,
-														backgroundColor: selected ? `${color}20` : "white",
-														display: "flex",
-														alignItems: "center",
-														justifyContent: "center",
-														margin: "0 auto 10px",
-														transition: transitions.fast,
-													}}
-												>
-													<Icon size={24} color={color} stroke={1.8} />
-												</Box>
-												<Text
-													size="sm"
-													fw={600}
-													c={selected ? color : "gray.7"}
-												>
-													{label}
-												</Text>
-											</Box>
-										</UnstyledButton>
-									);
-								})}
-							</Group>
+							<DealTypeGrid
+								value={draftFilters.type || []}
+								onChange={handleTypeChange}
+							/>
 						</PreferenceCard>
 
 						{/* Property type */}
@@ -636,93 +672,12 @@ function Page() {
 							iconBg="#ebfbee"
 							title={t("preferences.propertyType")}
 							description={t("preferences.desc.propertyType")}
+							isActive={(draftFilters.property_type?.length ?? 0) > 0}
 						>
-							<Group grow gap={10}>
-								{(
-									[
-										{
-											value: "apartment",
-											icon: IconBuildingSkyscraper,
-											color: "#228be6",
-											bg: "#e7f5ff",
-										},
-										{
-											value: "house",
-											icon: IconHome2,
-											color: "#40c057",
-											bg: "#ebfbee",
-										},
-										{
-											value: "commercial",
-											icon: IconBuildingCommunity,
-											color: "#ff922b",
-											bg: "#fff4e6",
-										},
-										{
-											value: "land",
-											icon: IconTrees,
-											color: "#be4bdb",
-											bg: "#f3f0ff",
-										},
-									] as const
-								).map(({ value, icon: Icon, color, bg }) => {
-									const selected = filters.property_type === value;
-									return (
-										<UnstyledButton
-											key={value}
-											onClick={() => {
-												filtersChanged({
-													property_type: selected
-														? undefined
-														: (value as HomeFilters["property_type"]),
-												});
-												applyFiltersAndClearScroll();
-											}}
-										>
-											<Box
-												style={{
-													backgroundColor: selected ? bg : surface.page,
-													borderRadius: radii.md,
-													padding: "14px 4px 12px",
-													textAlign: "center",
-													border: selected
-														? `2px solid ${color}`
-														: "2px solid transparent",
-													transition: transitions.spring,
-													transform: selected ? "translateY(-1px)" : "none",
-													boxShadow: selected
-														? `0 4px 12px ${color}20`
-														: "0 1px 3px rgba(0,0,0,0.04)",
-												}}
-											>
-												<Box
-													style={{
-														width: 40,
-														height: 40,
-														borderRadius: radii.md,
-														backgroundColor: selected ? `${color}20` : "white",
-														display: "flex",
-														alignItems: "center",
-														justifyContent: "center",
-														margin: "0 auto 8px",
-														transition: transitions.fast,
-													}}
-												>
-													<Icon size={20} color={color} stroke={1.8} />
-												</Box>
-												<Text
-													size="10px"
-													fw={600}
-													c={selected ? color : "gray.7"}
-													lh={1.2}
-												>
-													{t(`common.propertyType.${value}`)}
-												</Text>
-											</Box>
-										</UnstyledButton>
-									);
-								})}
-							</Group>
+							<PropertyTypeGrid
+								value={draftFilters.property_type || []}
+								onChange={handleQuickFilter}
+							/>
 						</PreferenceCard>
 
 						{/* Rooms */}
@@ -732,25 +687,26 @@ function Page() {
 							iconBg="#fff4e6"
 							title={t("preferences.rooms")}
 							description={t("preferences.desc.rooms")}
+							isActive={(draftFilters.rooms?.length ?? 0) > 0}
 						>
 							<Chip.Group
 								multiple
-								value={filters.rooms?.map(String) || []}
+								value={draftFilters.rooms?.map(String) || []}
 								onChange={(values) => {
-									filtersChanged({
+									setDraftFilters((prev) => ({
+										...prev,
 										rooms:
 											values.length > 0
 												? values.map((v) => (v === "0" ? 0 : parseInt(v)))
 												: undefined,
-									});
-									applyFiltersAndClearScroll();
+									}));
 								}}
 							>
 								<Group gap={8}>
 									{ROOMS_OPTIONS_KEYS.map((room) => {
 										const val = room === "studio" ? "0" : room;
 										const isActive = (
-											filters.rooms?.map(String) || []
+											draftFilters.rooms?.map(String) || []
 										).includes(val);
 										return (
 											<Chip
@@ -791,6 +747,7 @@ function Page() {
 							iconBg="#f3f0ff"
 							title={t("preferences.priceRange")}
 							description={t("preferences.desc.priceRange")}
+							isActive={!!draftFilters.price_min || !!draftFilters.price_max}
 						>
 							<Group justify="center" mb={12}>
 								<Box
@@ -807,41 +764,176 @@ function Page() {
 								</Box>
 							</Group>
 							<Box px={8}>
-								<RangeSlider
-									color="violet"
-									min={0}
-									max={filters.type === "rent" ? 5000 : 500000}
-									step={filters.type === "rent" ? 100 : 5000}
-									value={localPriceRange}
-									onChange={(value) =>
-										setLocalPriceRange(value as [number, number])
-									}
-									onChangeEnd={(value) => {
-										const maxDefault = filters.type === "rent" ? 5000 : 500000;
-										filtersChanged({
-											price_min: value[0] > 0 ? value[0] : undefined,
-											price_max: value[1] < maxDefault ? value[1] : undefined,
-										});
-										applyFiltersAndClearScroll();
+								{(() => {
+									const isRentOnly = draftFilters.type?.length === 1 && draftFilters.type[0] === "rent";
+									return (
+										<RangeSlider
+											color="violet"
+											min={0}
+											max={isRentOnly ? 5000 : 500000}
+											step={isRentOnly ? 100 : 5000}
+											value={localPriceRange}
+											onChange={(value) =>
+												setLocalPriceRange(value as [number, number])
+											}
+											onChangeEnd={(value) => {
+												const maxDefault = isRentOnly ? 5000 : 500000;
+												setDraftFilters((prev) => ({
+													...prev,
+													price_min: value[0] > 0 ? value[0] : undefined,
+													price_max: value[1] < maxDefault ? value[1] : undefined,
+												}));
+											}}
+											marks={
+												isRentOnly
+													? [
+															{ value: 0, label: "$0" },
+															{ value: 2500, label: "$2.5k" },
+															{ value: 5000, label: "$5k" },
+														]
+													: [
+															{ value: 0, label: "$0" },
+															{ value: 250000, label: "$250k" },
+															{ value: 500000, label: "$500k" },
+														]
+											}
+											labelAlwaysOn={false}
+											mb={24}
+										/>
+									);
+								})()}
+							</Box>
+						</PreferenceCard>
+
+						{/* Area range (Mockup) */}
+						<PreferenceCard
+							icon={IconRulerMeasure}
+							iconColor="#40c057"
+							iconBg="#ebfbee"
+							title={t("seller:createListing.area")}
+							badge={MockupBadge}
+							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
+						>
+							<Group justify="center" mb={12}>
+								<Box
+									style={{
+										backgroundColor: "#f3f0ff",
+										borderRadius: radii.md,
+										padding: "6px 16px",
 									}}
-									marks={
-										filters.type === "rent"
-											? [
-													{ value: 0, label: "$0" },
-													{ value: 2500, label: "$2.5k" },
-													{ value: 5000, label: "$5k" },
-												]
-											: [
-													{ value: 0, label: "$0" },
-													{ value: 250000, label: "$250k" },
-													{ value: 500000, label: "$500k" },
-												]
-									}
+								>
+									<Text size="sm" fw={700} c="green.7">
+										{draftFilters.area_min || 0} м² — {draftFilters.area_max || 500} м²
+									</Text>
+								</Box>
+							</Group>
+							<Box px={8}>
+								<RangeSlider
+									color="green"
+									min={0}
+									max={500}
+									step={5}
+									value={[draftFilters.area_min || 0, draftFilters.area_max || 500]}
+									onChangeEnd={(value) => {
+										setDraftFilters((prev) => ({
+											...prev,
+											area_min: value[0] > 0 ? value[0] : undefined,
+											area_max: value[1] < 500 ? value[1] : undefined,
+										}));
+									}}
+									marks={[
+										{ value: 0, label: "0" },
+										{ value: 250, label: "250 м²" },
+										{ value: 500, label: "500 м²" },
+									]}
 									labelAlwaysOn={false}
 									mb={24}
 								/>
 							</Box>
 						</PreferenceCard>
+
+						{/* Condition / Repair (Mockup) */}
+						{showMockup.condition && (
+							<PreferenceCard
+								icon={IconTools}
+								iconColor="#228be6"
+								iconBg="#e7f5ff"
+								title={t("seller:createListing.condition")}
+								badge={MockupBadge}
+								isActive={(draftFilters.condition?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getConditionOpts(t), draftFilters.condition || [], (v) => 
+									setDraftFilters(p => ({ ...p, condition: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* Building Type (Mockup) */}
+						{showMockup.buildingType && (
+							<PreferenceCard
+								icon={IconBuilding}
+								iconColor="#FF6E01"
+								iconBg="#FFF4E6"
+								title={t("seller:createListing.buildingType")}
+								badge={MockupBadge}
+								isActive={(draftFilters.building_type?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
+									setDraftFilters(p => ({ ...p, building_type: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* House Type (Mockup) */}
+						{showMockup.houseType && (
+							<PreferenceCard
+								icon={IconHome}
+								iconColor="#be4bdb"
+								iconBg="#f3f0ff"
+								title={t("seller:createListing.houseType")}
+								badge={MockupBadge}
+								isActive={(draftFilters.house_type?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
+									setDraftFilters(p => ({ ...p, house_type: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* Amenities & Utilities (Mockup) */}
+						{(showMockup.amenities || showMockup.utilities) && (
+							<PreferenceCard
+								icon={IconArmchair}
+								iconColor="#fcc419"
+								iconBg="#fff9db"
+								title={t("seller:createListing.amenitiesSection")}
+								badge={MockupBadge}
+								isActive={(draftFilters.amenities?.length ?? 0) > 0 || (draftFilters.water_supply?.length ?? 0) > 0}
+							>
+								<Stack gap={16}>
+									{showMockup.amenities && (
+										<Box>
+											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inProperty")}</Text>
+											{renderChipGroup(getAptAmenityOpts(t), draftFilters.amenities || [], (v) => 
+												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
+											)}
+										</Box>
+									)}
+									{showMockup.utilities && (
+										<Box>
+											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inHouseProperty")}</Text>
+											{renderChipGroup(getHouseAmenityOpts(t), draftFilters.amenities || [], (v) => 
+												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
+											)}
+											<Text size="sm" fw={500} mt="md" mb={6}>{t("seller:createListing.waterSupply")}</Text>
+											{renderChipGroup(getWaterSupplyOpts(t), draftFilters.water_supply || [], (v) => 
+												setDraftFilters(p => ({ ...p, water_supply: v.length > 0 ? v : undefined }))
+											)}
+										</Box>
+									)}
+								</Stack>
+							</PreferenceCard>
+						)}
 
 						{/* Region & District */}
 						<PreferenceCard
@@ -850,66 +942,162 @@ function Page() {
 							iconBg="#fff0f6"
 							title={t("preferences.region")}
 							description={t("preferences.desc.region")}
+							isActive={!!draftFilters.region || !!draftFilters.district}
 						>
-							<Select
-								placeholder={t("home.allRegions")}
-								value={selectedRegion}
-								onChange={(value) => {
-									setSelectedRegion(value);
-									filtersChanged({
-										region: value ? [value] : undefined,
-										district: undefined,
-									});
-									applyFiltersAndClearScroll();
-								}}
-								data={getRegionKeys().map((key) => ({
-									value: key,
-									label: translateRegion(key, t),
-								}))}
-								clearable
-								searchable
-								styles={{ input: { borderRadius: 12 } }}
-							/>
-							<Select
-								label={t("home.district")}
-								placeholder={t("home.allDistricts")}
-								value={filters.district?.[0] || null}
-								onChange={(value) => {
-									filtersChanged({ district: value ? [value] : undefined });
-									applyFiltersAndClearScroll();
-								}}
-								data={
-									selectedRegion
-										? getDistrictsForRegion(selectedRegion).map((key) => ({
-												value: key,
-												label: translateDistrict(key, t),
-											}))
-										: []
-								}
-								disabled={!selectedRegion}
-								clearable
-								searchable
-								styles={{ input: { borderRadius: 12 } }}
-								mt="sm"
-							/>
-						</PreferenceCard>
+							<Box>
+								<Text size="sm" fw={500} mb={6}>{t("home.allRegions")}</Text>
+								<Group gap={8} wrap="wrap" pb={4}>
+									{getRegionKeys().map((key) => {
+										const isActive = selectedRegion === key;
+										return (
+											<UnstyledButton
+												key={key}
+												onClick={() => {
+													const newRegion = isActive ? null : key;
+													setSelectedRegion(newRegion);
+													setDraftFilters((prev) => ({
+														...prev,
+														region: newRegion ? [newRegion] : undefined,
+														district: undefined,
+													}));
+												}}
+												style={{
+													height: 36,
+													padding: "0 16px",
+													fontSize: 13,
+													fontWeight: 600,
+													borderRadius: 18,
+													backgroundColor: isActive ? "#228be6" : "#f1f3f5",
+													color: isActive ? "#fff" : "#495057",
+													display: "inline-flex",
+													alignItems: "center",
+													cursor: "pointer",
+													transition: "all 0.15s ease",
+												}}
+											>
+												{translateRegion(key, t)}
+											</UnstyledButton>
+										);
+									})}
+								</Group>
+							</Box>
 
-						{/* Clear filters */}
-						<Button
-							variant="light"
-							onClick={handleClearFilters}
-							radius={12}
-							size="md"
-							fullWidth
-							mt="sm"
-						>
-							{t("home.resetFilters")}
-						</Button>
+							{selectedRegion && (
+								<Box mt="md">
+									<Text size="sm" fw={500} mb={6}>{t("home.allDistricts")}</Text>
+									<Group gap={8} pb={8} wrap="wrap">
+										{getDistrictsForRegion(selectedRegion).map((key) => {
+											const currentDistricts = draftFilters.district || [];
+											const isActive = currentDistricts.includes(key);
+											return (
+												<UnstyledButton
+													key={key}
+													onClick={() => {
+														const newDistricts = isActive
+															? currentDistricts.filter(d => d !== key)
+															: [...currentDistricts, key];
+														setDraftFilters((prev) => ({
+															...prev,
+															district: newDistricts.length > 0 ? newDistricts : undefined,
+														}));
+													}}
+													style={{
+														height: 36,
+														padding: "0 16px",
+														fontSize: 13,
+														fontWeight: 600,
+														borderRadius: 18,
+														backgroundColor: isActive ? "#228be6" : "#f1f3f5",
+														color: isActive ? "#fff" : "#495057",
+														display: "inline-flex",
+														alignItems: "center",
+														cursor: "pointer",
+														transition: "all 0.15s ease",
+													}}
+												>
+													{translateDistrict(key, t)}
+												</UnstyledButton>
+											);
+										})}
+									</Group>
+								</Box>
+							)}
+						</PreferenceCard>
 					</Stack>
 				</Box>
-				{/* end scrollable content */}
+				
+				{/* Fixed Floating Footer */}
+				<Box
+					style={{
+						position: "absolute",
+						bottom: 0,
+						left: 0,
+						right: 0,
+						paddingBottom: "env(safe-area-inset-bottom, 0px)",
+						zIndex: 10,
+						pointerEvents: "none",
+					}}
+				>
+					<Box
+						style={{
+							padding: "4px 12px 12px",
+							maxWidth: 500,
+							margin: "0 auto",
+						}}
+					>
+						<Box
+							style={{
+								display: "flex",
+								alignItems: "center",
+								height: 56,
+								pointerEvents: "auto",
+								gap: "10px",
+							}}
+						>
+							<Button
+								style={{ flex: 1 }}
+								h="100%"
+								radius={100}
+								c="#495057"
+								fw={600}
+								fz={14}
+								onClick={handleClearDraft}
+								styles={{
+									root: {
+										backgroundColor: "rgba(255, 255, 255, 0.55)",
+										backdropFilter: "blur(20px) saturate(180%)",
+										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+										border: "1px solid rgba(0, 0, 0, 0.12)",
+										boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+									},
+								}}
+							>
+								{t("common.reset")}
+							</Button>
+							<Button
+								style={{ flex: 1 }}
+								h="100%"
+								radius={100}
+								c="white"
+								fw={600}
+								fz={14}
+								onClick={handleApplyDraft}
+								styles={{
+									root: { 
+										backgroundColor: "rgba(64, 167, 227, 0.55)",
+										backdropFilter: "blur(20px) saturate(180%)",
+										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+										boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)",
+										border: "1px solid rgba(255, 255, 255, 0.2)",
+									},
+								}}
+							>
+								{t("action.apply")}
+							</Button>
+						</Box>
+					</Box>
+				</Box>
 			</Box>
-			{/* end swipe container */}
 		</Drawer>
 	);
 

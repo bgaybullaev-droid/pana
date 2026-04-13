@@ -22,8 +22,8 @@ export interface UnifiedFeedParams {
   per_page: number;
   exclude_id?: string;
   q?: string;
-  type?: 'sell' | 'rent';
-  property_type?: 'apartment' | 'house' | 'commercial' | 'land';
+  type?: ('sell' | 'rent')[];
+  property_type?: ('apartment' | 'house' | 'commercial' | 'land')[];
   rooms?: number[];
   price_min?: number;
   price_max?: number;
@@ -41,8 +41,8 @@ export const fetchUnifiedFeed = async (
 
   if (params.exclude_id) queryParams.exclude_id = params.exclude_id;
   if (params.q) queryParams.q = params.q;
-  if (params.type) queryParams.type = params.type;
-  if (params.property_type) queryParams.property_type = params.property_type;
+  if (params.type && params.type.length > 0) queryParams.type = params.type;
+  if (params.property_type && params.property_type.length > 0) queryParams.property_type = params.property_type;
   if (params.rooms && params.rooms.length > 0) queryParams.rooms = params.rooms;
   if (params.price_min !== undefined) queryParams.price_min = params.price_min;
   if (params.price_max !== undefined) queryParams.price_max = params.price_max;
