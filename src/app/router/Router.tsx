@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import { LoadingOverlay } from '@mantine/core';
 import { useTelegram } from '@app/providers/useTelegram';
@@ -42,6 +42,39 @@ function StartParamHandler() {
   return null;
 }
 
+// Automatically manages Telegram's native top-bar (Back button) based on routing
+function TelegramBackButtonManager() {
+  const { webApp } = useTelegram();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!webApp?.BackButton) return;
+
+    // Root paths where we only want to display "Close" natively
+    const rootPaths = ['/', '/search', '/favorites', '/profile', '/auth'];
+    const isRootPath = rootPaths.includes(location.pathname);
+
+    if (!isRootPath) {
+      webApp.BackButton.show();
+    } else {
+      webApp.BackButton.hide();
+    }
+
+    const handleBackClick = () => {
+      navigate(-1);
+    };
+
+    webApp.BackButton.onClick(handleBackClick);
+
+    return () => {
+      webApp.BackButton.offClick(handleBackClick);
+    };
+  }, [webApp, location.pathname, navigate]);
+
+  return null;
+}
+
 export function Router() {
   const { isTelegramWebApp, isReady } = useTelegram();
 
@@ -60,6 +93,7 @@ export function Router() {
   return (
     <Suspense fallback={<LoadingOverlay visible />}>
       <StartParamHandler />
+      <TelegramBackButtonManager />
       <Routes>
         {/* Auth routes (shell-level) */}
         <Route path="/auth" element={<AuthPage />} />
