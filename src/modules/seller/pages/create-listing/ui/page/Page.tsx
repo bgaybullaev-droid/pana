@@ -32,7 +32,7 @@ import {
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
-import { radii, shadows, surface } from "@app/styles/theme";
+import { radii, surface } from "@app/styles/theme";
 
 function Page() {
 	const navigate = useNavigate();

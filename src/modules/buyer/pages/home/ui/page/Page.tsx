@@ -14,13 +14,9 @@ import {
 	Group,
 	Drawer,
 	Button,
-	Select,
 	Chip,
 	RangeSlider,
-	ScrollArea,
 	UnstyledButton,
-	SegmentedControl,
-	Accordion,
 	Badge,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -51,7 +47,7 @@ import {
 	getWaterSupplyOpts,
 } from "@shared/constants/mockupFilters";
 import { DealTypeGrid, PropertyTypeGrid } from "@shared/ui/FilterCards";
-import { transitions, shadows, radii, surface } from "@app/styles/theme";
+import { shadows, radii, surface } from "@app/styles/theme";
 import { PreferenceCard } from "@modules/buyer/feature/preferences/ui/PreferenceCard";
 import {
 	useLayoutContext,
@@ -92,13 +88,6 @@ import {
 	clearFilters,
 	type HomeFilters,
 } from "../../model";
-
-const QUICK_FILTER_VALUES = [
-	"apartment",
-	"house",
-	"commercial",
-	"land",
-] as const;
 
 function Page() {
 	const { t } = useTranslation(["buyer", "seller"]);

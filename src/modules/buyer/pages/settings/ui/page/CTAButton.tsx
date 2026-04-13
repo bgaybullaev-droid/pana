@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { UnstyledButton, Text, Box } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
-import { shadows } from "@app/styles/theme";
 
 interface CTAButtonProps {
 	label: string;

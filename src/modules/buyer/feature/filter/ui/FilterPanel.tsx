@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Box, Stack, Button, Group, Divider } from '@mantine/core';
+import { Box, Stack, Button, Divider } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useUnit } from 'effector-react';
 import { SortingChips } from './SortingChips';
