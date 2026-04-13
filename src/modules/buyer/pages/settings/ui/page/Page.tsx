@@ -17,6 +17,7 @@ import {
 	Group,
 	ThemeIcon,
 	Skeleton,
+	SegmentedControl,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -79,11 +80,8 @@ function Page() {
 
 	// Drawer / modal state
 	const [soonOpened, soonHandlers] = useDisclosure(false);
-	const [langOpened, langHandlers] = useDisclosure(false);
 	const [logoutOpened, logoutHandlers] = useDisclosure(false);
 	const [deleteOpened, deleteHandlers] = useDisclosure(false);
-
-	const currentLang = i18n.language === "uz" ? "O'zbekcha" : "Русский";
 
 	if (!isAuthenticated) {
 		return (
@@ -326,8 +324,22 @@ function Page() {
 				<SettingsRow
 					icon={IconWorld}
 					label={t("settings.language")}
-					onClick={langHandlers.open}
-					rightValue={currentLang}
+					onClick={() => {}}
+					hideChevron
+					rightElement={
+						<Box onClick={(e) => e.stopPropagation()}>
+							<SegmentedControl
+								data={[
+									{ label: "RU", value: "ru" },
+									{ label: "UZ", value: "uz" },
+								]}
+								value={i18n.language}
+								onChange={(val) => i18n.changeLanguage(val)}
+								size="xs"
+								radius="xl"
+							/>
+						</Box>
+					}
 					showDivider={false}
 				/>
 			</SectionCard>
@@ -451,65 +463,7 @@ function Page() {
 				</Button>
 			</Drawer>
 
-			{/* ─── Language Bottom Sheet ─── */}
-			<Drawer
-				opened={langOpened}
-				onClose={langHandlers.close}
-				position="bottom"
-				size="auto"
-				withCloseButton={false}
-				radius="16 16 0 0"
-				padding="xl"
-			>
-				<Text
-					style={{
-						fontSize: 18,
-						fontWeight: 600,
-						color: "#1C1C1E",
-						marginBottom: 16,
-					}}
-				>
-					{t("settings.language")}
-				</Text>
 
-				{[
-					{ value: "ru", label: "Русский" },
-					{ value: "uz", label: "O'zbekcha" },
-				].map((lang, index) => (
-					<UnstyledButton
-						key={lang.value}
-						onClick={() => {
-							i18n.changeLanguage(lang.value);
-							langHandlers.close();
-						}}
-						style={{
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							width: "100%",
-							height: 52,
-							paddingLeft: 16,
-							paddingRight: 16,
-							borderTop: index > 0 ? "0.5px solid #E8E8ED" : "none",
-						}}
-					>
-						<Text
-							style={{
-								fontSize: 16,
-								fontWeight: 400,
-								color: i18n.language === lang.value ? "#1A73E8" : "#3C3C43",
-							}}
-						>
-							{lang.label}
-						</Text>
-						{i18n.language === lang.value && (
-							<IconCheck size={20} color="#1A73E8" stroke={2.5} />
-						)}
-					</UnstyledButton>
-				))}
-
-				<Box style={{ height: 16 }} />
-			</Drawer>
 
 			{/* ─── Logout Confirmation ─── */}
 			<Modal

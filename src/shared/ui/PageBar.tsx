@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Box, Text, ActionIcon } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { useTelegram } from "@app/providers/useTelegram";
 import { radii } from "@app/styles/theme";
 
 interface PageBarProps {
@@ -17,6 +18,7 @@ interface PageBarProps {
  */
 export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 	const navigate = useNavigate();
+	const { isTelegramWebApp } = useTelegram();
 	const handleBack = onBack || (() => navigate(-1));
 
 	return (
@@ -40,20 +42,24 @@ export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 				}}
 			>
 				{/* Back button */}
-				<ActionIcon
-					variant="default"
-					size={40}
-					radius={radii.full}
-					onClick={handleBack}
-					style={{
-						flexShrink: 0,
-						backgroundColor: "#ffffff",
-						border: "1px solid #e9ecef",
-						boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-					}}
-				>
-					<IconArrowLeft size={20} stroke={1.8} color="#495057" />
-				</ActionIcon>
+				{!isTelegramWebApp ? (
+					<ActionIcon
+						variant="default"
+						size={40}
+						radius={radii.full}
+						onClick={handleBack}
+						style={{
+							flexShrink: 0,
+							backgroundColor: "#ffffff",
+							border: "1px solid #e9ecef",
+							boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+						}}
+					>
+						<IconArrowLeft size={20} stroke={1.8} color="#495057" />
+					</ActionIcon>
+				) : (
+					<Box style={{ width: 40, flexShrink: 0 }} />
+				)}
 
 				{/* Title + badge */}
 				<Box

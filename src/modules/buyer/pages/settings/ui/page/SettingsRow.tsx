@@ -9,6 +9,7 @@ interface SettingsRowProps {
 	onClick: () => void;
 	rightValue?: string;
 	rightElement?: ReactNode;
+	hideChevron?: boolean;
 	showDivider?: boolean;
 	variant?: "default" | "soon" | "destructive";
 	destructiveWeight?: 500 | 400;
@@ -20,6 +21,7 @@ export function SettingsRow({
 	onClick,
 	rightValue,
 	rightElement,
+	hideChevron,
 	showDivider = true,
 	variant = "default",
 	destructiveWeight = 500,
@@ -109,7 +111,7 @@ export function SettingsRow({
 					</Badge>
 				)}
 
-				{!isSoon && !isDestructive && (
+				{!isSoon && !isDestructive && !hideChevron && (
 					<IconChevronRight size={14} color="#C7C7CC" />
 				)}
 			</Box>
