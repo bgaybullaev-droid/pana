@@ -639,291 +639,6 @@ function Page() {
 							</Chip.Group>
 						</PreferenceCard>
 
-						{/* Deal type */}
-						<PreferenceCard
-							icon={IconTags}
-							iconColor="#228be6"
-							iconBg="#e7f5ff"
-							title={t("preferences.listingType")}
-							description={t("preferences.desc.listingType")}
-							isActive={(draftFilters.type?.length ?? 0) > 0}
-						>
-							<DealTypeGrid
-								value={draftFilters.type || []}
-								onChange={handleTypeChange}
-							/>
-						</PreferenceCard>
-
-						{/* Property type */}
-						<PreferenceCard
-							icon={IconBuildingEstate}
-							iconColor="#40c057"
-							iconBg="#ebfbee"
-							title={t("preferences.propertyType")}
-							description={t("preferences.desc.propertyType")}
-							isActive={(draftFilters.property_type?.length ?? 0) > 0}
-						>
-							<PropertyTypeGrid
-								value={draftFilters.property_type || []}
-								onChange={handleQuickFilter}
-							/>
-						</PreferenceCard>
-
-						{/* Rooms */}
-						<PreferenceCard
-							icon={IconDoor}
-							iconColor="#ff922b"
-							iconBg="#fff4e6"
-							title={t("preferences.rooms")}
-							description={t("preferences.desc.rooms")}
-							isActive={(draftFilters.rooms?.length ?? 0) > 0}
-						>
-							<Chip.Group
-								multiple
-								value={draftFilters.rooms?.map(String) || []}
-								onChange={(values) => {
-									setDraftFilters((prev) => ({
-										...prev,
-										rooms:
-											values.length > 0
-												? values.map((v) => (v === "0" ? 0 : parseInt(v)))
-												: undefined,
-									}));
-								}}
-							>
-								<Group gap={8}>
-									{ROOMS_OPTIONS_KEYS.map((room) => {
-										const val = room === "studio" ? "0" : room;
-										const isActive = (
-											draftFilters.rooms?.map(String) || []
-										).includes(val);
-										return (
-											<Chip
-												key={room}
-												value={val}
-												color="blue"
-												variant="light"
-												styles={{
-													iconWrapper: { display: "none" },
-													label: {
-														borderRadius: radii.md,
-														fontWeight: 600,
-														fontSize: 13,
-														padding: "8px 16px",
-														height: 38,
-														display: "flex",
-														alignItems: "center",
-														border: isActive
-															? "1.5px solid #228be6"
-															: "1.5px solid #e9ecef",
-													},
-												}}
-											>
-												{room === "studio"
-													? t("common.roomsOption.studio")
-													: room}
-											</Chip>
-										);
-									})}
-								</Group>
-							</Chip.Group>
-						</PreferenceCard>
-
-						{/* Price range */}
-						<PreferenceCard
-							icon={IconCash}
-							iconColor="#be4bdb"
-							iconBg="#f3f0ff"
-							title={t("preferences.priceRange")}
-							description={t("preferences.desc.priceRange")}
-							isActive={!!draftFilters.price_min || !!draftFilters.price_max}
-						>
-							<Group justify="center" mb={12}>
-								<Box
-									style={{
-										backgroundColor: "#f3f0ff",
-										borderRadius: radii.md,
-										padding: "6px 16px",
-									}}
-								>
-									<Text size="sm" fw={700} c="violet.7">
-										${localPriceRange[0].toLocaleString("ru-RU")} — $
-										{localPriceRange[1].toLocaleString("ru-RU")}
-									</Text>
-								</Box>
-							</Group>
-							<Box px={8}>
-								{(() => {
-									const isRentOnly = draftFilters.type?.length === 1 && draftFilters.type[0] === "rent";
-									return (
-										<RangeSlider
-											color="violet"
-											min={0}
-											max={isRentOnly ? 5000 : 500000}
-											step={isRentOnly ? 100 : 5000}
-											value={localPriceRange}
-											onChange={(value) =>
-												setLocalPriceRange(value as [number, number])
-											}
-											onChangeEnd={(value) => {
-												const maxDefault = isRentOnly ? 5000 : 500000;
-												setDraftFilters((prev) => ({
-													...prev,
-													price_min: value[0] > 0 ? value[0] : undefined,
-													price_max: value[1] < maxDefault ? value[1] : undefined,
-												}));
-											}}
-											marks={
-												isRentOnly
-													? [
-															{ value: 0, label: "$0" },
-															{ value: 2500, label: "$2.5k" },
-															{ value: 5000, label: "$5k" },
-														]
-													: [
-															{ value: 0, label: "$0" },
-															{ value: 250000, label: "$250k" },
-															{ value: 500000, label: "$500k" },
-														]
-											}
-											labelAlwaysOn={false}
-											mb={24}
-										/>
-									);
-								})()}
-							</Box>
-						</PreferenceCard>
-
-						{/* Area range (Mockup) */}
-						<PreferenceCard
-							icon={IconRulerMeasure}
-							iconColor="#40c057"
-							iconBg="#ebfbee"
-							title={t("seller:createListing.area")}
-							badge={MockupBadge}
-							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
-						>
-							<Group justify="center" mb={12}>
-								<Box
-									style={{
-										backgroundColor: "#f3f0ff",
-										borderRadius: radii.md,
-										padding: "6px 16px",
-									}}
-								>
-									<Text size="sm" fw={700} c="green.7">
-										{draftFilters.area_min || 0} м² — {draftFilters.area_max || 500} м²
-									</Text>
-								</Box>
-							</Group>
-							<Box px={8}>
-								<RangeSlider
-									color="green"
-									min={0}
-									max={500}
-									step={5}
-									value={[draftFilters.area_min || 0, draftFilters.area_max || 500]}
-									onChangeEnd={(value) => {
-										setDraftFilters((prev) => ({
-											...prev,
-											area_min: value[0] > 0 ? value[0] : undefined,
-											area_max: value[1] < 500 ? value[1] : undefined,
-										}));
-									}}
-									marks={[
-										{ value: 0, label: "0" },
-										{ value: 250, label: "250 м²" },
-										{ value: 500, label: "500 м²" },
-									]}
-									labelAlwaysOn={false}
-									mb={24}
-								/>
-							</Box>
-						</PreferenceCard>
-
-						{/* Condition / Repair (Mockup) */}
-						{showMockup.condition && (
-							<PreferenceCard
-								icon={IconTools}
-								iconColor="#228be6"
-								iconBg="#e7f5ff"
-								title={t("seller:createListing.condition")}
-								badge={MockupBadge}
-								isActive={(draftFilters.condition?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getConditionOpts(t), draftFilters.condition || [], (v) => 
-									setDraftFilters(p => ({ ...p, condition: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* Building Type (Mockup) */}
-						{showMockup.buildingType && (
-							<PreferenceCard
-								icon={IconBuilding}
-								iconColor="#FF6E01"
-								iconBg="#FFF4E6"
-								title={t("seller:createListing.buildingType")}
-								badge={MockupBadge}
-								isActive={(draftFilters.building_type?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
-									setDraftFilters(p => ({ ...p, building_type: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* House Type (Mockup) */}
-						{showMockup.houseType && (
-							<PreferenceCard
-								icon={IconHome}
-								iconColor="#be4bdb"
-								iconBg="#f3f0ff"
-								title={t("seller:createListing.houseType")}
-								badge={MockupBadge}
-								isActive={(draftFilters.house_type?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
-									setDraftFilters(p => ({ ...p, house_type: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* Amenities & Utilities (Mockup) */}
-						{(showMockup.amenities || showMockup.utilities) && (
-							<PreferenceCard
-								icon={IconArmchair}
-								iconColor="#fcc419"
-								iconBg="#fff9db"
-								title={t("seller:createListing.amenitiesSection")}
-								badge={MockupBadge}
-								isActive={(draftFilters.amenities?.length ?? 0) > 0 || (draftFilters.water_supply?.length ?? 0) > 0}
-							>
-								<Stack gap={16}>
-									{showMockup.amenities && (
-										<Box>
-											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inProperty")}</Text>
-											{renderChipGroup(getAptAmenityOpts(t), draftFilters.amenities || [], (v) => 
-												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
-											)}
-										</Box>
-									)}
-									{showMockup.utilities && (
-										<Box>
-											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inHouseProperty")}</Text>
-											{renderChipGroup(getHouseAmenityOpts(t), draftFilters.amenities || [], (v) => 
-												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
-											)}
-											<Text size="sm" fw={500} mt="md" mb={6}>{t("seller:createListing.waterSupply")}</Text>
-											{renderChipGroup(getWaterSupplyOpts(t), draftFilters.water_supply || [], (v) => 
-												setDraftFilters(p => ({ ...p, water_supply: v.length > 0 ? v : undefined }))
-											)}
-										</Box>
-									)}
-								</Stack>
-							</PreferenceCard>
-						)}
-
 						{/* Region & District */}
 						<PreferenceCard
 							icon={IconMapPin}
@@ -1012,6 +727,291 @@ function Page() {
 								</Box>
 							)}
 						</PreferenceCard>
+
+						{/* Price range */}
+						<PreferenceCard
+							icon={IconCash}
+							iconColor="#be4bdb"
+							iconBg="#f3f0ff"
+							title={t("preferences.priceRange")}
+							description={t("preferences.desc.priceRange")}
+							isActive={!!draftFilters.price_min || !!draftFilters.price_max}
+						>
+							<Group justify="center" mb={12}>
+								<Box
+									style={{
+										backgroundColor: "#f3f0ff",
+										borderRadius: radii.md,
+										padding: "6px 16px",
+									}}
+								>
+									<Text size="sm" fw={700} c="violet.7">
+										${localPriceRange[0].toLocaleString("ru-RU")} — $
+										{localPriceRange[1].toLocaleString("ru-RU")}
+									</Text>
+								</Box>
+							</Group>
+							<Box px={8}>
+								{(() => {
+									const isRentOnly = draftFilters.type?.length === 1 && draftFilters.type[0] === "rent";
+									return (
+										<RangeSlider
+											color="violet"
+											min={0}
+											max={isRentOnly ? 5000 : 500000}
+											step={isRentOnly ? 100 : 5000}
+											value={localPriceRange}
+											onChange={(value) =>
+												setLocalPriceRange(value as [number, number])
+											}
+											onChangeEnd={(value) => {
+												const maxDefault = isRentOnly ? 5000 : 500000;
+												setDraftFilters((prev) => ({
+													...prev,
+													price_min: value[0] > 0 ? value[0] : undefined,
+													price_max: value[1] < maxDefault ? value[1] : undefined,
+												}));
+											}}
+											marks={
+												isRentOnly
+													? [
+															{ value: 0, label: "$0" },
+															{ value: 2500, label: "$2.5k" },
+															{ value: 5000, label: "$5k" },
+														]
+													: [
+															{ value: 0, label: "$0" },
+															{ value: 250000, label: "$250k" },
+															{ value: 500000, label: "$500k" },
+														]
+											}
+											labelAlwaysOn={false}
+											mb={24}
+										/>
+									);
+								})()}
+							</Box>
+						</PreferenceCard>
+
+						{/* Deal type */}
+						<PreferenceCard
+							icon={IconTags}
+							iconColor="#228be6"
+							iconBg="#e7f5ff"
+							title={t("preferences.listingType")}
+							description={t("preferences.desc.listingType")}
+							isActive={(draftFilters.type?.length ?? 0) > 0}
+						>
+							<DealTypeGrid
+								value={draftFilters.type || []}
+								onChange={handleTypeChange}
+							/>
+						</PreferenceCard>
+
+						{/* Property type */}
+						<PreferenceCard
+							icon={IconBuildingEstate}
+							iconColor="#40c057"
+							iconBg="#ebfbee"
+							title={t("preferences.propertyType")}
+							description={t("preferences.desc.propertyType")}
+							isActive={(draftFilters.property_type?.length ?? 0) > 0}
+						>
+							<PropertyTypeGrid
+								value={draftFilters.property_type || []}
+								onChange={handleQuickFilter}
+							/>
+						</PreferenceCard>
+
+						{/* Building Type (Mockup) */}
+						{showMockup.buildingType && (
+							<PreferenceCard
+								icon={IconBuilding}
+								iconColor="#FF6E01"
+								iconBg="#FFF4E6"
+								title={t("seller:createListing.buildingType")}
+								badge={MockupBadge}
+								isActive={(draftFilters.building_type?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
+									setDraftFilters(p => ({ ...p, building_type: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* House Type (Mockup) */}
+						{showMockup.houseType && (
+							<PreferenceCard
+								icon={IconHome}
+								iconColor="#be4bdb"
+								iconBg="#f3f0ff"
+								title={t("seller:createListing.houseType")}
+								badge={MockupBadge}
+								isActive={(draftFilters.house_type?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
+									setDraftFilters(p => ({ ...p, house_type: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* Area range (Mockup) */}
+						<PreferenceCard
+							icon={IconRulerMeasure}
+							iconColor="#40c057"
+							iconBg="#ebfbee"
+							title={t("seller:createListing.area")}
+							badge={MockupBadge}
+							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
+						>
+							<Group justify="center" mb={12}>
+								<Box
+									style={{
+										backgroundColor: "#f3f0ff",
+										borderRadius: radii.md,
+										padding: "6px 16px",
+									}}
+								>
+									<Text size="sm" fw={700} c="green.7">
+										{draftFilters.area_min || 0} м² — {draftFilters.area_max || 500} м²
+									</Text>
+								</Box>
+							</Group>
+							<Box px={8}>
+								<RangeSlider
+									color="green"
+									min={0}
+									max={500}
+									step={5}
+									value={[draftFilters.area_min || 0, draftFilters.area_max || 500]}
+									onChangeEnd={(value) => {
+										setDraftFilters((prev) => ({
+											...prev,
+											area_min: value[0] > 0 ? value[0] : undefined,
+											area_max: value[1] < 500 ? value[1] : undefined,
+										}));
+									}}
+									marks={[
+										{ value: 0, label: "0" },
+										{ value: 250, label: "250 м²" },
+										{ value: 500, label: "500 м²" },
+									]}
+									labelAlwaysOn={false}
+									mb={24}
+								/>
+							</Box>
+						</PreferenceCard>
+
+						{/* Rooms */}
+						<PreferenceCard
+							icon={IconDoor}
+							iconColor="#ff922b"
+							iconBg="#fff4e6"
+							title={t("preferences.rooms")}
+							description={t("preferences.desc.rooms")}
+							isActive={(draftFilters.rooms?.length ?? 0) > 0}
+						>
+							<Chip.Group
+								multiple
+								value={draftFilters.rooms?.map(String) || []}
+								onChange={(values) => {
+									setDraftFilters((prev) => ({
+										...prev,
+										rooms:
+											values.length > 0
+												? values.map((v) => (v === "0" ? 0 : parseInt(v)))
+												: undefined,
+									}));
+								}}
+							>
+								<Group gap={8}>
+									{ROOMS_OPTIONS_KEYS.map((room) => {
+										const val = room === "studio" ? "0" : room;
+										const isActive = (
+											draftFilters.rooms?.map(String) || []
+										).includes(val);
+										return (
+											<Chip
+												key={room}
+												value={val}
+												color="blue"
+												variant="light"
+												styles={{
+													iconWrapper: { display: "none" },
+													label: {
+														borderRadius: radii.md,
+														fontWeight: 600,
+														fontSize: 13,
+														padding: "8px 16px",
+														height: 38,
+														display: "flex",
+														alignItems: "center",
+														border: isActive
+															? "1.5px solid #228be6"
+															: "1.5px solid #e9ecef",
+													},
+												}}
+											>
+												{room === "studio"
+													? t("common.roomsOption.studio")
+													: room}
+											</Chip>
+										);
+									})}
+								</Group>
+							</Chip.Group>
+						</PreferenceCard>
+
+						{/* Condition / Repair (Mockup) */}
+						{showMockup.condition && (
+							<PreferenceCard
+								icon={IconTools}
+								iconColor="#228be6"
+								iconBg="#e7f5ff"
+								title={t("seller:createListing.condition")}
+								badge={MockupBadge}
+								isActive={(draftFilters.condition?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getConditionOpts(t), draftFilters.condition || [], (v) => 
+									setDraftFilters(p => ({ ...p, condition: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* Amenities & Utilities (Mockup) */}
+						{(showMockup.amenities || showMockup.utilities) && (
+							<PreferenceCard
+								icon={IconArmchair}
+								iconColor="#fcc419"
+								iconBg="#fff9db"
+								title={t("seller:createListing.amenitiesSection")}
+								badge={MockupBadge}
+								isActive={(draftFilters.amenities?.length ?? 0) > 0 || (draftFilters.water_supply?.length ?? 0) > 0}
+							>
+								<Stack gap={16}>
+									{showMockup.amenities && (
+										<Box>
+											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inProperty")}</Text>
+											{renderChipGroup(getAptAmenityOpts(t), draftFilters.amenities || [], (v) => 
+												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
+											)}
+										</Box>
+									)}
+									{showMockup.utilities && (
+										<Box>
+											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inHouseProperty")}</Text>
+											{renderChipGroup(getHouseAmenityOpts(t), draftFilters.amenities || [], (v) => 
+												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
+											)}
+											<Text size="sm" fw={500} mt="md" mb={6}>{t("seller:createListing.waterSupply")}</Text>
+											{renderChipGroup(getWaterSupplyOpts(t), draftFilters.water_supply || [], (v) => 
+												setDraftFilters(p => ({ ...p, water_supply: v.length > 0 ? v : undefined }))
+											)}
+										</Box>
+									)}
+								</Stack>
+							</PreferenceCard>
+						)}
 					</Stack>
 				</Box>
 				

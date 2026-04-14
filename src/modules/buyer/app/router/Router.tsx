@@ -167,6 +167,10 @@ export function UserRouter() {
 				<Route path="/listings/:id" element={<ListingDetailPage />} />
 				<Route path="/seller/:id" element={<SellerProfilePage />} />
 				<Route path="/browse" element={<BrowsePage />} />
+				<Route path="/login" element={<Navigate to="/auth" replace />} />
+				
+				{/* Catch-all redirect for missing pages like /login */}
+				<Route path="*" element={<Navigate to="/" replace />} />
 			</Routes>
 		</Suspense>
 		</ErrorBoundary>
