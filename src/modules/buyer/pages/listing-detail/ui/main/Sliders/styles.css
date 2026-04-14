@@ -18,7 +18,7 @@
 }
 
 .listing-detail-swiper .swiper-pagination {
-  bottom: 15px;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
 }
 
 .listing-detail-swiper .swiper-pagination-bullet {

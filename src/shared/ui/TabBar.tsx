@@ -42,6 +42,7 @@ export function TabBar({ title, actions, children, blur }: TabBarProps) {
 				transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
 				transition: "transform 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
 				willChange: "transform",
+				pointerEvents: headerVisible ? "auto" : "none",
 			}}
 		>
 			{children || (

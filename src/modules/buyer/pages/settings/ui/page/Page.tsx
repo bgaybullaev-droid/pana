@@ -312,7 +312,7 @@ function Page() {
 				<SettingsRow
 					icon={IconBell}
 					label={t("settings.notifications")}
-					onClick={() => navigate("/notifications")}
+					onClick={() => navigate("/notification-settings")}
 				/>
 				<SettingsRow
 					icon={IconSparkles}
@@ -335,6 +335,19 @@ function Page() {
 								onChange={(val) => i18n.changeLanguage(val)}
 								size="xs"
 								radius="xl"
+								styles={{
+									root: {
+										borderRadius: 9999,
+										padding: 4,
+									},
+									indicator: {
+										borderRadius: 9999,
+									},
+									label: {
+										padding: "2px 12px",
+										borderRadius: 9999,
+									},
+								}}
 							/>
 						</Box>
 					}

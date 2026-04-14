@@ -1,11 +1,21 @@
 import { createEffect } from 'effector';
 import { resolveListingById, fetchUnifiedFeed } from '@shared/api/crawlerListings';
+import { activityLogApi } from '@shared/api/activityLog';
 
 // Constants
 const PER_PAGE = 10;
 
 export const fetchInitialListingFx = createEffect(async (id: string) => {
-  return resolveListingById(id);
+  const listing = await resolveListingById(id);
+  // Ф-78: log view for interest vector (fire-and-forget)
+  if (listing) {
+    activityLogApi.log({
+      action: 'view',
+      listing_id: listing.id,
+      property_type: (listing as { property_type?: string }).property_type,
+    });
+  }
+  return listing;
 });
 
 export const fetchFeedFx = createEffect(

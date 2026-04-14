@@ -377,7 +377,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 				pos="absolute"
 				left={0}
 				right={80}
-				style={{ zIndex: 10, bottom: "calc(7rem * var(--mantine-scale))" }}
+				style={{ zIndex: 10, bottom: "calc(7rem * var(--mantine-scale) - 87px)" }}
 				px={12}
 			>
 				<Transition mounted={showInfo} transition="fade" duration={300}>

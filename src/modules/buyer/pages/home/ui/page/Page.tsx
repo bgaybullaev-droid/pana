@@ -37,6 +37,8 @@ import {
 	IconBuilding,
 	IconHome,
 	IconArmchair,
+	IconHeart,
+	IconHeartFilled,
 } from "@tabler/icons-react";
 import {
 	getConditionOpts,
@@ -88,6 +90,14 @@ import {
 	clearFilters,
 	type HomeFilters,
 } from "../../model";
+import {
+	$savedSearches,
+	createSavedSearchFx,
+	deleteSavedSearchFx,
+	fetchSavedSearchesFx,
+} from "@modules/buyer/feature/saved-searches";
+import { notifications } from "@mantine/notifications";
+import { useAuth } from "@app/providers/useAuth";
 
 function Page() {
 	const { t } = useTranslation(["buyer", "seller"]);
@@ -116,6 +126,103 @@ function Page() {
 	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
 		useDisclosure(false);
 	const { openSearch, searchOpen } = useLayoutContext();
+	const { isAuthenticated } = useAuth();
+
+	// Declare sort/filter local state BEFORE saved-search logic so sortBy is in scope
+	const [sortBy, setSortBy] = useState<string>("recommended");
+	const [viewMode] = useState<"grid" | "masonry">("grid");
+	const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
+		0, 500000,
+	]);
+	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+	const [draftFilters, setDraftFilters] = useState<HomeFilters>(filters);
+
+	// ── Saved Searches ──────────────────────────────────────────────────────
+	const savedSearches = useUnit($savedSearches);
+
+	const currentSavedSearch = savedSearches.find((s) => {
+		const sameQuery = (s.query || "") === (searchQuery || "");
+		
+		// To avoid strictly ordering differences, we compare fields explicitly
+		const sameFilters = 
+			s.filters.deal_type === filters.type?.[0] &&
+			s.filters.property_type === filters.property_type?.[0] &&
+			s.filters.price_min === (filters.price_min ?? null) &&
+			s.filters.price_max === (filters.price_max ?? null) &&
+			s.filters.district === filters.district?.[0] &&
+			s.filters.region === filters.region?.[0] &&
+			JSON.stringify(s.filters.rooms || []) === JSON.stringify(filters.rooms || []);
+			
+		return sameQuery && sameFilters;
+	});
+
+	const isSaved = !!currentSavedSearch;
+
+	// Fetch saved searches once authenticated
+	const savedSearchesFetchedRef = useRef(false);
+	useEffect(() => {
+		if (!isAuthenticated || savedSearchesFetchedRef.current) return;
+		savedSearchesFetchedRef.current = true;
+		fetchSavedSearchesFx();
+	}, [isAuthenticated]);
+
+	const handleToggleSaveSearch = useCallback(() => {
+		if (!isAuthenticated) {
+			navigate("/auth");
+			return;
+		}
+
+		if (currentSavedSearch) {
+			// Show toast immediately (optimistic)
+			notifications.show({
+				message: t("favorites.searches.deleted", { ns: "buyer" }),
+				color: "gray",
+				autoClose: 2000,
+			});
+			// Fire effect (store updates via .on(doneData))
+			deleteSavedSearchFx(currentSavedSearch.id).catch(() => {
+				notifications.show({
+					message: "Ошибка удаления поиска",
+					color: "red",
+					autoClose: 3000,
+				});
+			});
+		} else {
+			// Show toast immediately (optimistic)
+			notifications.show({
+				message: t("favorites.searches.saved", { ns: "buyer" }),
+				color: "blue",
+				autoClose: 2000,
+			});
+			// Fire effect (store updates via .on(doneData))
+			createSavedSearchFx({
+				query: searchQuery || null,
+				filters: {
+					deal_type: filters.type?.[0] as "sell" | "rent" | undefined,
+					property_type: filters.property_type?.[0] as "apartment" | "house" | "commercial" | "land" | undefined,
+					rooms: filters.rooms,
+					price_min: filters.price_min ?? null,
+					price_max: filters.price_max ?? null,
+					district: filters.district?.[0],
+					region: filters.region?.[0],
+				},
+				sort: sortBy,
+			}).catch(() => {
+				notifications.show({
+					message: "Не удалось сохранить поиск",
+					color: "red",
+					autoClose: 3000,
+				});
+			});
+		}
+	}, [isAuthenticated, currentSavedSearch, searchQuery, filters, sortBy, navigate, t]);
+
+
+	// Show heart only when there's an active query or any filter
+	const hasActiveSearch = !!searchQuery || Object.keys(filters).some(
+		(k) => (filters as Record<string, unknown>)[k] !== undefined && (filters as Record<string, unknown>)[k] !== null
+	);
+
 	const filterScrollRef = useRef<HTMLDivElement>(null);
 	const filterSwipe = useSwipeDismiss({
 		onClose: closeDrawer,
@@ -124,13 +231,6 @@ function Page() {
 		scrollRef: filterScrollRef,
 		enabled: drawerOpened,
 	});
-	const [sortBy, setSortBy] = useState<string>("recommended");
-	const [viewMode] = useState<"grid" | "masonry">("grid");
-	const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
-		0, 500000,
-	]);
-	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-	const [draftFilters, setDraftFilters] = useState<HomeFilters>(filters);
 
 	// Sync drawer values when it opens
 	useEffect(() => {
@@ -406,6 +506,26 @@ function Page() {
 							)}
 						</Box>
 					</UnstyledButton>
+
+					{/* ── Save Search heart ── shown when query or filters are active */}
+					{hasActiveSearch && (
+						<ActionIcon
+							variant="subtle"
+							color={isSaved ? "red" : "gray"}
+							size={42}
+							radius="xl"
+							onClick={handleToggleSaveSearch}
+							style={{ transition: "transform 0.15s ease" }}
+						>
+							{isSaved ? (
+								<IconHeartFilled size={22} style={{ color: "#ff6b6b" }} />
+							) : (
+								<IconHeart size={22} stroke={1.6} />
+							)}
+						</ActionIcon>
+					)}
+
+					{/* ── Notifications bell ── */}
 					<Box
 						style={{ position: "relative", cursor: "pointer" }}
 						onClick={() => navigate("/notifications")}

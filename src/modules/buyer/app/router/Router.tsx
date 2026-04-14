@@ -49,6 +49,11 @@ const SearchPage = lazy(() =>
 const SettingsPage = lazy(() =>
 	import("../../pages/settings").then((m) => ({ default: m.Settings.Page })),
 );
+const NotificationSettingsPage = lazy(() =>
+	import("../../pages/notification-settings").then((m) => ({
+		default: m.NotificationSettings.Page,
+	})),
+);
 const AboutPage = lazy(() =>
 	import("../../pages/about").then((m) => ({ default: m.About.Page })),
 );
@@ -138,6 +143,7 @@ export function UserRouter() {
 					<Route path="/" element={<HomePage />} />
 					<Route path="/search" element={<SearchPage />} />
 					<Route path="/preferences" element={<PreferencesPage />} />
+					<Route path="/notification-settings" element={<NotificationSettingsPage />} />
 					<Route path="/listings" element={<ListingsPage />} />
 					<Route path="/crawler/telegram/:id" element={<CrawlerRedirect />} />
 					<Route path="/crawler/olx/:id" element={<CrawlerRedirect />} />

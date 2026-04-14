@@ -214,7 +214,7 @@ body {
 }
 
 .listing-detail-swiper .swiper-pagination {
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 36px) !important;
   z-index: 55 !important;
 }
 
