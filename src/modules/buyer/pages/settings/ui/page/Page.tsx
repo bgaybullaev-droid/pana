@@ -495,7 +495,7 @@ function Page() {
 				>
 					<Button
 						variant="default"
-						radius={10}
+						radius={9999}
 						size="md"
 						onClick={logoutHandlers.close}
 						style={{ flex: 1 }}
@@ -513,7 +513,7 @@ function Page() {
 						{t("settings.cancel")}
 					</Button>
 					<Button
-						radius={10}
+						radius={9999}
 						size="md"
 						onClick={handleLogout}
 						style={{ flex: 1 }}
@@ -576,7 +576,7 @@ function Page() {
 				>
 					<Button
 						fullWidth
-						radius={10}
+						radius={9999}
 						size="md"
 						onClick={handleDelete}
 						styles={{
@@ -591,7 +591,7 @@ function Page() {
 					<Button
 						fullWidth
 						variant="default"
-						radius={10}
+						radius={9999}
 						size="md"
 						onClick={deleteHandlers.close}
 						styles={{

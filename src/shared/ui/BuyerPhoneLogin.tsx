@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Box, Stack, Text, Button, PinInput } from "@mantine/core";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { IconPhone } from "@tabler/icons-react";
-import { gradients, shadows } from "@app/styles/theme";
+import { gradients } from "@app/styles/theme";
 import {
 	requestSellerOTP,
 	verifySellerOTP,
@@ -14,6 +14,7 @@ import {
 	$sellerOTPPhone,
 	$isSellerOTPLoading,
 	$sellerOTPDevCode,
+	$sellerOTPExpiresAt,
 } from "@shared/state/auth/model";
 
 interface BuyerPhoneLoginProps {
@@ -24,13 +25,38 @@ interface BuyerPhoneLoginProps {
 export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 	const { t } = useTranslation("buyer");
 	const [phone, setPhone] = useState("");
-	const [otpStep, otpPhone, isLoading, authError, devCode] = useUnit([
+	const [pin, setPin] = useState("");
+	const [otpStep, otpPhone, isLoading, authError, devCode, expiresAt] = useUnit([
 		$sellerOTPStep,
 		$sellerOTPPhone,
 		$isSellerOTPLoading,
 		$authError,
 		$sellerOTPDevCode,
+		$sellerOTPExpiresAt,
 	]);
+
+	const [timeLeft, setTimeLeft] = useState(0);
+
+	// Timer effect
+	useEffect(() => {
+		if (!expiresAt) {
+			setTimeLeft(0);
+			return;
+		}
+
+		const interval = setInterval(() => {
+			const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+			setTimeLeft(remaining);
+			if (remaining === 0) {
+				clearInterval(interval);
+			}
+		}, 1000);
+
+		// Initial set
+		setTimeLeft(Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)));
+
+		return () => clearInterval(interval);
+	}, [expiresAt]);
 
 	// Cleanup OTP state on unmount
 	useEffect(() => {
@@ -53,157 +79,281 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 		verifySellerOTP({ phone: `+998${otpDigits}`, otp_code: code });
 	};
 
+	const handlePaste = async () => {
+		try {
+			const text = await navigator.clipboard.readText();
+			const cleanText = text.replace(/\D/g, "").slice(0, 6);
+			if (cleanText.length === 6) {
+				setPin(cleanText);
+				handleVerifyOTP(cleanText);
+			}
+		} catch (err) {
+			console.error("Failed to read clipboard:", err);
+		}
+	};
+
 	const maskedPhone = otpPhone
 		? `+998 ${otpPhone.slice(-9, -7)} *** ** ${otpPhone.slice(-2)}`
 		: "";
 
 	return (
 		<Box
+			className="glass animate-fade-in"
 			style={{
-				backgroundColor: "white",
-				borderRadius: 20,
-				padding: 24,
-				boxShadow: shadows.card,
+				borderRadius: 28,
+				padding: 28,
+				boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
+				position: "relative",
+				overflow: "hidden",
 			}}
 		>
+
+
 			{otpStep === "phone" ? (
-				<Stack gap="md">
+				<Stack gap="xl" style={{ position: "relative", zIndex: 1 }}>
 					{/* Header icon */}
 					<Box style={{ textAlign: "center" }}>
 						<Box
 							style={{
-								width: 56,
-								height: 56,
-								borderRadius: 16,
+								width: 64,
+								height: 64,
+								borderRadius: 20,
 								background:
-									"linear-gradient(135deg, rgba(34,139,230,0.1), rgba(64,167,227,0.15))",
+									"linear-gradient(135deg, #228be6, #4dabf7)",
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
-								margin: "0 auto 8px",
+								margin: "0 auto 16px",
+								boxShadow: "0 8px 16px rgba(34,139,230,0.25)",
 							}}
 						>
-							<IconPhone size={26} color="#228be6" stroke={1.8} />
+							<IconPhone size={28} color="white" stroke={1.8} />
 						</Box>
-						<Text size="sm" c="dimmed" ta="center">
+						<Text size="lg" fw={700} ta="center" mb={4}>
+							{t("common.login")}
+						</Text>
+						<Text size="sm" c="dimmed" ta="center" px="md">
 							{message || t("auth.enterData")}
 						</Text>
 					</Box>
 
 					{/* Phone field */}
-					<PhoneInput
-						placeholder="+998 XX XXX XX XX"
-						value={phone}
-						onChange={setPhone}
-						error={authError}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") handleRequestOTP();
-						}}
-						disabled={isLoading}
-					/>
+					<Box>
+						<PhoneInput
+							placeholder="+998 XX XXX XX XX"
+							value={phone}
+							onChange={setPhone}
+							error={authError}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") handleRequestOTP();
+							}}
+							disabled={isLoading}
+						/>
+					</Box>
 
 					{/* Submit button */}
-					<Button
-						onClick={handleRequestOTP}
-						loading={isLoading}
-						disabled={!isPhoneValid}
-						fullWidth
-						size="lg"
-						radius={12}
-						style={{
-							background: isPhoneValid ? gradients.primary : undefined,
-							boxShadow: isPhoneValid ? shadows.button : "none",
-							height: 48,
-							fontSize: 15,
-							fontWeight: 700,
-						}}
-					>
-						{t("common.login")}
-					</Button>
-
-					{onCancel && (
+					<Stack gap="sm">
 						<Button
-							variant="subtle"
-							color="gray"
+							onClick={handleRequestOTP}
+							loading={isLoading}
+							disabled={!isPhoneValid}
 							fullWidth
-							size="md"
-							radius={12}
-							onClick={onCancel}
-							disabled={isLoading}
+							size="lg"
+							radius="xl"
+							style={{
+								background: isPhoneValid ? gradients.primary : "#e9ecef",
+								color: isPhoneValid ? "white" : "#adb5bd",
+								boxShadow: isPhoneValid ? "0 8px 20px rgba(34,139,230,0.3)" : "none",
+								height: 56,
+								fontSize: 16,
+								fontWeight: 700,
+								transition: "all 0.3s ease",
+							}}
 						>
-							{t("common.cancel")}
+							{authError?.toLowerCase().includes("запросите") || authError?.toLowerCase().includes("истёк") 
+								? "Запросить новый код" 
+								: t("common.login")}
 						</Button>
-					)}
+
+						{onCancel && (
+							<Button
+								variant="subtle"
+								color="gray"
+								fullWidth
+								size="md"
+								radius="xl"
+								onClick={onCancel}
+								disabled={isLoading}
+								style={{ height: 48 }}
+							>
+								{t("common.cancel")}
+							</Button>
+						)}
+					</Stack>
 				</Stack>
 			) : (
-				<Stack gap="md" align="center">
+				<Stack gap="xl" align="center" style={{ position: "relative", zIndex: 1 }}>
 					{/* OTP step */}
 					<Box style={{ textAlign: "center" }}>
 						<Box
 							style={{
-								width: 56,
-								height: 56,
-								borderRadius: 16,
+								width: 64,
+								height: 64,
+								borderRadius: 20,
 								background:
-									"linear-gradient(135deg, rgba(34,139,230,0.1), rgba(64,167,227,0.15))",
+									"linear-gradient(135deg, #228be6, #4dabf7)",
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
-								margin: "0 auto 8px",
+								margin: "0 auto 16px",
+								boxShadow: "0 8px 16px rgba(34,139,230,0.25)",
 							}}
 						>
-							<IconPhone size={26} color="#228be6" stroke={1.8} />
+							<IconPhone size={28} color="white" stroke={1.8} />
 						</Box>
-						<Text size="sm" fw={600} ta="center">
-							{maskedPhone}
-						</Text>
-						<Text size="xs" c="dimmed" ta="center" mt={4}>
+						<Text size="lg" fw={700} ta="center" mb={4}>
 							{t("auth.enterOTP")}
+						</Text>
+						<Text size="sm" fw={600} ta="center" c="blue">
+							{maskedPhone}
 						</Text>
 					</Box>
 
 					<PinInput
 						length={6}
-						size="md"
+						size="lg"
 						type="number"
+						value={pin}
+						onChange={setPin}
 						onComplete={handleVerifyOTP}
 						error={!!authError}
 						disabled={isLoading}
 						autoFocus
 						styles={{
-							root: { justifyContent: "center", gap: 8 },
+							root: { justifyContent: "center", gap: 10 },
 							input: {
-								width: 42,
-								height: 42,
-								borderRadius: 12,
-								fontSize: 18,
-								fontWeight: 600,
+								width: 46,
+								height: 54,
+								borderRadius: 14,
+								fontSize: 22,
+								fontWeight: 700,
+								backgroundColor: "rgba(0,0,0,0.03)",
+								border: "1px solid rgba(0,0,0,0.05)",
+								transition: "all 0.2s ease",
+								"&:focus": {
+									borderColor: "#228be6",
+									backgroundColor: "white",
+									boxShadow: "0 0 0 4px rgba(34,139,230,0.1)",
+								}
 							},
 						}}
 					/>
 
 					{authError && (
-						<Text size="xs" c="red" ta="center">
+						<Text size="sm" c="red" ta="center" fw={500}>
 							{authError}
 						</Text>
 					)}
 
 					{/* Dev OTP code */}
 					{devCode && (
-						<Text size="xs" c="dimmed" ta="center">
-							DEV: {devCode}
+						<Box 
+							py={8} px={16} 
+							style={{ 
+								backgroundColor: "rgba(34,139,230,0.05)", 
+								borderRadius: 12,
+								width: "100%",
+							}}
+						>
+							<Text size="xs" c="blue" ta="center" fw={600}>
+								TEST CODE: {devCode}
+							</Text>
+						</Box>
+					)}
+					
+					{/* Secondary Actions (Side-by-side) */}
+					<Box style={{ display: "flex", gap: 8, width: "100%" }}>
+						{timeLeft > 0 && (
+							<Button
+								variant="outline"
+								color="gray"
+								radius="xl"
+								size="sm"
+								style={{ flex: 1 }}
+								styles={{
+									label: { fontSize: 13 }
+								}}
+								onClick={handlePaste}
+								disabled={isLoading}
+							>
+								{t("auth.pasteCode")}
+							</Button>
+						)}
+
+						<Button
+							variant="light"
+							color="blue"
+							radius="xl"
+							size="sm"
+							style={{ flex: 1 }}
+							styles={{
+								label: { fontSize: 13 }
+							}}
+							onClick={() => {
+								setPin("");
+								resetSellerOTPStep();
+							}}
+							disabled={isLoading}
+						>
+							{t("auth.changeNumber")}
+						</Button>
+					</Box>
+
+					{/* Timer or Expiration info */}
+					{timeLeft > 0 ? (
+						<Text size="sm" c="dimmed" ta="center">
+							{t("auth.resendCodeTimer", {
+								time: `${Math.floor(timeLeft / 60).toString().padStart(2, "0")}:${(timeLeft % 60).toString().padStart(2, "0")}`,
+							})}
+						</Text>
+					) : (
+						<Text size="sm" c="red" ta="center" fw={500}>
+							Срок действия кода истёк
 						</Text>
 					)}
 
+					{/* Main Action Button */}
 					<Button
-						variant="subtle"
-						color="blue"
-						size="sm"
-						onClick={() => resetSellerOTPStep()}
-						disabled={isLoading}
+						fullWidth
+						size="lg"
+						radius="xl"
+						onClick={timeLeft > 0 ? () => handleVerifyOTP(pin) : handleRequestOTP}
+						disabled={isLoading || (timeLeft > 0 && pin.length !== 6)}
+						loading={isLoading}
+						style={
+							(timeLeft > 0 && pin.length === 6) || timeLeft === 0
+								? {
+										background: gradients.primary,
+										boxShadow: "0 8px 20px rgba(34,139,230,0.3)",
+										height: 56,
+										fontSize: 16,
+										fontWeight: 700,
+										transition: "all 0.3s ease",
+								  }
+								: {
+										background: "#e9ecef",
+										color: "#adb5bd",
+										height: 56,
+										fontSize: 16,
+										fontWeight: 700,
+										transition: "all 0.3s ease",
+								  }
+						}
 					>
-						{t("auth.changeNumber")}
+						{timeLeft > 0 ? t("common.login") : "Запросить новый код"}
 					</Button>
+
+
 
 					{onCancel && (
 						<Button
@@ -219,5 +369,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 				</Stack>
 			)}
 		</Box>
+
+
 	);
 }

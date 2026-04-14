@@ -33,3 +33,5 @@ export const $sellerOTPPhone = createStore<string | null>(null);
 export const $isSellerOTPLoading = createStore(false);
 
 export const $sellerOTPDevCode = createStore<string | null>(null);
+
+export const $sellerOTPExpiresAt = createStore<number | null>(null);

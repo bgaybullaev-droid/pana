@@ -41,6 +41,7 @@ import {
 	$sellerOTPPhone,
 	$isSellerOTPLoading,
 	$sellerOTPDevCode,
+	$sellerOTPExpiresAt,
 } from "../stores";
 
 // =============================================================================
@@ -184,6 +185,19 @@ $isSellerOTPLoading
 $sellerOTPDevCode
 	.on(requestSellerOTPFx.doneData, (_, data) => data._dev_otp ?? null)
 	.on(resetSellerOTPStep, () => null);
+
+// =============================================================================
+// $sellerOTPExpiresAt wiring
+// =============================================================================
+
+$sellerOTPExpiresAt
+	.on(requestSellerOTPFx.doneData, (_, data) => {
+		// Use standard 60 seconds if the backend doesn't provide it
+		const expiresIn = data.expires_in ?? 60;
+		return Date.now() + expiresIn * 1000;
+	})
+	.on(resetSellerOTPStep, () => null)
+	.reset(verifySellerOTPFx.done);
 
 // =============================================================================
 // Sample Connections

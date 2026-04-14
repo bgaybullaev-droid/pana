@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Container,
   Stack,
@@ -62,16 +62,7 @@ function Page() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>('all');
   const [showInfo, setShowInfo] = useState(true); // () => localStorage.getItem('hide_found_info') !== 'true'
   const [activeListingId, setActiveListingId] = useState<string | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        if (searchInputRef.current) {
-            searchInputRef.current.focus();
-        }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [olxListings, setOlxListings] = useState<OLXListing[]>([]);
@@ -324,8 +315,6 @@ function Page() {
 
           <Box style={{ animation: 'fade-in 0.4s ease-out 0.1s both' }}>
             <TextInput
-              ref={searchInputRef}
-              autoFocus
               placeholder={tBuyer('search.title', 'Поиск')}
               radius="xl"
               value={searchQuery}

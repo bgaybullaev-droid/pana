@@ -145,7 +145,6 @@ function Page({ embedded = false }: FavoritesPageProps) {
 				loginLabel={t("common.login")}
 				onLogin={() => navigate("/auth")}
 				onBack={() => navigate(-1)}
-				loginVariant="link"
 			/>
 		);
 	}

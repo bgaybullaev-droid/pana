@@ -256,3 +256,55 @@ body {
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
 }
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Premium Gradients */
+.mesh-gradient {
+  background-color: #f8f9fa;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(25, 113, 194, 0.15) 0, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(64, 167, 227, 0.15) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(116, 192, 252, 0.15) 0, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.4) 0, transparent 100%);
+  background-size: 200% 200%;
+  animation: meshFlow 15s ease infinite alternate;
+}
+
+@keyframes meshFlow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+.primary-gradient {
+  background: linear-gradient(135deg, #1971c2 0%, #40A7E3 50%, #74c0fc 100%);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+	0% { transform: translateY(0px); }
+	50% { transform: translateY(-10px); }
+	100% { transform: translateY(0px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

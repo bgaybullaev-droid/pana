@@ -47,6 +47,7 @@ export function PhoneInput({
 	value,
 	onChange,
 	label,
+	placeholder,
 	description,
 	error,
 	disabled,
@@ -238,29 +239,7 @@ export function PhoneInput({
 						zIndex: 1,
 					}}
 				/>
-				<Box
-					aria-hidden
-					style={{
-						position: "absolute",
-						inset: 0,
-						padding: "0 16px",
-						fontSize: 16,
-						fontFamily: "inherit",
-						pointerEvents: "none",
-						display: "flex",
-						alignItems: "center",
-						zIndex: 1,
-						border: "1.5px solid transparent",
-						whiteSpace: "pre",
-					}}
-				>
-					<span style={{ color: "transparent" }}>
-						{toDisplay(value) || "+998 "}
-					</span>
-					<span style={{ color: disabled ? "#ced4da" : "#adb5bd" }}>
-						{"+998 -- --- -- --".slice((toDisplay(value) || "+998 ").length)}
-					</span>
-				</Box>
+
 				<input
 					ref={inputRef}
 					type="text"
@@ -274,6 +253,7 @@ export function PhoneInput({
 					onKeyDown={handleKeyDown}
 					onPaste={handlePaste}
 					onBlur={handleBlur}
+					placeholder={placeholder || "+998 XX XXX XX XX"}
 					className="phone-input"
 					style={{
 						width: "100%",

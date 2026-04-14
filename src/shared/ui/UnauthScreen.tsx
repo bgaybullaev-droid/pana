@@ -21,7 +21,6 @@ interface UnauthScreenProps {
 export function UnauthScreen({
   icon,
   title,
-  subtitle,
   loginPrompt,
   loginLabel,
   onLogin,
@@ -40,10 +39,22 @@ export function UnauthScreen({
   }
 
   return (
-    <Box mih="100vh" bg={surface.page}>
-      <GradientHeader icon={icon} title={title} subtitle={subtitle} onBack={onBack} />
+    <Box 
+      className="mesh-gradient"
+      style={{ 
+        minHeight: 'calc(100dvh - 65px)',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <GradientHeader 
+        icon={icon} 
+        title={title} 
+        onBack={onBack} 
+        gradient="transparent"
+      />
 
-      <Box px="md" style={{ marginTop: -30 }}>
+      <Box px="md" style={{ flex: 1, marginTop: 48 }}>
         <LoginPromptCard
           promptText={loginPrompt}
           actionLabel={loginLabel}

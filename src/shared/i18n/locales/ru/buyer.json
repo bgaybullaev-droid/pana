@@ -234,6 +234,10 @@
   "auth.firstName": "Имя",
   "auth.lastName": "Фамилия",
   "auth.phonePlaceholder": "00 000 00 00",
+  "auth.pasteCode": "Вставить код",
+  "auth.loginTitle": "Вход",
+  "auth.resendCode": "Отправить код повторно",
+  "auth.resendCodeTimer": "Повторить через {{time}}",
 
   "settings.title": "Настройки",
   "settings.loginSubtitle": "Войдите, чтобы управлять настройками",
