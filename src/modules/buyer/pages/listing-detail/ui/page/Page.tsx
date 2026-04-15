@@ -109,7 +109,7 @@ function Page() {
 	}
 
 	return (
-		<Box h="100vh" w="100%" pos="relative" style={{ overflow: "hidden" }}>
+		<Box className="dynamic-screen-height" w="100%" pos="relative" style={{ overflow: "hidden" }}>
 			{/* TikTok Slider */}
 			{id && slideIds.length > 0 && (
 				<ListingTikTokSlider

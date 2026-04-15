@@ -19,7 +19,7 @@ interface ListingTikTokSliderProps {
 }
 
 // Full screen — no tab bar on listing detail
-const SECTION_HEIGHT = '100vh';
+const SECTION_HEIGHT = '100%';
 
 // Only mount ListingSlideContent for slides within this distance from the
 // current visible index.  Slides outside the window get a lightweight

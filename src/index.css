@@ -48,6 +48,13 @@ body {
   flex-direction: column;
 }
 
+/* Cross-platform viewport height for full screen containers */
+.dynamic-screen-height {
+  height: 100vh; /* Fallback for very old browsers */
+  height: 100dvh; /* Modern standard */
+  height: var(--tg-viewport-stable-height, var(--tg-viewport-height, 100dvh));
+}
+
 /* Global transitions */
 button,
 a {
