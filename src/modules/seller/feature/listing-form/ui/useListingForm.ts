@@ -58,6 +58,38 @@ export interface ListingFormValues {
 	installment_ok: boolean;
 	halol_ok: boolean;
 	deed_type: string | undefined;
+	// ── Sprint 3 (T-001) — cross-cutting location ──
+	urgent_flag: boolean;
+	city: string;
+	microdistrict: string | undefined;
+	jk_name: string | undefined;
+	landmark: string | undefined;
+	metro_station: string | undefined;
+	seller_telegram: string | undefined;
+	// ── Sprint 4 (T-009) — commercial ──
+	commercial_type: string | undefined;
+	price_per_sqm: number | undefined;
+	ceiling_height: number | undefined;
+	entrance: string | undefined;
+	parking_comm: boolean | undefined;
+	building_class: string | undefined;
+	// ── Sprint 5 (T-006, T-008) — dual-read renames ──
+	// New canonical columns. Legacy `building_type` / `is_furnished` kept
+	// above for edit-mode pre-fill, never submitted on new writes.
+	market_type: string | undefined;
+	wall_material: string | undefined;
+	furniture: string | undefined;
+	// ── Sprint 6 (T-011, T-014, T-015) — property polish ──
+	garage: boolean | undefined;
+	basement: boolean | undefined;
+	buildings_exist: boolean | undefined;
+	fence: boolean | undefined;
+	land_shape: string | undefined;
+	balcony: string | undefined;
+	listing_subtype: string | undefined;
+	floor_plan_url: string | undefined;
+	// ── Sprint 7 (T-027) — housing complex linkage ──
+	jk_id: string | undefined;
 	// Location
 	region: string;
 	district: string;
@@ -69,7 +101,9 @@ export interface ListingFormValues {
 	seller_type: string;
 }
 
-export function useListingForm() {
+export type ListingFormMode = "create" | "edit";
+
+export function useListingForm(mode: ListingFormMode = "create") {
 	const { t } = useTranslation("seller");
 	const [images, setImages] = useState<File[]>([]);
 	const [isUploading, setIsUploading] = useState(false);
@@ -120,6 +154,36 @@ export function useListingForm() {
 			installment_ok: false,
 			halol_ok: false,
 			deed_type: undefined,
+			// Sprint 3 — cross-cutting location
+			urgent_flag: false,
+			city: "",
+			microdistrict: undefined,
+			jk_name: undefined,
+			landmark: undefined,
+			metro_station: undefined,
+			seller_telegram: undefined,
+			// Sprint 4 — commercial
+			commercial_type: undefined,
+			price_per_sqm: undefined,
+			ceiling_height: undefined,
+			entrance: undefined,
+			parking_comm: undefined,
+			building_class: undefined,
+			// Sprint 5 — dual-read
+			market_type: undefined,
+			wall_material: undefined,
+			furniture: undefined,
+			// Sprint 6 — property polish
+			garage: undefined,
+			basement: undefined,
+			buildings_exist: undefined,
+			fence: undefined,
+			land_shape: undefined,
+			balcony: undefined,
+			listing_subtype: undefined,
+			floor_plan_url: undefined,
+			// Sprint 7 — housing complex linkage
+			jk_id: undefined,
 			region: "",
 			district: "",
 			address: "",
@@ -168,7 +232,10 @@ export function useListingForm() {
 				}
 				return null;
 			},
-			building_type: (value, values) =>
+			// S5 dual-read: market_type replaces building_type as the required
+			// apartment-only field. On edit, pre-fill maps the legacy column
+			// to `market_type`, so this still passes for old listings.
+			market_type: (value, values) =>
 				values.property_type === "apartment" && !value
 					? t("validation.buildingTypeRequired")
 					: null,
@@ -180,9 +247,21 @@ export function useListingForm() {
 				}
 				return null;
 			},
-			is_furnished: (value, values) =>
+			// S5 dual-read: furniture replaces is_furnished. Required on
+			// non-land listings. Edit-mode maps legacy boolean → enum.
+			furniture: (value, values) =>
 				values.property_type !== "land" && !value
 					? t("validation.furnishedRequired")
+					: null,
+			// S3 (T-001): city required on CREATE only. Legacy rows without
+			// a city can still be edited without a 400.
+			city: (value) =>
+				mode === "create" && !value ? t("validation.cityRequired") : null,
+			// S4 (T-009): commercial listings require commercial_type on
+			// CREATE only. Same legacy-safety reasoning as `city`.
+			commercial_type: (value, values) =>
+				mode === "create" && values.property_type === "commercial" && !value
+					? t("validation.commercialTypeRequired")
 					: null,
 			// Sprint 2 — rent listings require a period (blueprint §3.3)
 			rent_period: (value, values) =>
@@ -267,6 +346,13 @@ export function useListingForm() {
 		}
 	};
 
+	// Dual-read submit rule (Sprint 5 — T-006, T-008):
+	// When both `building_type`/`market_type` or `is_furnished`/`furniture`
+	// are on the wire, backend `_apply_dual_read_inputs` returns 400. We
+	// submit ONLY the new names (`market_type`, `furniture`). If the user
+	// edited an old listing, `market_type`/`furniture` are pre-filled from
+	// the legacy column via the edit page — so the new name always carries
+	// the authoritative value by submit time.
 	const buildListingData = (values: ListingFormValues) => ({
 		type: values.type,
 		property_type: values.property_type,
@@ -282,7 +368,9 @@ export function useListingForm() {
 		land_area: values.land_area,
 		floor: values.floor,
 		total_floors: values.total_floors,
-		building_type: values.building_type || undefined,
+		// Dual-read: do NOT submit `building_type` or `is_furnished`. They
+		// are kept in form state only so edit-mode pre-fill of legacy
+		// listings populates the new columns.
 		condition: values.condition || undefined,
 		house_type: values.house_type || undefined,
 		house_condition:
@@ -295,12 +383,6 @@ export function useListingForm() {
 		heating: values.heating.length > 0 ? values.heating : undefined,
 		gas_supply: values.gas_supply || undefined,
 		sewage: values.sewage || undefined,
-		is_furnished:
-			values.is_furnished === "yes"
-				? true
-				: values.is_furnished === "no"
-					? false
-					: undefined,
 		land_purpose: values.land_purpose || undefined,
 		amenities: values.amenities.length > 0 ? values.amenities : undefined,
 		nearby_amenities:
@@ -319,6 +401,36 @@ export function useListingForm() {
 		installment_ok: values.installment_ok,
 		halol_ok: values.halol_ok,
 		deed_type: values.deed_type || undefined,
+		// Sprint 3 — cross-cutting location (T-001)
+		urgent_flag: values.urgent_flag,
+		city: values.city || undefined,
+		microdistrict: values.microdistrict || undefined,
+		jk_name: values.jk_name || undefined,
+		landmark: values.landmark || undefined,
+		metro_station: values.metro_station || undefined,
+		seller_telegram: values.seller_telegram || undefined,
+		// Sprint 4 — commercial (T-009)
+		commercial_type: values.commercial_type || undefined,
+		price_per_sqm: values.price_per_sqm,
+		ceiling_height: values.ceiling_height,
+		entrance: values.entrance || undefined,
+		parking_comm: values.parking_comm,
+		building_class: values.building_class || undefined,
+		// Sprint 5 — dual-read new columns (authoritative on submit)
+		market_type: values.market_type || undefined,
+		wall_material: values.wall_material || undefined,
+		furniture: values.furniture || undefined,
+		// Sprint 6 — property polish (T-011, T-014, T-015)
+		garage: values.garage,
+		basement: values.basement,
+		buildings_exist: values.buildings_exist,
+		fence: values.fence,
+		land_shape: values.land_shape || undefined,
+		balcony: values.balcony || undefined,
+		listing_subtype: values.listing_subtype || undefined,
+		floor_plan_url: values.floor_plan_url || undefined,
+		// Sprint 7 — housing complex linkage (T-027)
+		jk_id: values.jk_id || undefined,
 		region: values.region,
 		district: values.district,
 		address: values.address || undefined,

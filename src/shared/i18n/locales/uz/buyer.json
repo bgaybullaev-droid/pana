@@ -10,7 +10,6 @@
   "nav.profile": "Profil",
   "nav.preferences": "Afzalliklar",
   "nav.settings": "Sozlamalar",
-
   "common.login": "Kirish",
   "common.sell": "Sotish",
   "common.rent": "Ijara",
@@ -26,19 +25,15 @@
   "common.noListings": "E'lonlar yo'q",
   "common.cancel": "Bekor qilish",
   "action.apply": "Qo'llash",
-
   "common.propertyType.apartment": "Kvartira",
   "common.propertyType.house": "Uy",
   "common.propertyType.commercial": "Tijorat",
   "common.propertyType.land": "Yer",
-
   "common.propertyTypePlural.apartment": "Kvartiralar",
   "common.propertyTypePlural.house": "Uylar",
   "common.propertyTypePlural.commercial": "Tijorat",
   "common.propertyTypePlural.land": "Yerlar",
-
   "common.roomsOption.studio": "Studiya",
-
   "listing.defaultDistrict": "Toshkent",
   "listing.typeSell": "Sotish",
   "listing.typeRent": "Ijara",
@@ -62,7 +57,6 @@
   "listing.noPhoto": "Rasm yo'q",
   "listing.noImages": "Rasmlar yo'q",
   "listing.perMonth": "/oy",
-
   "comments.title": "Izohlar",
   "comments.reply": "Javob berish",
   "comments.empty": "Hali izohlar yo'q",
@@ -73,19 +67,14 @@
   "comments.replyTo": "{{name}} ga javob",
   "comments.replyPlaceholder": "Javob yozing...",
   "comments.placeholder": "Izoh yozing...",
-
   "description.title": "Tavsif",
-
   "listingDetail.notFound": "E'lon topilmadi",
   "listingDetail.notFoundDescription": "Ehtimol, u o'chirilgan yoki hali e'lon qilinmagan",
   "listingDetail.goHome": "Bosh sahifaga",
-
   "filter.priceRange": "Narx oralig'i",
-
   "mobileOnly.title": "Faqat mobil qurilmalar uchun",
   "mobileOnly.description": "UcharMarket faqat Telegram mobil ilovasida mavjud.",
   "mobileOnly.instruction": "Telefoningizda Telegram orqali @ucharTestMarket_bot ni oching.",
-
   "home.searchPlaceholder": "Ko'chmas mulk qidirish...",
   "home.found": "Topildi: {{total}}",
   "home.filters": "Filtrlar",
@@ -103,7 +92,6 @@
   "home.resetFilters": "Filtrlarni tozalash",
   "home.emptyTitle": "Hech narsa topilmadi",
   "home.emptyDescription": "Filtrlar yoki qidiruv so'rovini o'zgartirib ko'ring",
-
   "search.title": "Qidiruv",
   "search.placeholder": "Manzil, tuman yoki tavsif...",
   "search.propertyType": "Mulk turi",
@@ -139,13 +127,11 @@
   "search.onboarding.features.alerts.title": "Aqlli bildirishnomalar",
   "search.onboarding.features.alerts.desc": "Shartlaringizga ko'ra xabarnomalar",
   "search.onboarding.tip": "Qidiruv tarixi shu yerda saqlanadi",
-
   "favorites.title": "Sevimlilar",
   "favorites.subtitle": "Yoqtirgan e'lonlarni saqlang",
   "favorites.loginPrompt": "Sevimlilarni saqlash uchun tizimga kiring",
   "favorites.emptyTitle": "Hali bo'sh",
   "favorites.emptyDescription": "Qo'shish uchun yurakchani bosing",
-
   "notifications.title": "Bildirishnomalar",
   "notifications.subtitle": "Yangi takliflardan xabardor bo'ling",
   "notifications.loginPrompt": "Bildirishnomalar olish uchun tizimga kiring",
@@ -156,7 +142,6 @@
   "notifications.today": "Bugun",
   "notifications.yesterday": "Kecha",
   "notifications.earlier": "Oldingi",
-
   "profile.title": "Profil",
   "profile.loginSubtitle": "Profilni boshqarish uchun tizimga kiring",
   "profile.loginPrompt": "Sevimlilarni saqlash va bildirishnomalar olish uchun kiring",
@@ -174,11 +159,9 @@
   "profile.logoutConfirm": "Chiqishni xohlaysizmi?",
   "profile.version": "UcharMarket v1.0.0",
   "profile.language": "Til",
-
   "auth.subtitle": "O'zingizga mos ko'chmas mulkni toping",
   "auth.loginMessage": "Sevimlilar, bildirishnomalar va profildan foydalanish uchun kiring",
   "auth.terms": "Davom etish orqali siz foydalanish shartlari va maxfiylik siyosatiga rozilik bildirasiz",
-
   "preferences.title": "Afzalliklaringizni belgilang!",
   "preferences.subtitle": "Sizga mos e'lonlarni tanlab beramiz",
   "preferences.listingType": "Bitim turi",
@@ -193,11 +176,8 @@
   "preferences.desc.rooms": "Nechta xona kerak?",
   "preferences.desc.priceRange": "Byudjetingiz qancha?",
   "preferences.desc.region": "Qayerda yashashni xohlaysiz?",
-
   "profile.menuPreferences": "Afzalliklar",
-
   "nav.menu": "Menyu",
-
   "menu.title": "Menyu",
   "menu.profile": "Profil",
   "menu.loginPrompt": "Hisobga kirish",
@@ -206,7 +186,6 @@
   "menu.support": "Qo'llab-quvvatlash xizmati",
   "menu.share": "Do'stingiz bilan ulashing",
   "menu.shareText": "O'zbekistonda ko'chmas mulk qidiryapsizmi? UcharMarket ni sinab ko'ring!",
-
   "about.tagline": "O'zbekiston ko'chmas mulki bitta ilovada",
   "about.description": "UcharMarket — O'zbekistonda ko'chmas mulk qidirish uchun qulay xizmat. Biz Telegram-kanallar va OLX dan e'lonlarni yig'amiz, shunda siz ideal variantni bir joyda topishingiz mumkin.",
   "about.featuresTitle": "Imkoniyatlar",
@@ -217,7 +196,6 @@
   "about.feature5": "Haqiqiy sotuvchilardan tekshirilgan e'lonlar",
   "about.feature6": "Telegram ichida qulay interfeys",
   "about.contactTitle": "Biz bilan bog'lanish",
-
   "faq.q1": "UcharMarket nima?",
   "faq.a1": "UcharMarket — O'zbekistonda ko'chmas mulk qidirish platformasi. Biz mashhur Telegram-kanallar va OLX.uz dan e'lonlarni avtomatik yig'amiz, shunda siz kvartira, uy yoki tijorat ko'chmas mulkini bitta ilovada topishingiz mumkin.",
   "faq.q2": "Ilova bepulmi?",
@@ -230,14 +208,12 @@
   "faq.a5": "Ha! Pastki menyuda «+» tugmasini bosing, sotuvchi sifatida ro'yxatdan o'ting va e'lonlaringizni bepul joylashtirishingiz mumkin.",
   "faq.q6": "E'lonlar qayerdan olinadi?",
   "faq.a6": "Biz ko'chmas mulk bo'yicha mashhur Telegram-kanallar va OLX.uz platformasidan e'lonlarni avtomatik yig'amiz. Barcha ma'lumotlar AI yordamida aniq ma'lumot olish uchun qayta ishlanadi.",
-
   "auth.enterOTP": "SMS kodini kiriting",
   "auth.changeNumber": "Raqamni o'zgartirish",
   "auth.enterData": "Davom etish uchun ma'lumotlarni kiriting",
   "auth.firstName": "Ism",
   "auth.lastName": "Familiya",
   "auth.phonePlaceholder": "00 000 00 00",
-
   "settings.title": "Sozlamalar",
   "settings.loginSubtitle": "Sozlamalarni boshqarish uchun tizimga kiring",
   "settings.loginPrompt": "Sozlamalarga kirish uchun tizimga kiring",
@@ -271,7 +247,6 @@
   "settings.soonTitle": "Tez kunda!",
   "settings.soonMessage": "Biz bu funksiya ustida ishlamoqdamiz. Tayyor bo'lganda xabar beramiz.",
   "settings.gotIt": "Tushundim",
-
   "realtors.title": "Professional rielterlar uchun",
   "realtors.description": "UcharMarket rielterlarga mijozlarni topish va ko'chmas mulk ob'yektlarini targ'ib qilishda yordam beradi. E'lonlarni bepul joylashtiring va minglab xaridorlarga kiring.",
   "realtors.benefit1": "Cheksiz miqdordagi e'lonlarni bepul joylashtirish",
@@ -279,14 +254,12 @@
   "realtors.benefit3": "Ko'rishlar va statistika bilan analitika paneli",
   "realtors.benefit4": "Barcha e'lonlarni bitta paneldan boshqarish",
   "realtors.cta": "Sotuvchi sifatida ro'yxatdan o'tish",
-
   "support.title": "Qanday yordam bera olamiz?",
   "support.description": "Qulay aloqa usulini tanlang va biz tez orada javob beramiz.",
   "support.telegram": "Telegram",
   "support.phone": "Telefon",
   "support.email": "Email",
   "support.hours": "Ish vaqti: Du–Ju, 09:00–18:00 (UZT)",
-
   "privacy.lastUpdated": "Yangilangan: 2026-yil 1-mart",
   "privacy.intro": "Ushbu Maxfiylik siyosati UcharMarket xizmatidan foydalanishda shaxsiy ma'lumotlaringizni qanday yig'ish, foydalanish va himoya qilishimizni tavsiflaydi.",
   "privacy.section1Title": "1. Qanday ma'lumotlarni yig'amiz",
@@ -299,7 +272,6 @@
   "privacy.section4Text": "Biz ma'lumotlaringizni sotmaymiz va uchinchi tomonlarga bermaymiz, O'zbekiston Respublikasi qonunchiligi nazarda tutgan holatlar bundan mustasno.",
   "privacy.section5Title": "5. Sizning huquqlaringiz",
   "privacy.section5Text": "Ilova sozlamalari orqali istalgan vaqtda ma'lumotlaringizni o'chirishni so'rashingiz, bildirishnomalardan voz kechishingiz yoki hisobni o'chirishingiz mumkin.",
-
   "terms.lastUpdated": "Yangilangan: 2026-yil 1-mart",
   "terms.intro": "UcharMarket xizmatidan foydalanish orqali siz quyida keltirilgan shartlarga rozilik bildirasiz. Iltimos, ushbu hujjat bilan diqqat bilan tanishing.",
   "terms.section1Title": "1. Umumiy qoidalar",
@@ -314,7 +286,6 @@
   "terms.section5Text": "Xizmatning barcha materiallari, dizayni va kodi UcharMarket mulki hisoblanadi. Kontentni ruxsatsiz nusxalash va tarqatish taqiqlanadi.",
   "terms.section6Title": "6. Shartlarni o'zgartirish",
   "terms.section6Text": "Biz ushbu shartlarni o'zgartirish huquqini saqlab qolamiz. O'zgarishlar haqida ilova orqali xabar beramiz. O'zgarishlardan keyin xizmatdan foydalanishni davom ettirsangiz, yangi shartlarga rozilik bildirasiz.",
-
   "editProfile.title": "Profilni tahrirlash",
   "editProfile.firstName": "Ism",
   "editProfile.firstNamePlaceholder": "Ismni kiriting",
@@ -323,5 +294,36 @@
   "editProfile.phone": "Telefon",
   "editProfile.save": "Saqlash",
   "editProfile.firstNameRequired": "Ism kiritish shart",
-  "editProfile.saveError": "Saqlab bo'lmadi. Qayta urinib ko'ring."
+  "editProfile.saveError": "Saqlab bo'lmadi. Qayta urinib ko'ring.",
+  "favorites.tabListings": "E'lonlar",
+  "favorites.tabSearches": "Saqlangan qidiruvlar",
+  "favorites.searches.emptyTitle": "Saqlangan qidiruvlar yo'q",
+  "favorites.searches.emptyDescription": "Natijalar ekranida yurakchani bosing va qidiruvni saqlang",
+  "favorites.searches.loginPrompt": "Qidiruvlarni saqlash uchun tizimga kiring",
+  "favorites.searches.newCount_one": "{{count}} yangi",
+  "favorites.searches.newCount_few": "{{count}} yangi",
+  "favorites.searches.newCount_many": "{{count}} yangi",
+  "favorites.searches.noNew": "Yangi e'lonlar yo'q",
+  "favorites.searches.saved": "Qidiruv saqlandi!",
+  "favorites.searches.deleted": "Qidiruv o'chirildi",
+  "favorites.searches.saveSearch": "Qidiruvni saqlash",
+  "favorites.searches.sortLabel": "Saralash: {{sort}}",
+  "notificationSettings.title": "Bildirishnoma sozlamalari",
+  "notificationSettings.subtitle": "Bildirishnomalarni qachon va qanday olishni boshqaring",
+  "notificationSettings.pause": "Barcha bildirishnomalarni to'xtatish",
+  "notificationSettings.pauseDesc": "Barcha bildirishnomalarni vaqtincha o'chirish",
+  "notificationSettings.dailyLimit": "Kunlik limit",
+  "notificationSettings.dailyLimitDesc": "Kuniga maksimal bildirishnomalar soni",
+  "notificationSettings.dailyLimitValue": "kuniga {{count}} tagacha",
+  "notificationSettings.timeWindows": "Yetkazish vaqti",
+  "notificationSettings.timeWindowsDesc": "Qaysi vaqtda bildirishnomalar olish",
+  "notificationSettings.window.morning": "Ertalab (8–12)",
+  "notificationSettings.window.afternoon": "Kunduz (12–18)",
+  "notificationSettings.window.evening": "Kechqurun (18–22)",
+  "notificationSettings.sources": "Manbalar",
+  "notificationSettings.sourcesDesc": "Qaysi manbalardan bildirishnomalar olish",
+  "notificationSettings.source.saved_searches": "Saqlangan qidiruvlar",
+  "notificationSettings.source.seller_follows": "Sotuvchilarga obunalar",
+  "notificationSettings.source.ai_recs": "AI tavsiyalari",
+  "notificationSettings.saved": "Sozlamalar saqlandi"
 }

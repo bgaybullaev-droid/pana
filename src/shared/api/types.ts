@@ -113,6 +113,51 @@ export interface Listing {
 	nearby_amenities?: string[] | null;
 	seller_type?: string | null;
 	is_negotiable?: boolean | null;
+	// Sprint 2 — rent group (T-002, T-003)
+	rent_period?: "long_term" | "daily" | null;
+	deposit?: number | null;
+	utilities_incl?: boolean | null;
+	min_rent_months?: number | null;
+	allowed_students?: boolean | null;
+	allowed_pets?: boolean | null;
+	rent_payment?: string[] | null;
+	// Sprint 2 — sale finance + deed (T-004, T-005)
+	mortgage_ok?: boolean | null;
+	installment_ok?: boolean | null;
+	halol_ok?: boolean | null;
+	deed_type?: string | null;
+	// Sprint 3 (T-001) — cross-cutting location
+	urgent_flag?: boolean | null;
+	city?: string | null;
+	microdistrict?: string | null;
+	jk_name?: string | null;
+	landmark?: string | null;
+	metro_station?: string | null;
+	seller_telegram?: string | null;
+	// Sprint 4 (T-009) — commercial
+	commercial_type?: string | null;
+	price_per_sqm?: number | null;
+	ceiling_height?: number | null;
+	entrance?: string | null;
+	parking_comm?: boolean | null;
+	building_class?: string | null;
+	// Sprint 5 (T-006, T-008) — dual-read renames
+	market_type?: string | null;
+	wall_material?: string | null;
+	furniture?: string | null;
+	// Sprint 6 (T-011, T-014, T-015) — property polish
+	garage?: boolean | null;
+	basement?: boolean | null;
+	buildings_exist?: boolean | null;
+	fence?: boolean | null;
+	land_shape?: string | null;
+	balcony?: string | null;
+	listing_subtype?: string | null;
+	floor_plan_url?: string | null;
+	// Sprint 7 (T-027) — housing complex linkage
+	jk_id?: string | null;
+	// Sprint 8 (T-023) — discoverability (server-assigned, display-only)
+	slug?: string | null;
 	source_type: "manual" | "claimed" | "parsed";
 	status: "active" | "paused" | "sold" | "deleted" | "expired";
 	moderation_status: "pending" | "approved" | "rejected";

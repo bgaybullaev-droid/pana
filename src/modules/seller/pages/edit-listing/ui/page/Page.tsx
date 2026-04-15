@@ -63,7 +63,7 @@ function Page() {
 		handleUploadImages,
 		buildListingData,
 		t,
-	} = useListingForm();
+	} = useListingForm("edit");
 
 	useEffect(() => {
 		if (id && initializedRef.current !== id) {
@@ -78,6 +78,20 @@ function Page() {
 	useEffect(() => {
 		if (editingListing) {
 			console.log("RAW_API_RESPONSE_LISTING:", editingListing);
+			// S5 dual-read edit pre-fill: if a legacy listing has only the
+			// old columns populated, map them to the new canonical names so
+			// the form's market_type/furniture controls show the right value.
+			// Backend response already mirrors both names; we pick whichever
+			// is non-null.
+			const mappedMarketType =
+				editingListing.market_type || editingListing.building_type || undefined;
+			const mappedFurniture =
+				editingListing.furniture ||
+				(editingListing.is_furnished === true
+					? "full"
+					: editingListing.is_furnished === false
+						? "none"
+						: undefined);
 			form.setValues({
 				type: editingListing.type as "sell" | "rent",
 				property_type: editingListing.property_type as
@@ -98,7 +112,6 @@ function Page() {
 				land_area: editingListing.land_area ?? undefined,
 				floor: editingListing.floor ?? undefined,
 				total_floors: editingListing.total_floors ?? undefined,
-				building_type: editingListing.building_type || undefined,
 				condition: editingListing.condition || undefined,
 				house_type: editingListing.house_type || undefined,
 				house_condition: editingListing.house_condition || [],
@@ -108,15 +121,52 @@ function Page() {
 				heating: editingListing.heating || [],
 				gas_supply: editingListing.gas_supply || undefined,
 				sewage: editingListing.sewage || undefined,
-				is_furnished:
-					editingListing.is_furnished === true
-						? "yes"
-						: editingListing.is_furnished === false
-							? "no"
-							: undefined,
 				land_purpose: editingListing.land_purpose || undefined,
 				amenities: editingListing.amenities || [],
 				nearby_amenities: editingListing.nearby_amenities || [],
+				// Sprint 2 — rent group
+				rent_period: editingListing.rent_period || undefined,
+				deposit: editingListing.deposit ?? undefined,
+				utilities_incl: editingListing.utilities_incl ?? undefined,
+				min_rent_months: editingListing.min_rent_months ?? undefined,
+				allowed_students: editingListing.allowed_students ?? undefined,
+				allowed_pets: editingListing.allowed_pets ?? undefined,
+				rent_payment: editingListing.rent_payment || [],
+				// Sprint 2 — sale finance + deed
+				mortgage_ok: editingListing.mortgage_ok ?? false,
+				installment_ok: editingListing.installment_ok ?? false,
+				halol_ok: editingListing.halol_ok ?? false,
+				deed_type: editingListing.deed_type || undefined,
+				// Sprint 3 — cross-cutting location (T-001)
+				urgent_flag: editingListing.urgent_flag ?? false,
+				city: editingListing.city || "",
+				microdistrict: editingListing.microdistrict || undefined,
+				jk_name: editingListing.jk_name || undefined,
+				landmark: editingListing.landmark || undefined,
+				metro_station: editingListing.metro_station || undefined,
+				seller_telegram: editingListing.seller_telegram || undefined,
+				// Sprint 4 — commercial (T-009)
+				commercial_type: editingListing.commercial_type || undefined,
+				price_per_sqm: editingListing.price_per_sqm ?? undefined,
+				ceiling_height: editingListing.ceiling_height ?? undefined,
+				entrance: editingListing.entrance || undefined,
+				parking_comm: editingListing.parking_comm ?? undefined,
+				building_class: editingListing.building_class || undefined,
+				// Sprint 5 — dual-read new columns (mapped from old on legacy rows)
+				market_type: mappedMarketType,
+				wall_material: editingListing.wall_material || undefined,
+				furniture: mappedFurniture,
+				// Sprint 6 — property polish
+				garage: editingListing.garage ?? undefined,
+				basement: editingListing.basement ?? undefined,
+				buildings_exist: editingListing.buildings_exist ?? undefined,
+				fence: editingListing.fence ?? undefined,
+				land_shape: editingListing.land_shape || undefined,
+				balcony: editingListing.balcony || undefined,
+				listing_subtype: editingListing.listing_subtype || undefined,
+				floor_plan_url: editingListing.floor_plan_url || undefined,
+				// Sprint 7 — housing complex linkage
+				jk_id: editingListing.jk_id || undefined,
 				region: editingListing.region || "",
 				district: editingListing.district || "",
 				address: editingListing.address || "",
@@ -445,7 +495,7 @@ function Page() {
 								fz={14}
 								onClick={() => navigate(-1)}
 								styles={{
-									root: { 
+									root: {
 										backgroundColor: "rgba(255, 255, 255, 0.55)",
 										backdropFilter: "blur(20px) saturate(180%)",
 										WebkitBackdropFilter: "blur(20px) saturate(180%)",
@@ -467,7 +517,7 @@ function Page() {
 								loading={isUpdating || isUploading}
 								onClick={() => form.onSubmit(handleSubmit, handleError)()}
 								styles={{
-									root: { 
+									root: {
 										backgroundColor: "rgba(64, 167, 227, 0.55)",
 										backdropFilter: "blur(20px) saturate(180%)",
 										WebkitBackdropFilter: "blur(20px) saturate(180%)",

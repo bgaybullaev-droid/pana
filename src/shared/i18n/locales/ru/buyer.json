@@ -3,7 +3,6 @@
   "card.propertyType.house": "Дом",
   "card.propertyType.commercial": "Коммерческая недвижимость",
   "card.propertyType.land": "Земельный участок",
-
   "nav.home": "Главная",
   "nav.search": "Поиск",
   "nav.favorites": "Избранное",
@@ -11,7 +10,6 @@
   "nav.profile": "Профиль",
   "nav.preferences": "Предпочтения",
   "nav.settings": "Настройки",
-
   "common.login": "Войти",
   "common.sell": "Продажа",
   "common.rent": "Аренда",
@@ -27,19 +25,15 @@
   "common.noListings": "Нет объявлений",
   "common.cancel": "Отмена",
   "action.apply": "Применить",
-
   "common.propertyType.apartment": "Квартира",
   "common.propertyType.house": "Дом",
   "common.propertyType.commercial": "Коммерция",
   "common.propertyType.land": "Земля",
-
   "common.propertyTypePlural.apartment": "Квартиры",
   "common.propertyTypePlural.house": "Дома",
   "common.propertyTypePlural.commercial": "Коммерция",
   "common.propertyTypePlural.land": "Земля",
-
   "common.roomsOption.studio": "Студия",
-
   "listing.defaultDistrict": "Ташкент",
   "listing.typeSell": "Продажа",
   "listing.typeRent": "Аренда",
@@ -64,7 +58,6 @@
   "listing.noImages": "Нет изображений",
   "listing.imageLoadError": "Ошибка загрузки фото",
   "listing.perMonth": "/мес",
-
   "comments.title": "Комментарии",
   "comments.reply": "Ответить",
   "comments.empty": "Пока нет комментариев",
@@ -75,19 +68,14 @@
   "comments.replyTo": "Ответ для {{name}}",
   "comments.replyPlaceholder": "Напишите ответ...",
   "comments.placeholder": "Напишите комментарий...",
-
   "description.title": "Описание",
-
   "listingDetail.notFound": "Объявление не найдено",
   "listingDetail.notFoundDescription": "Возможно, оно было удалено или еще не опубликовано",
   "listingDetail.goHome": "На главную",
-
   "filter.priceRange": "Диапазон цен",
-
   "mobileOnly.title": "Только для мобильных устройств",
   "mobileOnly.description": "UcharMarket доступен только в мобильном приложении Telegram.",
   "mobileOnly.instruction": "Откройте @ucharTestMarket_bot в Telegram на вашем телефоне.",
-
   "home.searchPlaceholder": "Поиск недвижимости...",
   "home.found": "Найдено: {{total}}",
   "home.filters": "Фильтры",
@@ -105,7 +93,6 @@
   "home.resetFilters": "Сбросить фильтры",
   "home.emptyTitle": "Ничего не найдено",
   "home.emptyDescription": "Попробуйте изменить фильтры или поисковый запрос",
-
   "search.title": "Поиск",
   "search.placeholder": "Адрес, район или описание...",
   "search.propertyType": "Тип недвижимости",
@@ -141,13 +128,11 @@
   "search.onboarding.features.alerts.title": "Умные уведомления",
   "search.onboarding.features.alerts.desc": "Оповещения на ваших условиях",
   "search.onboarding.tip": "Здесь будет сохраняться история вашего поиска",
-
   "favorites.title": "Избранное",
   "favorites.subtitle": "Сохраняйте понравившиеся объявления",
   "favorites.loginPrompt": "Войдите, чтобы сохранять объявления в избранное",
   "favorites.emptyTitle": "Пока пусто",
   "favorites.emptyDescription": "Нажмите на сердечко, чтобы добавить",
-
   "notifications.title": "Уведомления",
   "notifications.subtitle": "Будьте в курсе новых предложений",
   "notifications.loginPrompt": "Войдите, чтобы получать уведомления",
@@ -158,7 +143,6 @@
   "notifications.today": "Сегодня",
   "notifications.yesterday": "Вчера",
   "notifications.earlier": "Ранее",
-
   "profile.title": "Профиль",
   "profile.loginSubtitle": "Войдите, чтобы управлять профилем",
   "profile.loginPrompt": "Войдите, чтобы сохранять избранное и получать уведомления",
@@ -176,11 +160,9 @@
   "profile.logoutConfirm": "Вы уверены, что хотите выйти?",
   "profile.version": "UcharMarket v1.0.0",
   "profile.language": "Язык",
-
   "auth.subtitle": "Найдите свою идеальную недвижимость",
   "auth.loginMessage": "Войдите, чтобы использовать избранное, уведомления и профиль",
   "auth.terms": "Продолжая, вы соглашаетесь с условиями использования и политикой конфиденциальности",
-
   "preferences.title": "Определите предпочтения!",
   "preferences.subtitle": "Мы подберём объявления под ваши интересы",
   "preferences.listingType": "Тип сделки",
@@ -195,11 +177,8 @@
   "preferences.desc.rooms": "Сколько комнат нужно?",
   "preferences.desc.priceRange": "Какой у вас бюджет?",
   "preferences.desc.region": "Где хотите жить?",
-
   "profile.menuPreferences": "Предпочтения",
-
   "nav.menu": "Меню",
-
   "menu.title": "Меню",
   "menu.profile": "Профиль",
   "menu.loginPrompt": "Войти в аккаунт",
@@ -208,7 +187,6 @@
   "menu.support": "Служба поддержки",
   "menu.share": "Поделится с другом",
   "menu.shareText": "Ищешь недвижимость в Узбекистане? Попробуй UcharMarket!",
-
   "about.tagline": "Недвижимость Узбекистана в одном приложении",
   "about.description": "UcharMarket — удобный сервис для поиска недвижимости в Узбекистане. Мы собираем объявления из Telegram-каналов и OLX, чтобы вы могли найти идеальный вариант в одном месте.",
   "about.featuresTitle": "Возможности",
@@ -219,7 +197,6 @@
   "about.feature5": "Проверенные объявления от реальных продавцов",
   "about.feature6": "Удобный интерфейс прямо в Telegram",
   "about.contactTitle": "Связаться с нами",
-
   "faq.q1": "Что такое UcharMarket?",
   "faq.a1": "UcharMarket — это платформа для поиска недвижимости в Узбекистане. Мы автоматически собираем объявления из популярных Telegram-каналов и OLX.uz, чтобы вы могли найти квартиру, дом или коммерческую недвижимость в одном приложении.",
   "faq.q2": "Приложение бесплатное?",
@@ -232,7 +209,6 @@
   "faq.a5": "Да! Нажмите кнопку «+» в нижнем меню, зарегистрируйтесь как продавец, и вы сможете бесплатно размещать свои объявления.",
   "faq.q6": "Откуда берутся объявления?",
   "faq.a6": "Мы автоматически собираем объявления из популярных Telegram-каналов по недвижимости и с площадки OLX.uz. Все данные обрабатываются с помощью AI для точного извлечения информации.",
-
   "auth.enterOTP": "Введите код из SMS",
   "auth.changeNumber": "Изменить номер",
   "auth.enterData": "Введите данные, чтобы продолжить",
@@ -243,7 +219,6 @@
   "auth.loginTitle": "Вход",
   "auth.resendCode": "Отправить код повторно",
   "auth.resendCodeTimer": "Повторить через {{time}}",
-
   "settings.title": "Настройки",
   "settings.loginSubtitle": "Войдите, чтобы управлять настройками",
   "settings.loginPrompt": "Войдите, чтобы получить доступ к настройкам",
@@ -277,7 +252,6 @@
   "settings.soonTitle": "Скоро!",
   "settings.soonMessage": "Мы работаем над этой функцией. Мы уведомим вас, когда она будет готова.",
   "settings.gotIt": "Понятно",
-
   "realtors.title": "Для профессиональных риелторов",
   "realtors.description": "UcharMarket помогает риелторам находить клиентов и продвигать объекты недвижимости. Размещайте объявления бесплатно и получайте доступ к тысячам покупателей.",
   "realtors.benefit1": "Бесплатное размещение неограниченного количества объявлений",
@@ -285,14 +259,12 @@
   "realtors.benefit3": "Панель аналитики с просмотрами и статистикой",
   "realtors.benefit4": "Управление всеми объявлениями из одной панели",
   "realtors.cta": "Зарегистрироваться как продавец",
-
   "support.title": "Как мы можем помочь?",
   "support.description": "Выберите удобный способ связи и мы ответим в ближайшее время.",
   "support.telegram": "Telegram",
   "support.phone": "Телефон",
   "support.email": "Email",
   "support.hours": "Время работы: Пн–Пт, 09:00–18:00 (UZT)",
-
   "privacy.lastUpdated": "Обновлено: 1 марта 2026",
   "privacy.intro": "Настоящая Политика конфиденциальности описывает, как UcharMarket собирает, использует и защищает ваши персональные данные при использовании нашего сервиса.",
   "privacy.section1Title": "1. Какие данные мы собираем",
@@ -305,7 +277,6 @@
   "privacy.section4Text": "Мы не продаём и не передаём ваши данные третьим лицам, кроме случаев, предусмотренных законодательством Республики Узбекистан.",
   "privacy.section5Title": "5. Ваши права",
   "privacy.section5Text": "Вы можете запросить удаление своих данных, отказаться от уведомлений или удалить аккаунт в любое время через настройки приложения.",
-
   "terms.lastUpdated": "Обновлено: 1 марта 2026",
   "terms.intro": "Используя сервис UcharMarket, вы соглашаетесь с условиями, изложенными ниже. Пожалуйста, внимательно ознакомьтесь с данным документом.",
   "terms.section1Title": "1. Общие положения",
@@ -320,7 +291,6 @@
   "terms.section5Text": "Все материалы, дизайн и код сервиса являются собственностью UcharMarket. Копирование и распространение контента без разрешения запрещено.",
   "terms.section6Title": "6. Изменение условий",
   "terms.section6Text": "Мы оставляем за собой право изменять данные условия. Об изменениях мы уведомим через приложение. Продолжая использовать сервис после изменений, вы соглашаетесь с новыми условиями.",
-
   "editProfile.title": "Редактировать профиль",
   "editProfile.firstName": "Имя",
   "editProfile.firstNamePlaceholder": "Введите имя",
@@ -329,5 +299,36 @@
   "editProfile.phone": "Телефон",
   "editProfile.save": "Сохранить",
   "editProfile.firstNameRequired": "Имя обязательно для заполнения",
-  "editProfile.saveError": "Не удалось сохранить. Попробуйте ещё раз."
+  "editProfile.saveError": "Не удалось сохранить. Попробуйте ещё раз.",
+  "favorites.tabListings": "Объявления",
+  "favorites.tabSearches": "Сохранённые поиски",
+  "favorites.searches.emptyTitle": "Нет сохранённых поисков",
+  "favorites.searches.emptyDescription": "Нажмите на сердечко на экране результатов, чтобы сохранить поиск",
+  "favorites.searches.loginPrompt": "Войдите, чтобы сохранять поиски",
+  "favorites.searches.newCount_one": "{{count}} новое",
+  "favorites.searches.newCount_few": "{{count}} новых",
+  "favorites.searches.newCount_many": "{{count}} новых",
+  "favorites.searches.noNew": "Новых объявлений нет",
+  "favorites.searches.saved": "Поиск сохранён!",
+  "favorites.searches.deleted": "Поиск удалён",
+  "favorites.searches.saveSearch": "Сохранить поиск",
+  "favorites.searches.sortLabel": "Сортировка: {{sort}}",
+  "notificationSettings.title": "Настройки уведомлений",
+  "notificationSettings.subtitle": "Управляйте тем, когда и как вы получаете уведомления",
+  "notificationSettings.pause": "Приостановить все уведомления",
+  "notificationSettings.pauseDesc": "Временно отключить все уведомления",
+  "notificationSettings.dailyLimit": "Лимит в день",
+  "notificationSettings.dailyLimitDesc": "Максимальное количество уведомлений в день",
+  "notificationSettings.dailyLimitValue": "до {{count}} в день",
+  "notificationSettings.timeWindows": "Время доставки",
+  "notificationSettings.timeWindowsDesc": "В какое время получать уведомления",
+  "notificationSettings.window.morning": "Утро (8–12)",
+  "notificationSettings.window.afternoon": "День (12–18)",
+  "notificationSettings.window.evening": "Вечер (18–22)",
+  "notificationSettings.sources": "Источники",
+  "notificationSettings.sourcesDesc": "Откуда получать уведомления",
+  "notificationSettings.source.saved_searches": "Сохранённые поиски",
+  "notificationSettings.source.seller_follows": "Подписки на продавцов",
+  "notificationSettings.source.ai_recs": "Рекомендации AI",
+  "notificationSettings.saved": "Настройки сохранены"
 }

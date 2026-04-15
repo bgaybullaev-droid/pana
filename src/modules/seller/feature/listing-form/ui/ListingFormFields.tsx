@@ -1,4 +1,11 @@
-import { Textarea, NumberInput, Box, Text, Switch } from "@mantine/core";
+import {
+	Textarea,
+	NumberInput,
+	Box,
+	Text,
+	Switch,
+	TextInput,
+} from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { Suspense, lazy, useMemo } from "react";
 import { FormSection } from "@shared/ui/FormSection";
@@ -14,6 +21,10 @@ import {
 	normalizeCombo,
 } from "../lib/visibility";
 import type { DealType, PropertyType } from "../lib/visibility";
+
+// P5 sub-gate (blueprint §2.2): metro_station is only meaningful inside
+// Tashkent. Mirrors backend `_clear_incompatible_fields` rule P5.
+const TASHKENT_REGION = "toshkent_shahri";
 
 const MapPicker = lazy(() =>
 	import("@shared/ui/MapPicker").then((m) => ({ default: m.MapPicker })),
@@ -39,6 +50,10 @@ export function ListingFormFields({
 	const dt = form.values.type;
 
 	// Per-field visibility resolved through the central matrix (T-031).
+	// `marketType` / `furniture` are the Sprint-5 dual-read canonical names;
+	// we gate on the new names and hide the legacy `building_type` /
+	// `is_furnished` controls entirely. Pre-fill on edit maps old → new so
+	// the legacy column stays in sync through `buildListingData`.
 	const show = useMemo(
 		() => ({
 			rooms: isVisible("rooms", pt, dt),
@@ -48,17 +63,42 @@ export function ListingFormFields({
 			landArea: isVisible("land_area", pt, dt),
 			floor: isVisible("floor", pt, dt),
 			totalFloors: isVisible("total_floors", pt, dt),
-			buildingType: isVisible("building_type", pt, dt),
+			// S5: canonical names
+			marketType: isVisible("market_type", pt, dt),
+			wallMaterial: isVisible("wall_material", pt, dt),
+			furniture: isVisible("furniture", pt, dt),
 			condition: isVisible("condition", pt, dt),
 			houseType: isVisible("house_type", pt, dt),
 			utilities: isVisible("water_supply", pt, dt),
-			furnished: isVisible("is_furnished", pt, dt),
 			aptAmenities: isVisible("amenities", pt, dt) && pt === "apartment",
 			houseAmenities: isVisible("amenities", pt, dt) && pt === "house",
 			nearbyAmenities: isVisible("nearby_amenities", pt, dt),
 			landPurpose: isVisible("land_purpose", pt, dt),
+			// S3 — matrix-gated location fields (always-visible ones handled
+			// unconditionally in the Location section)
+			jkName: isVisible("jk_name", pt, dt),
+			metroStation:
+				isVisible("metro_station", pt, dt) &&
+				form.values.region === TASHKENT_REGION, // P5 region sub-gate
+			// S4 — commercial (all matrix-gated to commercial)
+			commercialType: isVisible("commercial_type", pt, dt),
+			pricePerSqm: isVisible("price_per_sqm", pt, dt),
+			ceilingHeight: isVisible("ceiling_height", pt, dt),
+			entrance: isVisible("entrance", pt, dt),
+			parkingComm: isVisible("parking_comm", pt, dt),
+			buildingClass: isVisible("building_class", pt, dt),
+			// S6 — property polish
+			garage: isVisible("garage", pt, dt),
+			basement: isVisible("basement", pt, dt),
+			buildingsExist: isVisible("buildings_exist", pt, dt),
+			fence: isVisible("fence", pt, dt),
+			landShape: isVisible("land_shape", pt, dt),
+			balcony: isVisible("balcony", pt, dt),
+			listingSubtype: isVisible("listing_subtype", pt, dt),
+			floorPlanUrl: isVisible("floor_plan_url", pt, dt),
 		}),
-		[pt, dt],
+		// form.values.region feeds P5 region sub-gate for metro_station.
+		[pt, dt, form.values.region],
 	);
 
 	const locationCenter = useMemo(
@@ -213,17 +253,110 @@ export function ListingFormFields({
 	];
 
 	// Apartment condition
+	// S4 (T-007): widened condition enum — matches backend DB CHECK.
 	const conditionOpts = [
 		{ value: "euro", label: t("createListing.condEuro") },
 		{ value: "cosmetic", label: t("createListing.condCosmetic") },
 		{ value: "needs_repair", label: t("createListing.condRepair") },
 		{ value: "rough", label: t("createListing.condRough") },
 		{ value: "none", label: t("createListing.condNone") },
+		{ value: "shell", label: t("createListing.condShell") },
+		{ value: "medium", label: t("createListing.condMedium") },
+		{ value: "designer", label: t("createListing.condDesigner") },
+		{ value: "turnkey", label: t("createListing.condTurnkey") },
+		{
+			value: "needs_repair_comm",
+			label: t("createListing.condNeedsRepairComm"),
+		},
 	];
 
-	const furnishedOpts = [
-		{ value: "yes", label: t("createListing.yes") },
-		{ value: "no", label: t("createListing.no") },
+	// S5 (T-008): furniture replaces legacy is_furnished boolean.
+	const furnitureOpts = [
+		{ value: "none", label: t("createListing.furnitureNone") },
+		{ value: "partial", label: t("createListing.furniturePartial") },
+		{ value: "full", label: t("createListing.furnitureFull") },
+		{ value: "built_in", label: t("createListing.furnitureBuiltIn") },
+	];
+
+	// S5 (T-006): market_type replaces legacy building_type. Values match
+	// the old ones (new / secondary) so edit-mode pre-fill carries over.
+	const marketTypeOpts = [
+		{ value: "new", label: t("createListing.marketTypeNew") },
+		{ value: "secondary", label: t("createListing.marketTypeSecondary") },
+	];
+
+	// S5 — wall_material (apartment + house)
+	const wallMaterialOpts = [
+		{ value: "brick", label: t("createListing.wallMaterialBrick") },
+		{ value: "gasblock", label: t("createListing.wallMaterialGasblock") },
+		{ value: "panel", label: t("createListing.wallMaterialPanel") },
+		{ value: "monolith", label: t("createListing.wallMaterialMonolith") },
+		{ value: "other", label: t("createListing.wallMaterialOther") },
+	];
+
+	// S4 — commercial enums
+	const commercialTypeOpts = [
+		{ value: "office", label: t("createListing.commercialTypeOffice") },
+		{ value: "shop", label: t("createListing.commercialTypeShop") },
+		{ value: "warehouse", label: t("createListing.commercialTypeWarehouse") },
+		{ value: "production", label: t("createListing.commercialTypeProduction") },
+		{ value: "restaurant", label: t("createListing.commercialTypeRestaurant") },
+		{ value: "hotel", label: t("createListing.commercialTypeHotel") },
+		{ value: "other", label: t("createListing.commercialTypeOther") },
+	];
+
+	const entranceOpts = [
+		{ value: "separate", label: t("createListing.entranceSeparate") },
+		{ value: "yard", label: t("createListing.entranceYard") },
+		{ value: "street", label: t("createListing.entranceStreet") },
+		{ value: "mall", label: t("createListing.entranceMall") },
+	];
+
+	const buildingClassOpts = [
+		{ value: "standalone", label: t("createListing.buildingClassStandalone") },
+		{ value: "embedded", label: t("createListing.buildingClassEmbedded") },
+		{
+			value: "business_center",
+			label: t("createListing.buildingClassBusinessCenter"),
+		},
+		{ value: "mall", label: t("createListing.buildingClassMall") },
+	];
+
+	// S6 — property polish enums
+	const balconyOpts = [
+		{ value: "none", label: t("createListing.balconyNone") },
+		{ value: "balcony", label: t("createListing.balconyBalcony") },
+		{ value: "loggia", label: t("createListing.balconyLoggia") },
+		{ value: "terrace", label: t("createListing.balconyTerrace") },
+	];
+
+	const listingSubtypeOpts = [
+		{ value: "standard", label: t("createListing.listingSubtypeStandard") },
+		{ value: "studio", label: t("createListing.listingSubtypeStudio") },
+		{ value: "free_plan", label: t("createListing.listingSubtypeFreePlan") },
+	];
+
+	const landShapeOpts = [
+		{ value: "rectangular", label: t("createListing.landShapeRectangular") },
+		{ value: "irregular", label: t("createListing.landShapeIrregular") },
+	];
+
+	// S3 — metro stations of Tashkent (gated by P5 to region=toshkent_shahri).
+	// Simple list for the MVP; a later PR can source this from a static
+	// data module if the set grows.
+	const metroStationOpts = [
+		{ value: "chilonzor", label: "Chilonzor" },
+		{ value: "mustaqillik_maydoni", label: "Mustaqillik Maydoni" },
+		{ value: "amir_temur_xiyoboni", label: "Amir Temur Xiyoboni" },
+		{ value: "yunus_rajabiy", label: "Yunus Rajabiy" },
+		{ value: "minor", label: "Minor" },
+		{ value: "beruniy", label: "Beruniy" },
+		{ value: "pushkin", label: "Pushkin" },
+		{ value: "ming_urik", label: "Ming O'rik" },
+		{ value: "oybek", label: "Oybek" },
+		{ value: "kosmonavtlar", label: "Kosmonavtlar" },
+		{ value: "olmazor", label: "Olmazor" },
+		{ value: "sergeli", label: "Sergeli" },
 	];
 
 	// Apartment amenities
@@ -269,11 +402,20 @@ export function ListingFormFields({
 		{ value: "school", label: t("createListing.nearSchool") },
 	];
 
+	// S6 (T-013): widened / re-coded enum — matches backend DB CHECK
+	// (construction | commercial_land | agricultural | garden | unspecified).
+	// Legacy values (`private`, `industrial`, `commercial`) were backfilled
+	// by migration 20260419_s6_property_polish.py and are no longer valid
+	// for new submits.
 	const landPurposeOpts = [
-		{ value: "private", label: t("createListing.lpPrivate") },
-		{ value: "industrial", label: t("createListing.lpIndustrial") },
-		{ value: "agricultural", label: t("createListing.lpAgri") },
-		{ value: "commercial", label: t("createListing.lpCommercial") },
+		{ value: "construction", label: t("createListing.lpConstruction") },
+		{
+			value: "commercial_land",
+			label: t("createListing.lpCommercialLand"),
+		},
+		{ value: "agricultural", label: t("createListing.lpAgricultural") },
+		{ value: "garden", label: t("createListing.lpGarden") },
+		{ value: "unspecified", label: t("createListing.lpUnspecified") },
 	];
 
 	const currencyOpts = [
@@ -427,25 +569,23 @@ export function ListingFormFields({
 				)}
 			</FormSection>
 
-			{/* ── Apartment Attributes ── */}
-			{(show.buildingType || show.condition || show.furnished) && (
+			{/* ── Apartment / Shared Attributes ── */}
+			{(show.marketType ||
+				show.condition ||
+				show.furniture ||
+				show.wallMaterial ||
+				show.balcony ||
+				show.listingSubtype ||
+				show.floorPlanUrl) && (
 				<FormSection title={t("createListing.aptAttributes")} bg={sectionBg}>
-					{show.buildingType && (
+					{show.marketType && (
 						<ChipSelect
-							label={t("createListing.buildingType")}
+							label={t("createListing.marketTypeLabel")}
 							required
-							options={[
-								{ value: "new", label: t("createListing.buildingNew") },
-								{
-									value: "secondary",
-									label: t("createListing.buildingSecondary"),
-								},
-							]}
-							value={form.values.building_type}
-							onChange={(val) =>
-								set("building_type", val as string | undefined)
-							}
-							error={form.errors.building_type as string}
+							options={marketTypeOpts}
+							value={form.values.market_type}
+							onChange={(val) => set("market_type", val as string | undefined)}
+							error={form.errors.market_type as string}
 						/>
 					)}
 					{show.condition && (
@@ -458,42 +598,107 @@ export function ListingFormFields({
 							error={form.errors.condition as string}
 						/>
 					)}
-					{show.furnished && (
+					{show.furniture && (
 						<ChipSelect
-							label={t("createListing.furnished")}
+							label={t("createListing.furnitureLabel")}
 							required
-							options={furnishedOpts}
-							value={form.values.is_furnished}
-							onChange={(val) => set("is_furnished", val as string | undefined)}
-							error={form.errors.is_furnished as string}
+							options={furnitureOpts}
+							value={form.values.furniture}
+							onChange={(val) => set("furniture", val as string | undefined)}
+							error={form.errors.furniture as string}
+						/>
+					)}
+					{show.wallMaterial && (
+						<ChipSelect
+							label={t("createListing.wallMaterialLabel")}
+							options={wallMaterialOpts}
+							value={form.values.wall_material}
+							onChange={(val) =>
+								set("wall_material", val as string | undefined)
+							}
+						/>
+					)}
+					{show.listingSubtype && (
+						<ChipSelect
+							label={t("createListing.listingSubtypeLabel")}
+							options={listingSubtypeOpts}
+							value={form.values.listing_subtype}
+							onChange={(val) =>
+								set("listing_subtype", val as string | undefined)
+							}
+						/>
+					)}
+					{show.balcony && (
+						<ChipSelect
+							label={t("createListing.balconyLabel")}
+							options={balconyOpts}
+							value={form.values.balcony}
+							onChange={(val) => set("balcony", val as string | undefined)}
+						/>
+					)}
+					{show.floorPlanUrl && (
+						<TextInput
+							label={t("createListing.floorPlanUrlLabel")}
+							placeholder={t("createListing.floorPlanUrlPlaceholder")}
+							value={form.values.floor_plan_url || ""}
+							onChange={(e) =>
+								set("floor_plan_url", e.currentTarget.value || undefined)
+							}
 						/>
 					)}
 				</FormSection>
 			)}
 
 			{/* ── House-Specific Attributes ── */}
-			{show.houseType && (
+			{(show.houseType || show.garage || show.basement) && (
 				<FormSection title={t("createListing.houseAttributes")} bg={sectionBg}>
-					<ChipSelect
-						label={t("createListing.houseType")}
-						options={houseTypeOpts}
-						value={form.values.house_type}
-						onChange={(val) => set("house_type", val as string | undefined)}
-					/>
-					<ChipMultiSelect
-						label={t("createListing.houseCondition")}
-						description={t("createListing.multipleAllowed")}
-						options={houseConditionOpts}
-						value={form.values.house_condition}
-						onChange={(val) => set("house_condition", val)}
-					/>
-					<ChipMultiSelect
-						label={t("createListing.locationType")}
-						description={t("createListing.multipleAllowed")}
-						options={locationTypeOpts}
-						value={form.values.location_type}
-						onChange={(val) => set("location_type", val)}
-					/>
+					{show.houseType && (
+						<ChipSelect
+							label={t("createListing.houseType")}
+							options={houseTypeOpts}
+							value={form.values.house_type}
+							onChange={(val) => set("house_type", val as string | undefined)}
+						/>
+					)}
+					{show.houseType && (
+						<ChipMultiSelect
+							label={t("createListing.houseCondition")}
+							description={t("createListing.multipleAllowed")}
+							options={houseConditionOpts}
+							value={form.values.house_condition}
+							onChange={(val) => set("house_condition", val)}
+						/>
+					)}
+					{show.houseType && (
+						<ChipMultiSelect
+							label={t("createListing.locationType")}
+							description={t("createListing.multipleAllowed")}
+							options={locationTypeOpts}
+							value={form.values.location_type}
+							onChange={(val) => set("location_type", val)}
+						/>
+					)}
+					{/* S6 — house polish booleans */}
+					{show.garage && (
+						<Switch
+							label={t("createListing.garageLabel")}
+							checked={form.values.garage === true}
+							onChange={(e) =>
+								set("garage", e.currentTarget.checked || undefined)
+							}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					)}
+					{show.basement && (
+						<Switch
+							label={t("createListing.basementLabel")}
+							checked={form.values.basement === true}
+							onChange={(e) =>
+								set("basement", e.currentTarget.checked || undefined)
+							}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					)}
 				</FormSection>
 			)}
 
@@ -535,18 +740,133 @@ export function ListingFormFields({
 				</FormSection>
 			)}
 
-			{/* ── Land Purpose (Land only) ── */}
-			{show.landPurpose && (
+			{/* ── Land Purpose + S6 land polish (Land only) ── */}
+			{(show.landPurpose ||
+				show.buildingsExist ||
+				show.fence ||
+				show.landShape) && (
 				<FormSection
 					title={t("createListing.landPurposeSection")}
 					bg={sectionBg}
 				>
-					<ChipSelect
-						label={t("createListing.landPurpose")}
-						options={landPurposeOpts}
-						value={form.values.land_purpose}
-						onChange={(val) => set("land_purpose", val as string | undefined)}
-					/>
+					{show.landPurpose && (
+						<ChipSelect
+							label={t("createListing.landPurpose")}
+							options={landPurposeOpts}
+							value={form.values.land_purpose}
+							onChange={(val) => set("land_purpose", val as string | undefined)}
+						/>
+					)}
+					{show.landShape && (
+						<ChipSelect
+							label={t("createListing.landShapeLabel")}
+							options={landShapeOpts}
+							value={form.values.land_shape}
+							onChange={(val) => set("land_shape", val as string | undefined)}
+						/>
+					)}
+					{show.buildingsExist && (
+						<Switch
+							label={t("createListing.buildingsExistLabel")}
+							checked={form.values.buildings_exist === true}
+							onChange={(e) =>
+								set("buildings_exist", e.currentTarget.checked || undefined)
+							}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					)}
+					{show.fence && (
+						<Switch
+							label={t("createListing.fenceLabel")}
+							checked={form.values.fence === true}
+							onChange={(e) =>
+								set("fence", e.currentTarget.checked || undefined)
+							}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					)}
+				</FormSection>
+			)}
+
+			{/* ── Commercial Attributes (S4) ── */}
+			{(show.commercialType ||
+				show.pricePerSqm ||
+				show.ceilingHeight ||
+				show.entrance ||
+				show.parkingComm ||
+				show.buildingClass) && (
+				<FormSection
+					title={t("createListing.commercialSection")}
+					bg={sectionBg}
+				>
+					{show.commercialType && (
+						<ChipSelect
+							label={t("createListing.commercialTypeLabel")}
+							required
+							options={commercialTypeOpts}
+							value={form.values.commercial_type}
+							onChange={(val) =>
+								set("commercial_type", val as string | undefined)
+							}
+							error={form.errors.commercial_type as string}
+						/>
+					)}
+					{show.buildingClass && (
+						<ChipSelect
+							label={t("createListing.buildingClassLabel")}
+							options={buildingClassOpts}
+							value={form.values.building_class}
+							onChange={(val) =>
+								set("building_class", val as string | undefined)
+							}
+						/>
+					)}
+					{show.entrance && (
+						<ChipSelect
+							label={t("createListing.entranceLabel")}
+							options={entranceOpts}
+							value={form.values.entrance}
+							onChange={(val) => set("entrance", val as string | undefined)}
+						/>
+					)}
+					{show.ceilingHeight && (
+						<NumberInput
+							label={t("createListing.ceilingHeightLabel")}
+							min={0.1}
+							max={30}
+							step={0.1}
+							decimalScale={1}
+							hideControls
+							value={form.values.ceiling_height ?? ""}
+							onChange={(val) =>
+								set("ceiling_height", typeof val === "number" ? val : undefined)
+							}
+						/>
+					)}
+					{show.pricePerSqm && (
+						<NumberInput
+							label={t("createListing.pricePerSqmLabel")}
+							min={0}
+							allowNegative={false}
+							allowDecimal={false}
+							thousandSeparator=" "
+							hideControls
+							value={form.values.price_per_sqm ?? ""}
+							onChange={(val) =>
+								set("price_per_sqm", typeof val === "number" ? val : undefined)
+							}
+						/>
+					)}
+					{show.parkingComm && (
+						<Switch
+							label={t("createListing.parkingCommLabel")}
+							checked={form.values.parking_comm === true}
+							onChange={(e) =>
+								set("parking_comm", e.currentTarget.checked || undefined)
+							}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					)}
 				</FormSection>
 			)}
 
@@ -591,7 +911,14 @@ export function ListingFormFields({
 					options={regions}
 					value={form.values.region || undefined}
 					onChange={(val) => {
-						onRegionChange(val ? String(val) : "");
+						const next = val ? String(val) : "";
+						onRegionChange(next);
+						// P5 sub-gate (mirrors backend _clear_incompatible_fields):
+						// metro_station is only meaningful inside Tashkent. Wipe
+						// it whenever the region leaves.
+						if (next !== TASHKENT_REGION && form.values.metro_station) {
+							set("metro_station", undefined);
+						}
 					}}
 					error={form.errors.region as string}
 				/>
@@ -607,6 +934,49 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
+				{/* S3 — always-visible city (required on CREATE) */}
+				<TextInput
+					label={t("createListing.cityLabel")}
+					placeholder={t("createListing.cityPlaceholder")}
+					required
+					value={form.values.city}
+					onChange={(e) => set("city", e.currentTarget.value)}
+					error={form.errors.city as string}
+				/>
+				{/* S3 — always-visible microdistrict */}
+				<TextInput
+					label={t("createListing.microdistrictLabel")}
+					placeholder={t("createListing.microdistrictPlaceholder")}
+					value={form.values.microdistrict || ""}
+					onChange={(e) =>
+						set("microdistrict", e.currentTarget.value || undefined)
+					}
+				/>
+				{/* S3 — jk_name (matrix-gated to apartment + house) */}
+				{show.jkName && (
+					<TextInput
+						label={t("createListing.jkNameLabel")}
+						placeholder={t("createListing.jkNamePlaceholder")}
+						value={form.values.jk_name || ""}
+						onChange={(e) => set("jk_name", e.currentTarget.value || undefined)}
+					/>
+				)}
+				{/* S3 — metro_station (matrix + P5 region sub-gate) */}
+				{show.metroStation && (
+					<ChipSelect
+						label={t("createListing.metroStationLabel")}
+						options={metroStationOpts}
+						value={form.values.metro_station}
+						onChange={(val) => set("metro_station", val as string | undefined)}
+					/>
+				)}
+				{/* S3 — always-visible landmark */}
+				<TextInput
+					label={t("createListing.landmarkLabel")}
+					placeholder={t("createListing.landmarkPlaceholder")}
+					value={form.values.landmark || ""}
+					onChange={(e) => set("landmark", e.currentTarget.value || undefined)}
+				/>
 				<Box>
 					<Text size="sm" fw={500} mb={6}>
 						{t("createListing.mapLabel")}
@@ -720,6 +1090,14 @@ export function ListingFormFields({
 					value={form.values.currency}
 					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}
 				/>
+				{/* S3 — urgent_flag (always-visible, defaults to false). */}
+				<Switch
+					label={t("createListing.urgentFlag")}
+					description={t("createListing.urgentFlagDescription")}
+					checked={form.values.urgent_flag}
+					onChange={(e) => set("urgent_flag", e.currentTarget.checked)}
+					styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+				/>
 			</FormSection>
 
 			{/* ── Contact ── */}
@@ -729,6 +1107,11 @@ export function ListingFormFields({
 					options={[
 						{ value: "owner", label: t("createListing.sellerTypeOwner") },
 						{ value: "realtor", label: t("createListing.sellerTypeRealtor") },
+						// S3 (T-001): developer joins the enum.
+						{
+							value: "developer",
+							label: t("createListing.sellerTypeDeveloper"),
+						},
 					]}
 					value={form.values.seller_type}
 					onChange={(val) => set("seller_type", (val as string) || "")}
@@ -740,6 +1123,15 @@ export function ListingFormFields({
 					value={form.values.phone}
 					onChange={(val) => set("phone", val)}
 					error={form.errors.phone as string}
+				/>
+				{/* S3 — seller_telegram (always-visible, optional). */}
+				<TextInput
+					label={t("createListing.sellerTelegramLabel")}
+					placeholder={t("createListing.sellerTelegramPlaceholder")}
+					value={form.values.seller_telegram || ""}
+					onChange={(e) =>
+						set("seller_telegram", e.currentTarget.value || undefined)
+					}
 				/>
 			</FormSection>
 		</>

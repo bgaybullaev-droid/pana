@@ -44,6 +44,52 @@ export interface ListingCreateData {
 	phone?: string;
 	seller_type?: string;
 	images?: ListingImageCreateData[];
+	// Sprint 2 — rent group (T-002, T-003)
+	// Loose string type — backend Pydantic pattern is the authoritative gate.
+	rent_period?: string;
+	deposit?: number;
+	utilities_incl?: boolean;
+	min_rent_months?: number;
+	allowed_students?: boolean;
+	allowed_pets?: boolean;
+	rent_payment?: string[];
+	// Sprint 2 — sale finance + deed (T-004, T-005)
+	mortgage_ok?: boolean;
+	installment_ok?: boolean;
+	halol_ok?: boolean;
+	deed_type?: string;
+	// Sprint 3 (T-001) — cross-cutting location
+	urgent_flag?: boolean;
+	city?: string;
+	microdistrict?: string;
+	jk_name?: string;
+	landmark?: string;
+	metro_station?: string;
+	seller_telegram?: string;
+	// Sprint 4 (T-009) — commercial
+	commercial_type?: string;
+	price_per_sqm?: number;
+	ceiling_height?: number;
+	entrance?: string;
+	parking_comm?: boolean;
+	building_class?: string;
+	// Sprint 5 (T-006, T-008) — dual-read renames. Submit `market_type` /
+	// `furniture` on new writes; leave `building_type` / `is_furnished`
+	// undefined or the backend will 400 with a dual-read conflict.
+	market_type?: string;
+	wall_material?: string;
+	furniture?: string;
+	// Sprint 6 (T-011, T-014, T-015) — property polish
+	garage?: boolean;
+	basement?: boolean;
+	buildings_exist?: boolean;
+	fence?: boolean;
+	land_shape?: string;
+	balcony?: string;
+	listing_subtype?: string;
+	floor_plan_url?: string;
+	// Sprint 7 (T-027) — housing complex linkage
+	jk_id?: string;
 }
 
 export interface ListingUpdateData extends Partial<ListingCreateData> {
