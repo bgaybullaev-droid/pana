@@ -1,10 +1,4 @@
-import {
-	Textarea,
-	NumberInput,
-	Box,
-	Text,
-	Switch,
-} from "@mantine/core";
+import { Textarea, NumberInput, Box, Text, Switch } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { Suspense, lazy, useMemo } from "react";
 import { FormSection } from "@shared/ui/FormSection";
@@ -14,6 +8,12 @@ import { PhoneInput } from "@shared/ui/PhoneInput";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
+import {
+	clearIncompatibleFields,
+	isVisible,
+	normalizeCombo,
+} from "../lib/visibility";
+import type { DealType, PropertyType } from "../lib/visibility";
 
 const MapPicker = lazy(() =>
 	import("@shared/ui/MapPicker").then((m) => ({ default: m.MapPicker })),
@@ -27,44 +27,6 @@ interface ListingFormFieldsProps {
 	sectionBg?: string;
 }
 
-// ── Visibility helpers (spec Section 3) ──
-function vis(pt: string) {
-	const isApt = pt === "apartment";
-	const isHouse = pt === "house";
-	const isCom = pt === "commercial";
-	const isLand = pt === "land";
-	return {
-		// Core
-		rooms: isApt || isHouse,
-		area: !isLand,
-		livingArea: isApt || isHouse,
-		kitchenArea: isApt,
-		landArea: isHouse || isLand,
-		floor: isApt || isCom,
-		totalFloors: isApt || isCom,
-		ceilingHeight: !isLand,
-		// Apartment-only
-		buildingType: isApt,
-		condition: isApt || isCom,
-		layout: isApt,
-		// House-only
-		houseType: isHouse,
-		houseCondition: isHouse,
-		locationType: isHouse,
-		utilities: isHouse,
-		// Common
-		buildingMaterial: isApt || isHouse,
-		bathroom: isApt || isHouse,
-		furnished: !isLand,
-		// Amenities
-		aptAmenities: isApt,
-		houseAmenities: isHouse,
-		nearbyAmenities: !isLand,
-		// Land
-		landPurpose: isLand,
-	};
-}
-
 export function ListingFormFields({
 	form,
 	regions,
@@ -74,7 +36,30 @@ export function ListingFormFields({
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
 	const pt = form.values.property_type;
-	const show = vis(pt);
+	const dt = form.values.type;
+
+	// Per-field visibility resolved through the central matrix (T-031).
+	const show = useMemo(
+		() => ({
+			rooms: isVisible("rooms", pt, dt),
+			area: isVisible("area", pt, dt),
+			livingArea: isVisible("living_area", pt, dt),
+			kitchenArea: isVisible("kitchen_area", pt, dt),
+			landArea: isVisible("land_area", pt, dt),
+			floor: isVisible("floor", pt, dt),
+			totalFloors: isVisible("total_floors", pt, dt),
+			buildingType: isVisible("building_type", pt, dt),
+			condition: isVisible("condition", pt, dt),
+			houseType: isVisible("house_type", pt, dt),
+			utilities: isVisible("water_supply", pt, dt),
+			furnished: isVisible("is_furnished", pt, dt),
+			aptAmenities: isVisible("amenities", pt, dt) && pt === "apartment",
+			houseAmenities: isVisible("amenities", pt, dt) && pt === "house",
+			nearbyAmenities: isVisible("nearby_amenities", pt, dt),
+			landPurpose: isVisible("land_purpose", pt, dt),
+		}),
+		[pt, dt],
+	);
 
 	const locationCenter = useMemo(
 		() =>
@@ -298,6 +283,23 @@ export function ListingFormFields({
 
 	const set = (key: string, val: any) => form.setFieldValue(key, val);
 
+	// Apply the Sprint 1 visibility matrix: when (property_type, deal_type)
+	// changes, wipe fields that are no longer visible. Rule P3 (land forces
+	// sell) is applied via normalizeCombo before computing the clearing patch.
+	const applyTransition = (nextPt: PropertyType, nextDt: DealType) => {
+		const norm = normalizeCombo(nextPt, nextDt);
+		const patch = clearIncompatibleFields(
+			norm.propertyType,
+			norm.dealType,
+		) as Partial<ListingFormValues>;
+		form.setValues({
+			...form.values,
+			property_type: norm.propertyType,
+			type: norm.dealType,
+			...patch,
+		});
+	};
+
 	return (
 		<>
 			{/* ── Type ── */}
@@ -313,39 +315,9 @@ export function ListingFormFields({
 					]}
 					value={form.values.property_type}
 					onChange={(val) => {
-						const newPt =
+						const nextPt =
 							(val as ListingFormValues["property_type"]) || "apartment";
-						set("property_type", newPt);
-						// Land: force sell, clear inapplicable
-						if (newPt === "land") {
-							set("type", "sell");
-							set("rooms", undefined);
-							set("floor", undefined);
-							set("amenities", []);
-							set("nearby_amenities", []);
-						}
-						// Clear apartment-specific fields when leaving apartment
-						if (newPt !== "apartment") {
-							set("building_type", undefined);
-							set("condition", undefined);
-							set("kitchen_area", undefined);
-						}
-						// Clear house-specific fields when leaving house
-						if (newPt !== "house") {
-							set("house_type", undefined);
-							set("house_condition", []);
-							set("location_type", []);
-							set("water_supply", []);
-							set("electricity", undefined);
-							set("heating", []);
-							set("gas_supply", undefined);
-							set("sewage", undefined);
-						}
-						// Clear land-specific when leaving land/house
-						if (newPt !== "land" && newPt !== "house") {
-							set("land_area", undefined);
-							set("land_purpose", undefined);
-						}
+						applyTransition(nextPt, form.values.type);
 					}}
 					error={form.errors.property_type as string}
 				/>
@@ -358,7 +330,10 @@ export function ListingFormFields({
 							{ label: t("createListing.rent"), value: "rent" },
 						]}
 						value={form.values.type}
-						onChange={(val) => set("type", (val as string) || "sell")}
+						onChange={(val) => {
+							const nextDt = (val as DealType) || "sell";
+							applyTransition(pt, nextDt);
+						}}
 						error={form.errors.type as string}
 					/>
 				)}
@@ -562,7 +537,10 @@ export function ListingFormFields({
 
 			{/* ── Land Purpose (Land only) ── */}
 			{show.landPurpose && (
-				<FormSection title={t("createListing.landPurposeSection")} bg={sectionBg}>
+				<FormSection
+					title={t("createListing.landPurposeSection")}
+					bg={sectionBg}
+				>
 					<ChipSelect
 						label={t("createListing.landPurpose")}
 						options={landPurposeOpts}
@@ -681,11 +659,30 @@ export function ListingFormFields({
 						{...form.getInputProps("description")}
 						styles={{ input: { minHeight: 100 } }}
 					/>
-					<Box style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-						<Text size="xs" c={(form.values.description?.length ?? 0) >= 100 ? "red" : "transparent"}>
+					<Box
+						style={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+							marginTop: 4,
+						}}
+					>
+						<Text
+							size="xs"
+							c={
+								(form.values.description?.length ?? 0) >= 100
+									? "red"
+									: "transparent"
+							}
+						>
 							{t("createListing.charLimitReached", { count: 100 })}
 						</Text>
-						<Text size="xs" c={(form.values.description?.length ?? 0) >= 100 ? "red" : "dimmed"}>
+						<Text
+							size="xs"
+							c={
+								(form.values.description?.length ?? 0) >= 100 ? "red" : "dimmed"
+							}
+						>
 							{form.values.description?.length ?? 0} / 100
 						</Text>
 					</Box>

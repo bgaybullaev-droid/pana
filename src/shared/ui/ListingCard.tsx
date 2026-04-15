@@ -9,8 +9,24 @@ import {
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ListingListItem } from "@shared/api/types";
-import { formatPrice, gradients, radii, shadows, spacing, surface } from "@app/styles/theme";
-import { translateDistrict, translateRegion, getRegionForDistrict } from "@shared/lib/regions";
+import {
+	formatPrice,
+	gradients,
+	radii,
+	shadows,
+	spacing,
+	surface,
+} from "@app/styles/theme";
+import {
+	translateDistrict,
+	translateRegion,
+	getRegionForDistrict,
+} from "@shared/lib/regions";
+import {
+	getListingCardContent,
+	type CardStatusBadgeType,
+} from "./listing-card/adapter";
+import type { FieldKey } from "@modules/seller/feature/listing-form/lib/visibility";
 
 interface ListingCardProps {
 	listing: ListingListItem;
@@ -19,6 +35,22 @@ interface ListingCardProps {
 	onFavorite?: (id: string) => void;
 	layout?: "grid" | "masonry";
 }
+
+// Icon mapping for chip fields (T-020). The card renders whatever chips
+// the adapter returns — it does NOT decide visibility itself.
+const CHIP_ICON: Partial<Record<FieldKey, typeof IconBed>> = {
+	rooms: IconBed,
+	area: IconRuler,
+	floor: IconBuilding,
+	land_area: IconRuler,
+};
+
+// T-021 — purely a styling table. Card has zero logic; if the adapter
+// emits a badge type that isn't in this map, we fall back to neutral grey.
+const BADGE_BG: Record<CardStatusBadgeType, string> = {
+	urgent: "rgba(250,82,82,0.92)", // red — "СРОЧНО"
+	verified: "rgba(18,184,134,0.92)", // teal — "Проверенный"
+};
 
 export const ListingCard: FC<ListingCardProps> = ({
 	listing,
@@ -29,13 +61,21 @@ export const ListingCard: FC<ListingCardProps> = ({
 }) => {
 	const { t } = useTranslation("buyer");
 	const [imageLoaded, setImageLoaded] = useState(false);
-	const formattedPrice = formatPrice(listing.price, listing.currency);
+
+	// All variant-specific rendering is derived by the adapter, which reads
+	// the visibility matrix as its single source of truth. The card
+	// component never branches on listing.type / listing.property_type for
+	// field visibility.
+	const cardContent = getListingCardContent(listing, t);
+	const formattedPrice = formatPrice(listing.price, listing.currency, {
+		period: cardContent.price.period,
+	});
 
 	const propertyLabel = t(
 		`card.propertyType.${listing.property_type}`,
 		t(`common.propertyType.${listing.property_type}`, listing.property_type),
 	);
-	
+
 	let actualRegionKey = listing.region;
 	if (!actualRegionKey && listing.district) {
 		actualRegionKey = getRegionForDistrict(listing.district) || null;
@@ -43,7 +83,7 @@ export const ListingCard: FC<ListingCardProps> = ({
 
 	const regionLabel = translateRegion(actualRegionKey, t);
 	const districtRawLabel = translateDistrict(listing.district, t);
-	
+
 	const locationParts = [];
 	if (regionLabel && regionLabel !== districtRawLabel) {
 		locationParts.push(regionLabel);
@@ -51,47 +91,22 @@ export const ListingCard: FC<ListingCardProps> = ({
 	if (districtRawLabel) {
 		locationParts.push(districtRawLabel);
 	}
-	
-	const fullLocationLabel = locationParts.length > 0 
-		? locationParts.join(", ") 
-		: t("listing.defaultDistrict");
 
-	// Building type + condition text (e.g. "Новостройка, Евроремонт")
-	// Only show translated values — skip unknown raw values from crawlers
-	const KNOWN_BUILDING_TYPES = ["new", "secondary"];
-	const KNOWN_CONDITIONS = ["euro", "cosmetic", "needs_repair", "rough"];
-	const KNOWN_LAND_PURPOSES = ["private", "industrial"];
+	const fullLocationLabel =
+		locationParts.length > 0
+			? locationParts.join(", ")
+			: t("listing.defaultDistrict");
 
-	let buildingTypeStr = null;
-	if (
-		listing.building_type &&
-		KNOWN_BUILDING_TYPES.includes(listing.building_type)
-	) {
-		buildingTypeStr = t(`listing.buildingType.${listing.building_type}`);
-	}
-
-	const titleSuffix = listing.property_type === "apartment" && buildingTypeStr
-		? `, ${buildingTypeStr.toLowerCase()}`
+	// Title suffix uses the matrix-derived tagLine to decide whether a
+	// building-type subtitle is available — no hardcoded property_type
+	// check. We take the first tag if present (typically building_type on
+	// apartments) to keep the pre-PR5 suffix UX.
+	const titleSuffix = cardContent.tagLine
+		? `, ${cardContent.tagLine.split(",")[0].toLowerCase()}`
 		: "";
 
 	const standardTitle = `${propertyLabel}${titleSuffix}, ${fullLocationLabel}`;
-
-	const tagParts: string[] = [];
-	if (
-		listing.property_type !== "land" &&
-		listing.condition &&
-		KNOWN_CONDITIONS.includes(listing.condition)
-	) {
-		tagParts.push(t(`listing.condition.${listing.condition}`));
-	}
-	if (
-		listing.land_purpose &&
-		listing.property_type === "land" &&
-		KNOWN_LAND_PURPOSES.includes(listing.land_purpose)
-	) {
-		tagParts.push(t(`listing.landPurpose.${listing.land_purpose}`));
-	}
-	const tagLine = tagParts.join(", ");
+	const tagLine = cardContent.tagLine ?? "";
 
 	// Deterministic varied height for masonry based on listing id
 	const masonryHeight =
@@ -175,24 +190,49 @@ export const ListingCard: FC<ListingCardProps> = ({
 						}}
 					/>
 
-					{/* Type badge */}
+					{/* Type badge — label + color come from the adapter;
+					    card does not branch on listing.type directly. */}
 					<Box
 						style={{
 							position: "absolute",
 							top: 10,
 							left: 10,
-							backgroundColor:
-								listing.type === "sell"
-									? "rgba(34,139,230,0.9)"
-									: "rgba(64,192,87,0.9)",
-							backdropFilter: "blur(8px)",
-							borderRadius: radii.sm,
-							padding: "3px 8px",
+							display: "flex",
+							gap: 4,
+							alignItems: "center",
 						}}
 					>
-						<Text size="10px" fw={700} c="white" lh={1.3}>
-							{listing.type === "sell" ? t("common.sell") : t("common.rent")}
-						</Text>
+						<Box
+							style={{
+								backgroundColor: cardContent.dealTypeBadge.bg,
+								backdropFilter: "blur(8px)",
+								borderRadius: radii.sm,
+								padding: "3px 8px",
+							}}
+						>
+							<Text size="10px" fw={700} c="white" lh={1.3}>
+								{t(cardContent.dealTypeBadge.labelKey)}
+							</Text>
+						</Box>
+						{/* Status badges (verified, urgent, …) — pure render of
+						    the adapter-supplied array. The card adds no logic
+						    of its own. To add a new badge kind, extend the
+						    adapter; the UI requires no change. */}
+						{cardContent.badges.map((badge) => (
+							<Box
+								key={badge.type}
+								style={{
+									backgroundColor: BADGE_BG[badge.type],
+									backdropFilter: "blur(8px)",
+									borderRadius: radii.sm,
+									padding: "3px 8px",
+								}}
+							>
+								<Text size="10px" fw={700} c="white" lh={1.3}>
+									{badge.label}
+								</Text>
+							</Box>
+						))}
 					</Box>
 
 					{/* Favorite */}
@@ -215,7 +255,9 @@ export const ListingCard: FC<ListingCardProps> = ({
 						</ActionIcon>
 					)}
 
-					{/* Price */}
+					{/* Price — suffix ("/ мес", "/ сутки") is now baked into
+					    formatPrice via the adapter-chosen period, so the card
+					    doesn't decide rent vs. sale here. */}
 					<Box
 						style={{
 							position: "absolute",
@@ -230,11 +272,6 @@ export const ListingCard: FC<ListingCardProps> = ({
 					>
 						<Text size="xs" fw={800} c="dark.8" lh={1.3}>
 							{formattedPrice}
-							{listing.type === "rent" && (
-								<Text span size="9px" fw={500} c="dimmed">
-									{t("common.perMonth")}
-								</Text>
-							)}
 						</Text>
 					</Box>
 				</Box>
@@ -285,6 +322,9 @@ export const ListingCard: FC<ListingCardProps> = ({
 					</Box>
 
 					{/* Info chips — area, rooms, floor */}
+					{/* Info chips — iterate over adapter-derived list. Card
+					    does not decide which chips to show; the visibility
+					    matrix does (via getCardChipFields inside the adapter). */}
 					<Box
 						style={{
 							display: "flex",
@@ -294,76 +334,40 @@ export const ListingCard: FC<ListingCardProps> = ({
 							minHeight: 16,
 						}}
 					>
-						{listing.area != null && (
-							<Box
-								style={{
-									display: "flex",
-									alignItems: "center",
-									gap: 3,
-									flexShrink: 0,
-								}}
-							>
-								<IconRuler
-									size={13}
-									color="var(--mantine-color-gray-5)"
-									stroke={2}
-								/>
-								<Text size="xs" c="gray.6" fw={500}>
-									{listing.area} {t("common.sqm")}
-								</Text>
-							</Box>
-						)}
-						{listing.rooms != null && (
-							<Box
-								style={{
-									display: "flex",
-									alignItems: "center",
-									gap: 3,
-									flexShrink: 0,
-								}}
-							>
-								<IconBed
-									size={13}
-									color="var(--mantine-color-gray-5)"
-									stroke={2}
-								/>
-								<Text size="xs" c="gray.6" fw={500}>
-									{listing.rooms} {t("common.rooms")}
-								</Text>
-							</Box>
-						)}
-						{listing.floor != null && (
-							<Box
-								style={{
-									display: "flex",
-									alignItems: "center",
-									gap: 3,
-									flexShrink: 0,
-								}}
-							>
-								<IconBuilding
-									size={13}
-									color="var(--mantine-color-gray-5)"
-									stroke={2}
-								/>
-								<Text size="xs" c="gray.6" fw={500}>
-									{listing.floor}/{listing.total_floors || "?"}
-								</Text>
-							</Box>
-						)}
+						{cardContent.chips.map((chip) => {
+							const Icon = CHIP_ICON[chip.key] ?? IconRuler;
+							return (
+								<Box
+									key={chip.key}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: 3,
+										flexShrink: 0,
+									}}
+								>
+									<Icon
+										size={13}
+										color="var(--mantine-color-gray-5)"
+										stroke={2}
+									/>
+									<Text size="xs" c="gray.6" fw={500}>
+										{chip.label}
+									</Text>
+								</Box>
+							);
+						})}
 					</Box>
 
-					{/* Building type + condition — always rendered to keep card height uniform */}
-					<Text
-						size="xs"
-						c="blue.5"
-						fw={500}
-						mt={4}
-						truncate
-						style={{ visibility: tagLine ? "visible" : "hidden" }}
-					>
-						{tagLine || "\u00A0"}
-					</Text>
+					{/* Tag line (building_type / condition / land_purpose) —
+					    also adapter-derived. No placeholder: if the line is
+					    empty we render nothing (spec: "No placeholders like -
+					    or N/A"). */}
+					{tagLine && (
+						<Text size="xs" c="blue.5" fw={500} mt={4} truncate>
+							{tagLine}
+						</Text>
+					)}
 				</Box>
 			</Box>
 		</UnstyledButton>

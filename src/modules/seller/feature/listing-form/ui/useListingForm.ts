@@ -45,6 +45,19 @@ export interface ListingFormValues {
 	// Amenities
 	amenities: string[];
 	nearby_amenities: string[];
+	// Sprint 2 — rent group (T-002, T-003)
+	rent_period: string | undefined;
+	deposit: number | undefined;
+	utilities_incl: boolean | undefined;
+	min_rent_months: number | undefined;
+	allowed_students: boolean | undefined;
+	allowed_pets: boolean | undefined;
+	rent_payment: string[];
+	// Sprint 2 — sale finance + deed (T-004, T-005)
+	mortgage_ok: boolean;
+	installment_ok: boolean;
+	halol_ok: boolean;
+	deed_type: string | undefined;
 	// Location
 	region: string;
 	district: string;
@@ -94,6 +107,19 @@ export function useListingForm() {
 			land_purpose: undefined,
 			amenities: [],
 			nearby_amenities: [],
+			// Sprint 2 — rent group
+			rent_period: undefined,
+			deposit: undefined,
+			utilities_incl: undefined,
+			min_rent_months: undefined,
+			allowed_students: undefined,
+			allowed_pets: undefined,
+			rent_payment: [],
+			// Sprint 2 — sale finance + deed
+			mortgage_ok: false,
+			installment_ok: false,
+			halol_ok: false,
+			deed_type: undefined,
 			region: "",
 			district: "",
 			address: "",
@@ -157,6 +183,19 @@ export function useListingForm() {
 			is_furnished: (value, values) =>
 				values.property_type !== "land" && !value
 					? t("validation.furnishedRequired")
+					: null,
+			// Sprint 2 — rent listings require a period (blueprint §3.3)
+			rent_period: (value, values) =>
+				values.type === "rent" && values.property_type !== "land" && !value
+					? t("validation.rentPeriodRequired")
+					: null,
+			// Long-term rentals additionally require min_rent_months
+			min_rent_months: (value, values) =>
+				values.type === "rent" &&
+				values.property_type !== "land" &&
+				values.rent_period === "long_term" &&
+				value === undefined
+					? t("validation.minRentMonthsRequired")
 					: null,
 			region: (value) => (!value ? t("validation.regionRequired") : null),
 			district: (value) => (!value ? t("validation.districtRequired") : null),
@@ -266,6 +305,20 @@ export function useListingForm() {
 		amenities: values.amenities.length > 0 ? values.amenities : undefined,
 		nearby_amenities:
 			values.nearby_amenities.length > 0 ? values.nearby_amenities : undefined,
+		// Sprint 2 — rent group (matrix-gated by backend)
+		rent_period: values.rent_period || undefined,
+		deposit: values.deposit,
+		utilities_incl: values.utilities_incl,
+		min_rent_months: values.min_rent_months,
+		allowed_students: values.allowed_students,
+		allowed_pets: values.allowed_pets,
+		rent_payment:
+			values.rent_payment.length > 0 ? values.rent_payment : undefined,
+		// Sprint 2 — sale finance + deed (matrix-gated by backend)
+		mortgage_ok: values.mortgage_ok,
+		installment_ok: values.installment_ok,
+		halol_ok: values.halol_ok,
+		deed_type: values.deed_type || undefined,
 		region: values.region,
 		district: values.district,
 		address: values.address || undefined,

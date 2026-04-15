@@ -173,13 +173,47 @@ export const propertyTypeColors: Record<string, string> = {
 	land: "#be4bdb",
 };
 
-// Price formatter (locale-aware)
-export const formatPrice = (price: number, currency?: string): string => {
+// Price formatter (locale-aware).
+//
+// T-020 extension: optional `period` suffix for rent listings. Two-arg calls
+// keep behaving exactly as before (no suffix).
+export type PricePeriod = "total" | "month" | "day";
+
+export interface FormatPriceOptions {
+	period?: PricePeriod;
+}
+
+export const formatPrice = (
+	price: number,
+	currency?: string,
+	options?: FormatPriceOptions,
+): string => {
 	const lng =
 		typeof window !== "undefined" && localStorage.getItem("i18nextLng");
 	const locale = lng === "uz" ? "uz-Latn" : "ru-RU";
-	const formatted = price.toLocaleString(locale).replace(/,/g, " ");
-	if (!currency) return formatted;
-	if (currency.toUpperCase() === "USD") return `$${formatted}`;
-	return `${formatted} sum`;
+	const isUz = locale === "uz-Latn";
+	// Normalize all space-like separators (NBSP U+00A0, narrow NBSP U+202F,
+	// locale-specific commas) to a regular space so the output stays
+	// stable across environments (JSDOM uses NBSP for ru-RU).
+	const formatted = price
+		.toLocaleString(locale)
+		.replace(/,/g, " ")
+		.replace(/[\u00A0\u202F]/g, " ");
+
+	let base: string;
+	if (!currency) {
+		base = formatted;
+	} else if (currency.toUpperCase() === "USD") {
+		base = `$${formatted}`;
+	} else {
+		base = `${formatted} sum`;
+	}
+
+	const period = options?.period ?? "total";
+	if (period === "total") return base;
+	if (period === "month") {
+		return isUz ? `${base} / oyiga` : `${base} / мес`;
+	}
+	// period === "day"
+	return isUz ? `${base} / kuniga` : `${base} / сутки`;
 };

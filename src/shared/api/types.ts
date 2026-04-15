@@ -154,6 +154,14 @@ export interface ListingListItem {
 	created_at: string;
 	primary_image_url: string | null;
 	is_favorited?: boolean;
+	// ── Sprint 2 (PR3 backend — ListingListResponse extension) ────
+	rent_period?: "long_term" | "daily" | null;
+	land_area?: number | null;
+	mortgage_ok?: boolean;
+	installment_ok?: boolean;
+	halol_ok?: boolean;
+	urgent_flag?: boolean | null;
+	is_verified?: boolean | null;
 }
 
 export interface ListingFilters {
@@ -591,67 +599,3 @@ export interface CrawlerListingFilters {
 	page?: number;
 	per_page?: number;
 }
-
-// ─── Saved Searches (Ф-68 / Ф-69) ───────────────────────────────────────────
-
-export interface SavedSearchFilters {
-	deal_type?: "sell" | "rent";
-	property_type?: "apartment" | "house" | "commercial" | "land";
-	rooms?: number[];
-	price_min?: number | null;
-	price_max?: number | null;
-	currency?: "USD" | "UZS";
-	district?: string | null;
-	region?: string | null;
-}
-
-export interface SavedSearch {
-	id: string;
-	user_id: string;
-	name: string;
-	query: string | null;
-	filters: SavedSearchFilters;
-	sort: string;
-	created_at: string;
-	last_seen_at: string;
-	new_count: number;
-	notifications_enabled?: boolean;
-}
-
-export interface SavedSearchCreateRequest {
-	query?: string | null;
-	filters: SavedSearchFilters;
-	sort?: string;
-}
-
-// ─── Notification Settings (Ф-79 / Ф-80) ────────────────────────────────────
-
-export type NotificationTimeWindow = "morning" | "afternoon" | "evening";
-
-export interface NotificationSettingsSources {
-	saved_searches: boolean;
-	seller_follows: boolean;
-	ai_recs: boolean;
-}
-
-export interface NotificationSettings {
-	daily_limit: number;
-	time_windows: NotificationTimeWindow[];
-	sources: NotificationSettingsSources;
-	paused: boolean;
-	updated_at?: string;
-}
-
-// ─── Activity Log (Ф-78) ─────────────────────────────────────────────────────
-
-export type ActivityAction = "like" | "view" | "search" | "save_search" | "unlike";
-
-export interface ActivityLogPayload {
-	action: ActivityAction;
-	listing_id?: string;
-	query?: string;
-	filters?: Record<string, unknown>;
-	duration_ms?: number;
-	property_type?: string;
-}
-
