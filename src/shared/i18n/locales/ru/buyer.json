@@ -143,6 +143,8 @@
   "notifications.today": "Сегодня",
   "notifications.yesterday": "Вчера",
   "notifications.earlier": "Ранее",
+  "notifications.sourceSavedSearch": "По вашему поиску",
+  "notifications.sourcePreferences": "По вашим фильтрам",
   "profile.title": "Профиль",
   "profile.loginSubtitle": "Войдите, чтобы управлять профилем",
   "profile.loginPrompt": "Войдите, чтобы сохранять избранное и получать уведомления",

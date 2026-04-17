@@ -3,6 +3,8 @@
   "nav.users": "Foydalanuvchilar",
   "nav.listings": "E'lonlar",
   "nav.crawled": "Yig'ilgan",
+  "nav.meiliOps": "Meili operatsiyalar",
+  "nav.auditLog": "Harakatlar jurnali",
 
   "header.brand": "UcharMarket",
   "header.title": "Administrator paneli",

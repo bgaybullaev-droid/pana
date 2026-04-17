@@ -36,6 +36,21 @@ const CrawledDetailPage = lazy(() =>
 		default: m.AdminCrawledDetailPage,
 	})),
 );
+const MeiliOpsPage = lazy(() =>
+	import("../../pages/meili-ops").then((m) => ({
+		default: m.AdminMeiliOps.Page,
+	})),
+);
+const AuditLogPage = lazy(() =>
+	import("../../pages/audit-log").then((m) => ({
+		default: m.AdminAuditLog.Page,
+	})),
+);
+const ListingEditPage = lazy(() =>
+	import("../../pages/listing-edit").then((m) => ({
+		default: m.AdminListingEdit.Page,
+	})),
+);
 
 export function AdminRouter() {
 	return (
@@ -48,8 +63,11 @@ export function AdminRouter() {
 					<Route path="users/:id" element={<UserDetailPage />} />
 					<Route path="listings" element={<ListingsPage />} />
 					<Route path="listings/:id" element={<ListingDetailPage />} />
+					<Route path="listings/:id/edit" element={<ListingEditPage />} />
 					<Route path="crawled" element={<CrawledPage />} />
 					<Route path="crawled/:source/:id" element={<CrawledDetailPage />} />
+					<Route path="ops/meili" element={<MeiliOpsPage />} />
+					<Route path="audit" element={<AuditLogPage />} />
 				</Route>
 				<Route path="*" element={<Navigate to="/admin" replace />} />
 			</Routes>

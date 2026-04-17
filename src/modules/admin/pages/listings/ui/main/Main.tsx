@@ -398,18 +398,27 @@ export function Main() {
 				/>
 			)}
 
-			{/* Back */}
-			<Button
-				variant="subtle"
-				leftSection={<IconArrowLeft size={16} />}
-				onClick={() => navigate("/admin/listings")}
-				className="admin-back-btn"
-				color="gray"
-				mb="md"
-				size="sm"
-			>
-				{t("listingDetail.backToListings")}
-			</Button>
+			{/* Back + Edit */}
+			<Group justify="space-between" mb="md" wrap="nowrap">
+				<Button
+					variant="subtle"
+					leftSection={<IconArrowLeft size={16} />}
+					onClick={() => navigate("/admin/listings")}
+					className="admin-back-btn"
+					color="gray"
+					size="sm"
+				>
+					{t("listingDetail.backToListings")}
+				</Button>
+				<Button
+					variant="light"
+					color="blue"
+					size="sm"
+					onClick={() => navigate(`/admin/listings/${id}/edit`)}
+				>
+					{t("listingDetail.edit", { defaultValue: "Edit" })}
+				</Button>
+			</Group>
 
 			{/* Image Gallery */}
 			{hasImages ? (
@@ -757,7 +766,11 @@ export function Main() {
 						icon={IconPhone}
 						iconBg="linear-gradient(135deg, #10b981, #059669)"
 						label={t("common.phone")}
-						value={(listing.phone || listing.seller_phone) ? formatPhone(listing.phone || listing.seller_phone) : t("common.na")}
+						value={
+							listing.phone || listing.seller_phone
+								? formatPhone(listing.phone || listing.seller_phone)
+								: t("common.na")
+						}
 					/>
 				</Box>
 			</Box>

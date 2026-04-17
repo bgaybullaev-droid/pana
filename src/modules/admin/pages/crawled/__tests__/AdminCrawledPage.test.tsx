@@ -71,9 +71,13 @@ vi.mock("@shared/lib/date", () => ({
 	formatTimeAgo: (_d: string) => "2 hours ago",
 }));
 
-vi.mock("@app/styles/theme", () => ({
-	formatPrice: (price: number, _currency: string) => `$${price}`,
-}));
+vi.mock("@app/styles/theme", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@app/styles/theme")>();
+	return {
+		...actual,
+		formatPrice: (price: number, _currency: string) => `$${price}`,
+	};
+});
 
 vi.mock("@shared/lib/regions", () => ({
 	translateDistrict: (key: string) => key,

@@ -31,10 +31,13 @@ vi.mock("@app/providers/useAuth", () => ({
 }));
 
 // Mock seller shared state
-vi.mock("@modules/seller/shared/state", () => {
+vi.mock("@modules/seller/shared/state", async (importOriginal) => {
+	const actual =
+		await importOriginal<typeof import("@modules/seller/shared/state")>();
 	const isLoadingStore = { getState: () => false, "@@unitShape": () => false };
 	const errorStore = { getState: () => null, "@@unitShape": () => null };
 	return {
+		...actual,
 		registerAsSeller: vi.fn(),
 		registerAsSellerFx: {
 			pending: isLoadingStore,
@@ -58,12 +61,17 @@ vi.mock("@mantine/notifications", () => ({
 }));
 
 // Mock theme
-vi.mock("@app/styles/theme", () => ({
-	gradients: {
-		orange: "linear-gradient(135deg, #ff6e01, #ff9a44)",
-		primary: "linear-gradient(135deg, #228be6, #1971c2)",
-	},
-}));
+vi.mock("@app/styles/theme", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@app/styles/theme")>();
+	return {
+		...actual,
+		gradients: {
+			...actual.gradients,
+			orange: "linear-gradient(135deg, #ff6e01, #ff9a44)",
+			primary: "linear-gradient(135deg, #228be6, #1971c2)",
+		},
+	};
+});
 
 describe("BecomeSeller", () => {
 	beforeEach(() => {

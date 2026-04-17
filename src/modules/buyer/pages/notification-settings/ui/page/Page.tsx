@@ -99,16 +99,24 @@ function Page() {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
 	const { isAuthenticated } = useAuth();
-	const [settings, isLoading] = useUnit([$notificationSettings, $notificationSettingsLoading]);
+	const [settings, isLoading] = useUnit([
+		$notificationSettings,
+		$notificationSettingsLoading,
+	]);
 
 	// Local state mirrors the store
 	const [paused, setPaused] = useState(settings.paused);
 	const [dailyLimit, setDailyLimit] = useState(settings.daily_limit);
-	const [timeWindows, setTimeWindows] = useState<NotificationTimeWindow[]>(settings.time_windows);
+	const [timeWindows, setTimeWindows] = useState<NotificationTimeWindow[]>(
+		settings.time_windows,
+	);
 	const [sources, setSources] = useState(settings.sources);
 
 	const initializedRef = useRef(false);
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+	// Ref that always holds the latest state so the unmount-flush reads
+	// fresh values instead of the stale closure from mount time.
+	const latestRef = useRef({ paused, dailyLimit, timeWindows, sources });
 
 	// Fetch on mount
 	useEffect(() => {
@@ -116,47 +124,76 @@ function Page() {
 		fetchNotificationSettingsFx();
 	}, [isAuthenticated]);
 
-	// Sync from store after fetch (only once)
+	// Sync from store whenever it updates (fetch response or save response).
+	// No initializedRef guard — the previous "only once" logic caused the
+	// bug: the effect fired with DEFAULT_NOTIFICATION_SETTINGS on first
+	// render, set initialized=true, then SKIPPED the real API data when
+	// it arrived. Auto-save won't cause loops because scheduleAutoSave
+	// is only called from UI event handlers, not from setState.
 	useEffect(() => {
-		if (!settings || initializedRef.current) return;
-		initializedRef.current = true;
+		if (!settings) return;
 		setPaused(settings.paused);
 		setDailyLimit(settings.daily_limit);
 		setTimeWindows(settings.time_windows);
 		setSources(settings.sources);
+		initializedRef.current = true;
 	}, [settings]);
 
+	// Keep latestRef in sync so the unmount-flush always reads current values.
+	useEffect(() => {
+		latestRef.current = { paused, dailyLimit, timeWindows, sources };
+	}, [paused, dailyLimit, timeWindows, sources]);
+
 	// Auto-save with debounce
-	const doSave = useCallback((overrides?: Partial<typeof settings>) => {
-		const payload = {
-			paused,
-			daily_limit: dailyLimit,
-			time_windows: timeWindows,
-			sources,
-			...overrides,
-		};
-		saveNotificationSettingsFx(payload).then(() => {
-			notifications.show({
-				message: t("notificationSettings.saved"),
-				color: "green",
-				autoClose: 2000,
+	const doSave = useCallback(
+		(overrides?: Partial<typeof settings>) => {
+			const payload = {
+				paused,
+				daily_limit: dailyLimit,
+				time_windows: timeWindows,
+				sources,
+				...overrides,
+			};
+			saveNotificationSettingsFx(payload).then(() => {
+				notifications.show({
+					message: t("notificationSettings.saved"),
+					color: "green",
+					autoClose: 2000,
+				});
 			});
-		});
-	}, [paused, dailyLimit, timeWindows, sources, t]);
+		},
+		[paused, dailyLimit, timeWindows, sources, t],
+	);
 
-	const scheduleAutoSave = useCallback((overrides?: Partial<typeof settings>) => {
-		if (!initializedRef.current) return;
-		if (debounceRef.current) clearTimeout(debounceRef.current);
-		debounceRef.current = setTimeout(() => doSave(overrides), 700);
-	}, [doSave]);
+	const scheduleAutoSave = useCallback(
+		(overrides?: Partial<typeof settings>) => {
+			if (!initializedRef.current) return;
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+			debounceRef.current = setTimeout(() => doSave(overrides), 700);
+		},
+		[doSave],
+	);
 
-	// Flush on unmount
+	// Flush on unmount — reads from latestRef so we never overwrite the
+	// user's changes with stale default-state captured at mount time.
 	useEffect(() => {
 		return () => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-			if (initializedRef.current) doSave();
+			if (debounceRef.current) {
+				clearTimeout(debounceRef.current);
+				// A debounce was pending → flush with the LATEST values.
+				if (initializedRef.current) {
+					const cur = latestRef.current;
+					saveNotificationSettingsFx({
+						paused: cur.paused,
+						daily_limit: cur.dailyLimit,
+						time_windows: cur.timeWindows,
+						sources: cur.sources,
+					});
+				}
+			}
+			// If no debounce was pending, the last auto-save already
+			// persisted the state — no redundant PUT needed.
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const handlePausedChange = (val: boolean) => {
@@ -254,7 +291,9 @@ function Page() {
 								}}
 							>
 								<Text size="sm" fw={700} c="blue.7">
-									{t("notificationSettings.dailyLimitValue", { count: dailyLimit })}
+									{t("notificationSettings.dailyLimitValue", {
+										count: dailyLimit,
+									})}
 								</Text>
 							</Box>
 						</Group>
@@ -301,13 +340,19 @@ function Page() {
 											padding: "10px 14px",
 											borderRadius: radii.md,
 											backgroundColor: isActive ? "#f3f0ff" : "#f8f9fa",
-											border: isActive ? "1.5px solid #be4bdb" : "1.5px solid #e9ecef",
+											border: isActive
+												? "1.5px solid #be4bdb"
+												: "1.5px solid #e9ecef",
 											cursor: paused ? "default" : "pointer",
 											transition: "all 0.18s ease",
 											opacity: paused ? 0.5 : 1,
 										}}
 									>
-										<Text size="sm" fw={isActive ? 600 : 400} c={isActive ? "violet.7" : "gray.7"}>
+										<Text
+											size="sm"
+											fw={isActive ? 600 : 400}
+											c={isActive ? "violet.7" : "gray.7"}
+										>
 											{t(labelKey)}
 										</Text>
 										<Switch
@@ -333,36 +378,44 @@ function Page() {
 						description={t("notificationSettings.sourcesDesc")}
 					>
 						<Stack gap={10}>
-							{(Object.keys(sources) as Array<keyof typeof sources>).map((key) => (
-								<Box
-									key={key}
-									onClick={() => !paused && toggleSource(key)}
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "space-between",
-										padding: "10px 14px",
-										borderRadius: radii.md,
-										backgroundColor: sources[key] ? "#fff4e6" : "#f8f9fa",
-										border: sources[key] ? "1.5px solid #ff922b" : "1.5px solid #e9ecef",
-										cursor: paused ? "default" : "pointer",
-										transition: "all 0.18s ease",
-										opacity: paused ? 0.5 : 1,
-									}}
-								>
-									<Text size="sm" fw={sources[key] ? 600 : 400} c={sources[key] ? "orange.7" : "gray.7"}>
-										{t(`notificationSettings.source.${key}`)}
-									</Text>
-									<Checkbox
-										checked={sources[key]}
-										onChange={() => !paused && toggleSource(key)}
-										color="orange"
-										radius="sm"
-										disabled={paused}
-										onClick={(e) => e.stopPropagation()}
-									/>
-								</Box>
-							))}
+							{(Object.keys(sources) as Array<keyof typeof sources>).map(
+								(key) => (
+									<Box
+										key={key}
+										onClick={() => !paused && toggleSource(key)}
+										style={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "space-between",
+											padding: "10px 14px",
+											borderRadius: radii.md,
+											backgroundColor: sources[key] ? "#fff4e6" : "#f8f9fa",
+											border: sources[key]
+												? "1.5px solid #ff922b"
+												: "1.5px solid #e9ecef",
+											cursor: paused ? "default" : "pointer",
+											transition: "all 0.18s ease",
+											opacity: paused ? 0.5 : 1,
+										}}
+									>
+										<Text
+											size="sm"
+											fw={sources[key] ? 600 : 400}
+											c={sources[key] ? "orange.7" : "gray.7"}
+										>
+											{t(`notificationSettings.source.${key}`)}
+										</Text>
+										<Checkbox
+											checked={sources[key]}
+											onChange={() => !paused && toggleSource(key)}
+											color="orange"
+											radius="sm"
+											disabled={paused}
+											onClick={(e) => e.stopPropagation()}
+										/>
+									</Box>
+								),
+							)}
 						</Stack>
 					</SettingCard>
 				</Stack>

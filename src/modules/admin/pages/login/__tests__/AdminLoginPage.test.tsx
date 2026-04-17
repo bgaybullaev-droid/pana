@@ -46,36 +46,44 @@ describe("AdminLogin", () => {
 	it("should display username input", async () => {
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		expect(screen.getByPlaceholderText("Enter username")).toBeTruthy();
+		expect(
+			screen.getByPlaceholderText("login.usernamePlaceholder"),
+		).toBeTruthy();
 	});
 
 	it("should display password input", async () => {
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		expect(screen.getByPlaceholderText("Enter password")).toBeTruthy();
+		expect(
+			screen.getByPlaceholderText("login.passwordPlaceholder"),
+		).toBeTruthy();
 	});
 
 	it("should display sign in button", async () => {
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		expect(screen.getByText("Sign In")).toBeTruthy();
+		expect(screen.getByText("login.signIn")).toBeTruthy();
 	});
 
 	it("should disable submit button when fields are empty", async () => {
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		const submitBtn = screen.getByText("Sign In");
+		const submitBtn = screen.getByText("login.signIn");
 		expect(submitBtn.closest("button")?.disabled).toBe(true);
 	});
 
 	it("should enable submit button when fields have values", async () => {
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		const usernameInput = screen.getByPlaceholderText("Enter username");
-		const passwordInput = screen.getByPlaceholderText("Enter password");
+		const usernameInput = screen.getByPlaceholderText(
+			"login.usernamePlaceholder",
+		);
+		const passwordInput = screen.getByPlaceholderText(
+			"login.passwordPlaceholder",
+		);
 		fireEvent.change(usernameInput, { target: { value: "admin" } });
 		fireEvent.change(passwordInput, { target: { value: "password123" } });
-		const submitBtn = screen.getByText("Sign In");
+		const submitBtn = screen.getByText("login.signIn");
 		expect(submitBtn.closest("button")?.disabled).toBe(false);
 	});
 
@@ -111,10 +119,8 @@ describe("AdminLogin", () => {
 
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		expect(screen.getByText("Admin Panel")).toBeTruthy();
-		expect(
-			screen.getByText("Enter your credentials to access the admin panel"),
-		).toBeTruthy();
+		expect(screen.getByText("login.title")).toBeTruthy();
+		expect(screen.getByText("login.subtitle")).toBeTruthy();
 	});
 
 	it("should display back to home button", async () => {
@@ -126,6 +132,6 @@ describe("AdminLogin", () => {
 
 		const { AdminLogin } = await import("../ui/page/Page");
 		renderPage(<AdminLogin.Page />);
-		expect(screen.getByText("Back to Home")).toBeTruthy();
+		expect(screen.getByText("login.backToHome")).toBeTruthy();
 	});
 });

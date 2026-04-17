@@ -12,6 +12,7 @@ import { FormSection } from "@shared/ui/FormSection";
 import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
+import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
@@ -952,13 +953,23 @@ export function ListingFormFields({
 						set("microdistrict", e.currentTarget.value || undefined)
 					}
 				/>
-				{/* S3 — jk_name (matrix-gated to apartment + house) */}
+				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house).
+				    Autocomplete resolves to jk_id on pick; free-text keeps jk_id
+				    undefined and stores the name in jk_name. Both columns are
+				    valid during the dual-column window. */}
 				{show.jkName && (
-					<TextInput
+					<HousingComplexAutocomplete
 						label={t("createListing.jkNameLabel")}
 						placeholder={t("createListing.jkNamePlaceholder")}
-						value={form.values.jk_name || ""}
-						onChange={(e) => set("jk_name", e.currentTarget.value || undefined)}
+						region={form.values.region || undefined}
+						value={{
+							jk_id: form.values.jk_id,
+							jk_name: form.values.jk_name,
+						}}
+						onChange={({ jk_id, jk_name }) => {
+							set("jk_id", jk_id);
+							set("jk_name", jk_name);
+						}}
 					/>
 				)}
 				{/* S3 — metro_station (matrix + P5 region sub-gate) */}

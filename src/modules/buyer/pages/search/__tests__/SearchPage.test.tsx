@@ -24,15 +24,27 @@ vi.mock("@shared/lib/regions", () => ({
 	translateDistrict: (key: string) => key,
 }));
 
-vi.mock("@app/styles/theme", () => ({
-	gradients: { primary: "linear-gradient(135deg, #228be6, #1971c2)" },
-	shadows: {
-		card: "0 2px 8px rgba(0,0,0,0.04)",
-		soft: "0 1px 4px rgba(0,0,0,0.06)",
-		button: "0 4px 12px rgba(34,139,230,0.3)",
-	},
-	transitions: { spring: "all 0.3s ease", fast: "all 0.15s ease" },
-}));
+vi.mock("@app/styles/theme", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@app/styles/theme")>();
+	return {
+		...actual,
+		gradients: {
+			...actual.gradients,
+			primary: "linear-gradient(135deg, #228be6, #1971c2)",
+		},
+		shadows: {
+			...actual.shadows,
+			card: "0 2px 8px rgba(0,0,0,0.04)",
+			soft: "0 1px 4px rgba(0,0,0,0.06)",
+			button: "0 4px 12px rgba(34,139,230,0.3)",
+		},
+		transitions: {
+			...actual.transitions,
+			spring: "all 0.3s ease",
+			fast: "all 0.15s ease",
+		},
+	};
+});
 
 // Mock GradientHeader
 vi.mock("@shared/ui/GradientHeader", () => ({

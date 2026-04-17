@@ -1,78 +1,94 @@
-import { createContext, useEffect, useState, ReactNode } from 'react';
-import { WebApp, WebAppUser } from '@shared/lib/telegram/types';
+import { createContext, useEffect, useState, ReactNode } from "react";
+import { WebApp, WebAppUser } from "@shared/lib/telegram/types";
 
 interface TelegramContextValue {
-  webApp: WebApp | null;
-  user: WebAppUser | null;
-  initData: string;
-  isReady: boolean;
-  isTelegramWebApp: boolean;
+	webApp: WebApp | null;
+	user: WebAppUser | null;
+	initData: string;
+	isReady: boolean;
+	isTelegramWebApp: boolean;
 }
 
 export const TelegramContext = createContext<TelegramContextValue>({
-  webApp: null,
-  user: null,
-  initData: '',
-  isReady: false,
-  isTelegramWebApp: false,
+	webApp: null,
+	user: null,
+	initData: "",
+	isReady: false,
+	isTelegramWebApp: false,
 });
 
 interface TelegramProviderProps {
-  children: ReactNode;
+	children: ReactNode;
 }
 
 export function TelegramProvider({ children }: TelegramProviderProps) {
-  const [webApp, setWebApp] = useState<WebApp | null>(null);
-  const [isReady, setIsReady] = useState(false);
+	const [webApp, setWebApp] = useState<WebApp | null>(null);
+	const [isReady, setIsReady] = useState(false);
 
-  useEffect(() => {
-    const tg = (window as any).Telegram?.WebApp as WebApp | undefined;
+	useEffect(() => {
+		function initTelegram() {
+			const tg = (window as any).Telegram?.WebApp as WebApp | undefined;
 
-    if (tg) {
-      // Initialize Telegram WebApp
-      tg.ready();
-      tg.expand();
+			if (tg) {
+				tg.ready();
+				tg.expand();
 
-      // Set theme colors
-      if (tg.themeParams) {
-        document.documentElement.style.setProperty(
-          '--tg-theme-bg-color',
-          tg.themeParams.bg_color || '#ffffff'
-        );
-        document.documentElement.style.setProperty(
-          '--tg-theme-text-color',
-          tg.themeParams.text_color || '#000000'
-        );
-        document.documentElement.style.setProperty(
-          '--tg-theme-button-color',
-          tg.themeParams.button_color || '#228be6'
-        );
-        document.documentElement.style.setProperty(
-          '--tg-theme-button-text-color',
-          tg.themeParams.button_text_color || '#ffffff'
-        );
-      }
+				if (tg.themeParams) {
+					document.documentElement.style.setProperty(
+						"--tg-theme-bg-color",
+						tg.themeParams.bg_color || "#ffffff",
+					);
+					document.documentElement.style.setProperty(
+						"--tg-theme-text-color",
+						tg.themeParams.text_color || "#000000",
+					);
+					document.documentElement.style.setProperty(
+						"--tg-theme-button-color",
+						tg.themeParams.button_color || "#228be6",
+					);
+					document.documentElement.style.setProperty(
+						"--tg-theme-button-text-color",
+						tg.themeParams.button_text_color || "#ffffff",
+					);
+				}
 
-      setWebApp(tg);
-      setIsReady(true);
-    } else {
-      // Not in Telegram - development mode
-      console.warn('Telegram WebApp not available. Running in development mode.');
-      setIsReady(true);
-    }
-  }, []);
+				setWebApp(tg);
+				setIsReady(true);
+				return true;
+			}
+			return false;
+		}
 
-  const value: TelegramContextValue = {
-    webApp,
-    user: webApp?.initDataUnsafe?.user || null,
-    initData: webApp?.initData || '',
-    isReady,
-    isTelegramWebApp: !!webApp,
-  };
+		// Try immediately (script may already be loaded)
+		if (initTelegram()) return;
 
-  return (
-    <TelegramContext.Provider value={value}>
-      {children}
-    </TelegramContext.Provider>
-  );
+		// Script loads async — wait up to 1.5s for it, then proceed without it
+		let attempts = 0;
+		const interval = setInterval(() => {
+			attempts++;
+			if (initTelegram() || attempts >= 15) {
+				clearInterval(interval);
+				if (!isReady) {
+					// Telegram SDK didn't load — running outside Telegram
+					setIsReady(true);
+				}
+			}
+		}, 100);
+
+		return () => clearInterval(interval);
+	}, []);
+
+	const value: TelegramContextValue = {
+		webApp,
+		user: webApp?.initDataUnsafe?.user || null,
+		initData: webApp?.initData || "",
+		isReady,
+		isTelegramWebApp: !!webApp,
+	};
+
+	return (
+		<TelegramContext.Provider value={value}>
+			{children}
+		</TelegramContext.Provider>
+	);
 }

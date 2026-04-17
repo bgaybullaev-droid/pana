@@ -26,14 +26,16 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 	const { t } = useTranslation("buyer");
 	const [phone, setPhone] = useState("");
 	const [pin, setPin] = useState("");
-	const [otpStep, otpPhone, isLoading, authError, devCode, expiresAt] = useUnit([
-		$sellerOTPStep,
-		$sellerOTPPhone,
-		$isSellerOTPLoading,
-		$authError,
-		$sellerOTPDevCode,
-		$sellerOTPExpiresAt,
-	]);
+	const [otpStep, otpPhone, isLoading, authError, devCode, expiresAt] = useUnit(
+		[
+			$sellerOTPStep,
+			$sellerOTPPhone,
+			$isSellerOTPLoading,
+			$authError,
+			$sellerOTPDevCode,
+			$sellerOTPExpiresAt,
+		],
+	);
 
 	const [timeLeft, setTimeLeft] = useState(0);
 
@@ -45,7 +47,10 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 		}
 
 		const interval = setInterval(() => {
-			const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+			const remaining = Math.max(
+				0,
+				Math.floor((expiresAt - Date.now()) / 1000),
+			);
 			setTimeLeft(remaining);
 			if (remaining === 0) {
 				clearInterval(interval);
@@ -107,8 +112,6 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 				overflow: "hidden",
 			}}
 		>
-
-
 			{otpStep === "phone" ? (
 				<Stack gap="xl" style={{ position: "relative", zIndex: 1 }}>
 					{/* Header icon */}
@@ -118,8 +121,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 								width: 64,
 								height: 64,
 								borderRadius: 20,
-								background:
-									"linear-gradient(135deg, #228be6, #4dabf7)",
+								background: "linear-gradient(135deg, #228be6, #4dabf7)",
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
@@ -163,15 +165,18 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 							style={{
 								background: isPhoneValid ? gradients.primary : "#e9ecef",
 								color: isPhoneValid ? "white" : "#adb5bd",
-								boxShadow: isPhoneValid ? "0 8px 20px rgba(34,139,230,0.3)" : "none",
+								boxShadow: isPhoneValid
+									? "0 8px 20px rgba(34,139,230,0.3)"
+									: "none",
 								height: 56,
 								fontSize: 16,
 								fontWeight: 700,
 								transition: "all 0.3s ease",
 							}}
 						>
-							{authError?.toLowerCase().includes("запросите") || authError?.toLowerCase().includes("истёк") 
-								? "Запросить новый код" 
+							{authError?.toLowerCase().includes("запросите") ||
+							authError?.toLowerCase().includes("истёк")
+								? "Запросить новый код"
 								: t("common.login")}
 						</Button>
 
@@ -192,7 +197,11 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 					</Stack>
 				</Stack>
 			) : (
-				<Stack gap="xl" align="center" style={{ position: "relative", zIndex: 1 }}>
+				<Stack
+					gap="xl"
+					align="center"
+					style={{ position: "relative", zIndex: 1 }}
+				>
 					{/* OTP step */}
 					<Box style={{ textAlign: "center" }}>
 						<Box
@@ -200,8 +209,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 								width: 64,
 								height: 64,
 								borderRadius: 20,
-								background:
-									"linear-gradient(135deg, #228be6, #4dabf7)",
+								background: "linear-gradient(135deg, #228be6, #4dabf7)",
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
@@ -244,7 +252,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 									borderColor: "#228be6",
 									backgroundColor: "white",
 									boxShadow: "0 0 0 4px rgba(34,139,230,0.1)",
-								}
+								},
 							},
 						}}
 					/>
@@ -257,10 +265,11 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 
 					{/* Dev OTP code */}
 					{devCode && (
-						<Box 
-							py={8} px={16} 
-							style={{ 
-								backgroundColor: "rgba(34,139,230,0.05)", 
+						<Box
+							py={8}
+							px={16}
+							style={{
+								backgroundColor: "rgba(34,139,230,0.05)",
 								borderRadius: 12,
 								width: "100%",
 							}}
@@ -270,7 +279,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 							</Text>
 						</Box>
 					)}
-					
+
 					{/* Secondary Actions (Side-by-side) */}
 					<Box style={{ display: "flex", gap: 8, width: "100%" }}>
 						{timeLeft > 0 && (
@@ -281,7 +290,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 								size="sm"
 								style={{ flex: 1 }}
 								styles={{
-									label: { fontSize: 13 }
+									label: { fontSize: 13 },
 								}}
 								onClick={handlePaste}
 								disabled={isLoading}
@@ -297,7 +306,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 							size="sm"
 							style={{ flex: 1 }}
 							styles={{
-								label: { fontSize: 13 }
+								label: { fontSize: 13 },
 							}}
 							onClick={() => {
 								setPin("");
@@ -313,7 +322,12 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 					{timeLeft > 0 ? (
 						<Text size="sm" c="dimmed" ta="center">
 							{t("auth.resendCodeTimer", {
-								time: `${Math.floor(timeLeft / 60).toString().padStart(2, "0")}:${(timeLeft % 60).toString().padStart(2, "0")}`,
+								time: `${Math.floor(timeLeft / 60)
+									.toString()
+									.padStart(
+										2,
+										"0",
+									)}:${(timeLeft % 60).toString().padStart(2, "0")}`,
 							})}
 						</Text>
 					) : (
@@ -327,33 +341,32 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 						fullWidth
 						size="lg"
 						radius="xl"
-						onClick={timeLeft > 0 ? () => handleVerifyOTP(pin) : handleRequestOTP}
+						onClick={
+							timeLeft > 0 ? () => handleVerifyOTP(pin) : handleRequestOTP
+						}
 						disabled={isLoading || (timeLeft > 0 && pin.length !== 6)}
 						loading={isLoading}
-						style={
-							(timeLeft > 0 && pin.length === 6) || timeLeft === 0
-								? {
-										background: gradients.primary,
-										boxShadow: "0 8px 20px rgba(34,139,230,0.3)",
-										height: 56,
-										fontSize: 16,
-										fontWeight: 700,
-										transition: "all 0.3s ease",
-								  }
-								: {
-										background: "#e9ecef",
-										color: "#adb5bd",
-										height: 56,
-										fontSize: 16,
-										fontWeight: 700,
-										transition: "all 0.3s ease",
-								  }
-						}
+						style={{
+							background:
+								(timeLeft > 0 && pin.length === 6) || timeLeft === 0
+									? gradients.primary
+									: "#e9ecef",
+							boxShadow:
+								(timeLeft > 0 && pin.length === 6) || timeLeft === 0
+									? "0 8px 20px rgba(34,139,230,0.3)"
+									: undefined,
+							color:
+								(timeLeft > 0 && pin.length === 6) || timeLeft === 0
+									? undefined
+									: "#adb5bd",
+							height: 56,
+							fontSize: 16,
+							fontWeight: 700,
+							transition: "all 0.3s ease",
+						}}
 					>
 						{timeLeft > 0 ? t("common.login") : "Запросить новый код"}
 					</Button>
-
-
 
 					{onCancel && (
 						<Button
@@ -369,7 +382,5 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 				</Stack>
 			)}
 		</Box>
-
-
 	);
 }

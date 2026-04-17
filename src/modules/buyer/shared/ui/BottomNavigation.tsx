@@ -31,7 +31,7 @@ const PILL_ITEMS: NavItem[] = [
 		filledIcon: IconUserFilled,
 		labelKey: "nav.settings",
 		path: "/profile",
-		badgeKey: null,
+		badgeKey: "unreadCount",
 	},
 ];
 
@@ -143,7 +143,10 @@ export function BottomNavigation({
 		}
 	};
 
-	if (location.pathname.startsWith("/seller/create") || location.pathname.startsWith("/seller/edit")) {
+	if (
+		location.pathname.startsWith("/seller/create") ||
+		location.pathname.startsWith("/seller/edit")
+	) {
 		return null;
 	}
 

@@ -1,0 +1,1 @@
+export { AdminAuditLog } from "./Page";

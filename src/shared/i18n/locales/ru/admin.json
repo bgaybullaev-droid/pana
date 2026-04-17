@@ -3,6 +3,8 @@
   "nav.users": "Пользователи",
   "nav.listings": "Объявления",
   "nav.crawled": "Сбор данных",
+  "nav.meiliOps": "Meili-операции",
+  "nav.auditLog": "Журнал действий",
 
   "header.brand": "UcharMarket",
   "header.title": "Панель администратора",

@@ -142,6 +142,8 @@
   "notifications.today": "Bugun",
   "notifications.yesterday": "Kecha",
   "notifications.earlier": "Oldingi",
+  "notifications.sourceSavedSearch": "Qidiruvingiz bo'yicha",
+  "notifications.sourcePreferences": "Filtrlar bo'yicha",
   "profile.title": "Profil",
   "profile.loginSubtitle": "Profilni boshqarish uchun tizimga kiring",
   "profile.loginPrompt": "Sevimlilarni saqlash va bildirishnomalar olish uchun kiring",

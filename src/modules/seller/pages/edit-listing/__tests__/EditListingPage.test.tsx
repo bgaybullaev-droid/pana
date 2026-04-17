@@ -104,6 +104,7 @@ vi.mock("@modules/seller/feature/listing-form/ui/useListingForm", () => ({
 				address: "123 Main St",
 				phone: "+998901234567",
 			},
+			errors: {},
 			setValues: mockFormSetValues,
 			getInputProps: (_field: string) => ({
 				value: "",

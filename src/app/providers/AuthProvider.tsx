@@ -12,6 +12,13 @@ import {
 	checkSession,
 	checkSessionFx,
 } from "@shared/state/auth/model";
+// Eagerly import user-state connections so the sample() that wires
+// checkSessionFx.done → fetchUserStatsFx exists BEFORE checkSessionFx
+// fires during page-reload session restore. Without this, the
+// connection module only loads when BottomNavigation or HomePage mount
+// (which happens AFTER checkSessionFx.done has already fired and been
+// missed).
+import "@shared/state/user/model";
 
 const DEV_LOGOUT_KEY = "dev_logged_out";
 const isDev = import.meta.env.DEV || import.meta.env.VITE_ENV === "development";

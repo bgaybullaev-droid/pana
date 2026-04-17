@@ -71,6 +71,7 @@ vi.mock("@modules/seller/feature/listing-form/ui/useListingForm", () => ({
 				address: "",
 				phone: "",
 			},
+			errors: {},
 			setValues: vi.fn(),
 			getInputProps: (_field: string) => ({
 				value: "",

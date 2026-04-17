@@ -21,6 +21,7 @@ import {
 	IconChecks,
 	IconCircleCheck,
 	IconCircleX,
+	IconSearch,
 } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
 import { formatTimeAgo } from "@shared/lib/date";
@@ -263,11 +264,32 @@ function Page() {
 
 							<Stack gap={8}>
 								{group.items.map((notification) => {
-									const config = ICON_CONFIG[notification.type] || {
+									let config = ICON_CONFIG[notification.type] || {
 										icon: IconBell,
 										color: "#868e96",
 										bg: "#f1f3f5",
 									};
+									// Distinguish saved-search vs. preferences
+									// notifications by the explicit `source`
+									// field from the API (never by title text).
+									const isSavedSearchMatch =
+										notification.type === "new_listing" &&
+										notification.source === "saved_search";
+									const isPreferencesMatch =
+										notification.type === "new_listing" &&
+										notification.source === "preferences";
+									if (isSavedSearchMatch) {
+										config = {
+											icon: IconSearch,
+											color: "#7048e8",
+											bg: "#f3f0ff",
+										};
+									}
+									const sourceLabel = isSavedSearchMatch
+										? t("notifications.sourceSavedSearch")
+										: isPreferencesMatch
+											? t("notifications.sourcePreferences")
+											: null;
 									const Icon = config.icon;
 
 									return (
@@ -337,6 +359,17 @@ function Page() {
 																{formatTimeAgo(notification.created_at)}
 															</Text>
 														</Group>
+														{sourceLabel ? (
+															<Text
+																size="xs"
+																fw={600}
+																c={isSavedSearchMatch ? "#7048e8" : "#ff922b"}
+																style={{ lineHeight: 1.4 }}
+																mb={2}
+															>
+																{sourceLabel}
+															</Text>
+														) : null}
 														<Text
 															size="xs"
 															c={notification.read ? "gray.5" : "gray.6"}

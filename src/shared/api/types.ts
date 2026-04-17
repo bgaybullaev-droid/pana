@@ -469,10 +469,13 @@ export interface NotificationActor {
 	avatar_url: string | null;
 }
 
+export type NotificationSource = "saved_search" | "preferences";
+
 export interface Notification {
 	id: string;
 	user_id: string;
 	type: NotificationType;
+	source: NotificationSource | null;
 	title: string;
 	message: string;
 	listing_id: string | null;

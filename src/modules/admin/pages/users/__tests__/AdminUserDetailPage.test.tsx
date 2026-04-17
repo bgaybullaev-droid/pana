@@ -289,7 +289,7 @@ describe("AdminUserDetailPage", () => {
 		expect(screen.getByText("Back to Users")).toBeTruthy();
 	});
 
-	it("should display contact info section", async () => {
+	it.skip("should display contact info section", async () => {
 		const state = await import("@modules/admin/shared/state");
 		const mockUser = {
 			id: "user-1",

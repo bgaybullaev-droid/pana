@@ -65,9 +65,13 @@ vi.mock("@shared/ui/ListingCard", () => ({
 }));
 
 // Mock theme
-vi.mock("@app/styles/theme", () => ({
-	shadows: { card: "0 2px 8px rgba(0,0,0,0.04)" },
-}));
+vi.mock("@app/styles/theme", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@app/styles/theme")>();
+	return {
+		...actual,
+		shadows: { ...actual.shadows, card: "0 2px 8px rgba(0,0,0,0.04)" },
+	};
+});
 
 describe("SellerProfile", () => {
 	beforeEach(() => {

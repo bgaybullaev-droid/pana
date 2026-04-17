@@ -69,10 +69,17 @@ vi.mock("@shared/ui/LanguageSwitcher", () => ({
 }));
 
 // Mock theme
-vi.mock("@app/styles/theme", () => ({
-	shadows: { card: "0 2px 8px rgba(0,0,0,0.04)" },
-	gradients: { primary: "linear-gradient(135deg, #228be6, #1971c2)" },
-}));
+vi.mock("@app/styles/theme", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@app/styles/theme")>();
+	return {
+		...actual,
+		shadows: { ...actual.shadows, card: "0 2px 8px rgba(0,0,0,0.04)" },
+		gradients: {
+			...actual.gradients,
+			primary: "linear-gradient(135deg, #228be6, #1971c2)",
+		},
+	};
+});
 
 describe("Profile", () => {
 	beforeEach(() => {

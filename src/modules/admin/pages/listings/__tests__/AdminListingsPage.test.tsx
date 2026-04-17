@@ -83,9 +83,13 @@ vi.mock("react-i18next", () => ({
 }));
 
 // Mock formatPrice
-vi.mock("@app/styles/theme", () => ({
-	formatPrice: (price: number, _currency: string) => `$${price}`,
-}));
+vi.mock("@app/styles/theme", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@app/styles/theme")>();
+	return {
+		...actual,
+		formatPrice: (price: number, _currency: string) => `$${price}`,
+	};
+});
 
 // Mock regions
 vi.mock("@shared/lib/regions", () => ({

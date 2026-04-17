@@ -1,0 +1,1 @@
+export { AdminMeiliOps } from "./Page";
