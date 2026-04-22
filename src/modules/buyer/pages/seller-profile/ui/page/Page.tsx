@@ -249,23 +249,45 @@ function Page() {
 
 						{/* Action Buttons */}
 						<Group wrap="nowrap" w="100%" mt={12} gap="xs">
-							<Button
-								radius={radii.md}
-								size="sm"
-								color="blue"
-								style={{
-									flex: 1,
-									boxShadow: shadows.accent,
-								}}
-								leftSection={<IconPhone size={16} />}
-								component="a"
-								href={`tel:${seller.phone}`}
-								disabled={!seller.phone}
-							>
-								{seller.phone ? "Call" : "No Phone"}
-							</Button>
+							{seller.phone ? (
+								<Button
+									radius={radii.md}
+									size="sm"
+									color="blue"
+									style={{ flex: 1, boxShadow: shadows.accent }}
+									leftSection={<IconPhone size={16} />}
+									component="a"
+									href={`tel:${seller.phone}`}
+								>
+									Call
+								</Button>
+							) : seller.telegram_username ? (
+								<Button
+									radius={radii.md}
+									size="sm"
+									color="blue"
+									style={{ flex: 1, boxShadow: shadows.accent }}
+									leftSection={<IconBrandTelegram size={16} />}
+									component="a"
+									href={`https://t.me/${seller.telegram_username}`}
+									target="_blank"
+								>
+									Message on Telegram
+								</Button>
+							) : (
+								<Button
+									radius={radii.md}
+									size="sm"
+									color="blue"
+									style={{ flex: 1, boxShadow: shadows.accent }}
+									leftSection={<IconPhone size={16} />}
+									disabled
+								>
+									No Contact
+								</Button>
+							)}
 
-							{seller.telegram_username && (
+							{seller.phone && seller.telegram_username && (
 								<ActionIcon
 									radius={radii.md}
 									size={36}

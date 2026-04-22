@@ -4,9 +4,7 @@ import type { AuthUser } from "../types";
 // User Store
 export const $user = createStore<AuthUser | null>(null);
 
-export const $isAuthenticated = $user.map(
-	(user) => user !== null && (!!user.phone || user.role === "admin"),
-);
+export const $isAuthenticated = $user.map((user) => user !== null);
 
 // Track if user has logged out (to prevent auto re-login in dev mode)
 export const $hasLoggedOut = createStore(false);

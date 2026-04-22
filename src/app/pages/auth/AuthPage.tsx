@@ -4,12 +4,22 @@ import { useTranslation } from "react-i18next";
 import { ActionIcon, Box, Text } from "@mantine/core";
 import { IconArrowLeft, IconBuilding } from "@tabler/icons-react";
 import { useAuth } from "@app/providers/useAuth";
+import { useTelegram } from "@app/providers/useTelegram";
 import { BuyerPhoneLogin } from "@shared/ui/BuyerPhoneLogin";
 
 export function AuthPage() {
 	const { t } = useTranslation("buyer");
 	const { isAuthenticated } = useAuth();
+	const { isTelegramWebApp } = useTelegram();
 	const navigate = useNavigate();
+
+	// Inside Telegram, auth is fully handled by AuthProvider via initData —
+	// the phone/OTP UI is dev-web only and must never render in the Mini App.
+	useEffect(() => {
+		if (isTelegramWebApp) {
+			navigate("/", { replace: true });
+		}
+	}, [isTelegramWebApp, navigate]);
 
 	// Redirect to profile once logged in
 	useEffect(() => {
