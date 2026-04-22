@@ -8,7 +8,8 @@
       "Bash(git pull:*)",
       "Bash(lsof -ti:7878)",
       "Skill(commit-commands:commit)",
-      "Skill(commit-commands:commit-push-pr)"
+      "Skill(commit-commands:commit-push-pr)",
+      "Bash(git commit *)"
     ]
   }
 }

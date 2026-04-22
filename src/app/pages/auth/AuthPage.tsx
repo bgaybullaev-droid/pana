@@ -1,32 +1,40 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, Box, Text } from "@mantine/core";
+import { ActionIcon, Box, Loader, Text } from "@mantine/core";
 import { IconArrowLeft, IconBuilding } from "@tabler/icons-react";
 import { useAuth } from "@app/providers/useAuth";
 import { useTelegram } from "@app/providers/useTelegram";
+import { authenticateWithTelegram } from "@shared/state/auth/model";
 import { BuyerPhoneLogin } from "@shared/ui/BuyerPhoneLogin";
 
 export function AuthPage() {
 	const { t } = useTranslation("buyer");
 	const { isAuthenticated } = useAuth();
-	const { isTelegramWebApp } = useTelegram();
+	const { isTelegramWebApp, initData, isReady } = useTelegram();
 	const navigate = useNavigate();
 
-	// Inside Telegram, auth is fully handled by AuthProvider via initData —
-	// the phone/OTP UI is dev-web only and must never render in the Mini App.
+	// Post-logout "Login" entry inside Telegram. AuthProvider only fires
+	// initData auth once at mount, so after logout we need to re-trigger it
+	// here — otherwise landing on /auth would do nothing and the user stays
+	// signed out until a manual reload.
 	useEffect(() => {
-		if (isTelegramWebApp) {
-			navigate("/", { replace: true });
-		}
-	}, [isTelegramWebApp, navigate]);
-
-	// Redirect to profile once logged in
-	useEffect(() => {
+		if (!isReady || !isTelegramWebApp) return;
 		if (isAuthenticated) {
+			navigate("/", { replace: true });
+			return;
+		}
+		if (initData) {
+			authenticateWithTelegram(initData);
+		}
+	}, [isReady, isTelegramWebApp, isAuthenticated, initData, navigate]);
+
+	// Dev-web: redirect back once logged in via phone/OTP
+	useEffect(() => {
+		if (isAuthenticated && !isTelegramWebApp) {
 			navigate(-1);
 		}
-	}, [isAuthenticated, navigate]);
+	}, [isAuthenticated, isTelegramWebApp, navigate]);
 
 	const handleCancel = () => {
 		// Use React Router's internal history state to reliably check if we can go back.
@@ -122,10 +130,27 @@ export function AuthPage() {
 
 				{/* Login Card */}
 				<Box style={{ maxWidth: 400, margin: "0 auto", width: "100%" }}>
-					<BuyerPhoneLogin
-						message={t("auth.loginMessage")}
-						onCancel={handleCancel}
-					/>
+					{isTelegramWebApp ? (
+						<Box
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								gap: 16,
+								padding: 24,
+							}}
+						>
+							<Loader size="md" color="blue" />
+							<Text size="sm" c="dimmed" ta="center">
+								{t("auth.loginMessage")}
+							</Text>
+						</Box>
+					) : (
+						<BuyerPhoneLogin
+							message={t("auth.loginMessage")}
+							onCancel={handleCancel}
+						/>
+					)}
 				</Box>
 
 				{/* Footer info */}
