@@ -64,6 +64,9 @@ $user
 	)
 	.on(setUser, (_, user) => user)
 	.on(updateProfileFx.doneData, (_, data) => userMeResponseToUser(data))
+	// Reset on the event (instant UI update) AND on effect completion (belt
+	// and braces, in case something triggers logoutFx without the event).
+	.reset(logout)
 	.reset(logoutFx.done);
 
 // =============================================================================
@@ -71,6 +74,7 @@ $user
 // =============================================================================
 
 $hasLoggedOut
+	.on(logout, () => true)
 	.on(logoutFx.done, () => true)
 	.reset(checkSessionFx.done)
 	.reset(authenticateWithTelegramFx.done)
@@ -129,7 +133,8 @@ $authError
 	.reset(loginWithBuyerPhone)
 	.reset(loginAsAdmin)
 	.reset(requestSellerOTP)
-	.reset(verifySellerOTP);
+	.reset(verifySellerOTP)
+	.reset(logout);
 
 // =============================================================================
 // $isSellerLoginLoading wiring
@@ -159,6 +164,7 @@ $sellerOTPStep
 	.on(requestSellerOTPFx.doneData, () => "otp")
 	.on(resetSellerOTPStep, () => "phone")
 	.reset(verifySellerOTPFx.done)
+	.reset(logout)
 	.reset(logoutFx.done);
 
 // =============================================================================
@@ -168,6 +174,7 @@ $sellerOTPStep
 $sellerOTPPhone
 	.on(requestSellerOTP, (_, phone) => phone)
 	.on(resetSellerOTPStep, () => null)
+	.reset(logout)
 	.reset(logoutFx.done);
 
 // =============================================================================

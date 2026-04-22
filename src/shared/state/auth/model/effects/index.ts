@@ -22,7 +22,16 @@ export const logoutFx = createEffect(async () => {
 	clearStoredTokens();
 	// Clear any user-specific data from localStorage
 	localStorage.removeItem("uchar_preferences");
-	await apiClient.post("/auth/logout");
+	// Logout is authoritative locally — swallow backend errors (network down,
+	// 401 because the session was already invalid, Telegram WebApp cookie
+	// quirks) so the effect's .done event still fires and downstream stores
+	// reset. Without this, a failed POST leaves $user populated and the UI
+	// thinks the user is still signed in.
+	try {
+		await apiClient.post("/auth/logout");
+	} catch {
+		// intentional
+	}
 });
 
 export const loginWithOLXPhoneFx = createEffect(async (phone: string) => {
