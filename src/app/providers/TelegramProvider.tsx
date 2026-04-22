@@ -78,12 +78,21 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
 		return () => clearInterval(interval);
 	}, []);
 
+	// telegram-web-app.js injects a stub on ANY page (empty initData,
+	// platform "unknown"), so `!!webApp` is true even in a regular
+	// browser. Only treat this as a real Telegram WebApp when initData
+	// is present or the platform is a known client.
+	const initData = webApp?.initData || "";
+	const platform = (webApp as any)?.platform || "unknown";
+	const isTelegramWebApp =
+		!!webApp && (initData.length > 0 || platform !== "unknown");
+
 	const value: TelegramContextValue = {
 		webApp,
 		user: webApp?.initDataUnsafe?.user || null,
-		initData: webApp?.initData || "",
+		initData,
 		isReady,
-		isTelegramWebApp: !!webApp,
+		isTelegramWebApp,
 	};
 
 	return (
