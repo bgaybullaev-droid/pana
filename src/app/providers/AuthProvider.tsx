@@ -5,13 +5,13 @@ import {
 	$user,
 	$isAuthenticated,
 	$isLoading,
-	authenticateWithTelegram,
 	logout as logoutEvent,
 	authCheckComplete,
 	devLogin,
 	checkSession,
 	checkSessionFx,
 } from "@shared/state/auth/model";
+import { PhoneGate } from "@shared/ui/PhoneGate";
 // Eagerly import user-state connections so the sample() that wires
 // checkSessionFx.done → fetchUserStatsFx exists BEFORE checkSessionFx
 // fires during page-reload session restore. Without this, the
@@ -48,7 +48,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-	const { initData, isReady, isTelegramWebApp } = useTelegram();
+	const { isReady, isTelegramWebApp } = useTelegram();
 	const [user, isAuthenticated, isLoading] = useUnit([
 		$user,
 		$isAuthenticated,
@@ -59,20 +59,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		if (!isReady) return;
 
 		const init = async () => {
-			// In Telegram WebApp: authenticate with initData
-			// User will only be "authenticated" if they have a phone number
-			// (controlled by $isAuthenticated store)
-			if (initData && isTelegramWebApp) {
-				authenticateWithTelegram(initData);
-				return;
-			}
-
-			// Non-Telegram: try restoring session from stored token
+			// Phone-gated flow: initData alone is NEVER sufficient to auth.
+			// Always try cookie-based session restore first. If that fails,
+			// - Inside Telegram: PhoneGate handles requestContact() → re-auth.
+			// - Outside Telegram (dev-web): fall back to devLogin / phone OTP.
 			try {
 				await checkSessionFx();
 				return;
 			} catch {
-				// Session invalid — fall through
+				// No valid session — fall through
+			}
+
+			if (isTelegramWebApp) {
+				// Stop the loading spinner so PhoneGate renders.
+				authCheckComplete();
+				return;
 			}
 
 			const hasDevLoggedOut = localStorage.getItem(DEV_LOGOUT_KEY) === "true";
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		};
 
 		init();
-	}, [isReady, initData, isTelegramWebApp]);
+	}, [isReady, isTelegramWebApp]);
 
 	// Re-fetch session when user switches back to the app (e.g. after bot registration)
 	useEffect(() => {
@@ -128,5 +129,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		logout: handleLogout,
 	};
 
-	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+	// Phone gate: inside Telegram, block ALL routes until the user has an
+	// authenticated session. After checkSessionFx fails, isLoading=false and
+	// isAuthenticated=false → PhoneGate drives requestContact() → /auth/telegram.
+	const shouldGate =
+		isReady && isTelegramWebApp && !isLoading && !isAuthenticated;
+
+	return (
+		<AuthContext.Provider value={value}>
+			{shouldGate ? <PhoneGate /> : children}
+		</AuthContext.Provider>
+	);
 }

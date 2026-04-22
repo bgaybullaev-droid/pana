@@ -5,29 +5,23 @@ import { ActionIcon, Box, Loader, Text } from "@mantine/core";
 import { IconArrowLeft, IconBuilding } from "@tabler/icons-react";
 import { useAuth } from "@app/providers/useAuth";
 import { useTelegram } from "@app/providers/useTelegram";
-import { authenticateWithTelegram } from "@shared/state/auth/model";
 import { BuyerPhoneLogin } from "@shared/ui/BuyerPhoneLogin";
 
 export function AuthPage() {
 	const { t } = useTranslation("buyer");
 	const { isAuthenticated } = useAuth();
-	const { isTelegramWebApp, initData, isReady } = useTelegram();
+	const { isTelegramWebApp } = useTelegram();
 	const navigate = useNavigate();
 
-	// Post-logout "Login" entry inside Telegram. AuthProvider only fires
-	// initData auth once at mount, so after logout we need to re-trigger it
-	// here — otherwise landing on /auth would do nothing and the user stays
-	// signed out until a manual reload.
+	// Inside Telegram, auth is gated by PhoneGate (rendered by AuthProvider
+	// whenever there's no session). /auth is a dev-web route only — if a Mini
+	// App user lands here somehow, bounce them home; AuthProvider will show
+	// PhoneGate if they're unauthenticated.
 	useEffect(() => {
-		if (!isReady || !isTelegramWebApp) return;
-		if (isAuthenticated) {
+		if (isTelegramWebApp) {
 			navigate("/", { replace: true });
-			return;
 		}
-		if (initData) {
-			authenticateWithTelegram(initData);
-		}
-	}, [isReady, isTelegramWebApp, isAuthenticated, initData, navigate]);
+	}, [isTelegramWebApp, navigate]);
 
 	// Dev-web: redirect back once logged in via phone/OTP
 	useEffect(() => {

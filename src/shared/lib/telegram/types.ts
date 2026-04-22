@@ -133,7 +133,14 @@ export interface WebApp {
   closeScanQrPopup: () => void;
   readTextFromClipboard: (callback?: (text: string) => void) => void;
   requestWriteAccess: (callback?: (granted: boolean) => void) => void;
-  requestContact: (callback?: (shared: boolean) => void) => void;
+  // Telegram clients vary: older ones invoke the callback with a boolean
+  // (shared yes/no); newer ones invoke it with { status: "sent" | "cancelled" }.
+  // The consumer normalizes both shapes.
+  requestContact: (
+    callback?: (
+      result: boolean | { status: "sent" | "cancelled" | string },
+    ) => void,
+  ) => void;
   ready: () => void;
   expand: () => void;
   close: () => void;
