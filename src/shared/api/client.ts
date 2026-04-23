@@ -151,6 +151,16 @@ apiClient.interceptors.request.use(
 		// Send content language preference for multilingual listing resolution
 		const lang = localStorage.getItem("i18nextLng") || "ru";
 		config.headers["Accept-Language"] = lang;
+
+		// Account-switch defense. If we're running inside Telegram, forward
+		// the current signed initData so the backend can verify the cookie
+		// session belongs to the active Telegram account. Stale cookie from
+		// a previous Telegram account → backend 401 → frontend drops to
+		// PhoneGate and re-auths under the right identity.
+		const tg = (window as any).Telegram?.WebApp;
+		if (tg?.initData) {
+			config.headers["X-Telegram-Init-Data"] = tg.initData;
+		}
 		return config;
 	},
 	(error) => {

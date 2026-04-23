@@ -24,6 +24,12 @@ interface TelegramProviderProps {
 export function TelegramProvider({ children }: TelegramProviderProps) {
 	const [webApp, setWebApp] = useState<WebApp | null>(null);
 	const [isReady, setIsReady] = useState(false);
+	// Account-switch detection: we re-read window.Telegram.WebApp.initData on
+	// visibility change. If it changed, bump this tick so consumers re-render
+	// and see the new user.id. Some Telegram clients (notably certain Android
+	// builds) reuse the WebView across account switches but update initData
+	// in place — without a tick, React wouldn't know to re-render.
+	const [initDataTick, setInitDataTick] = useState(0);
 
 	useEffect(() => {
 		function initTelegram() {
@@ -78,18 +84,53 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
 		return () => clearInterval(interval);
 	}, []);
 
+	// On every visibility/focus event, check whether the underlying
+	// Telegram.WebApp.initData has been updated by the client (account
+	// switch, session refresh). Bumping the tick triggers a React re-render
+	// so AuthProvider's telegramIdMismatch check runs against fresh data.
+	useEffect(() => {
+		if (!webApp) return;
+		let lastInitData = webApp.initData || "";
+
+		const refresh = () => {
+			const current =
+				((window as any).Telegram?.WebApp as WebApp | undefined)?.initData ||
+				"";
+			if (current && current !== lastInitData) {
+				lastInitData = current;
+				setInitDataTick((t) => t + 1);
+			}
+		};
+
+		const onVisibility = () => {
+			if (document.visibilityState === "visible") refresh();
+		};
+		document.addEventListener("visibilitychange", onVisibility);
+		window.addEventListener("focus", refresh);
+		return () => {
+			document.removeEventListener("visibilitychange", onVisibility);
+			window.removeEventListener("focus", refresh);
+		};
+	}, [webApp]);
+
 	// telegram-web-app.js injects a stub on ANY page (empty initData,
 	// platform "unknown"), so `!!webApp` is true even in a regular
 	// browser. Only treat this as a real Telegram WebApp when initData
 	// is present or the platform is a known client.
-	const initData = webApp?.initData || "";
-	const platform = (webApp as any)?.platform || "unknown";
+	//
+	// Read via the live global reference (not the state snapshot) so a
+	// tick-triggered re-render picks up any in-place SDK updates.
+	const liveWebApp =
+		((window as any).Telegram?.WebApp as WebApp | undefined) || webApp;
+	void initDataTick; // ensure re-render when tick bumps
+	const initData = liveWebApp?.initData || "";
+	const platform = (liveWebApp as any)?.platform || "unknown";
 	const isTelegramWebApp =
 		!!webApp && (initData.length > 0 || platform !== "unknown");
 
 	const value: TelegramContextValue = {
-		webApp,
-		user: webApp?.initDataUnsafe?.user || null,
+		webApp: liveWebApp || null,
+		user: liveWebApp?.initDataUnsafe?.user || null,
 		initData,
 		isReady,
 		isTelegramWebApp,
