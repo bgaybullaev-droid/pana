@@ -48,7 +48,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-	const { isReady, isTelegramWebApp } = useTelegram();
+	const { isReady, isTelegramWebApp, user: tgUser } = useTelegram();
 	const [user, isAuthenticated, isLoading] = useUnit([
 		$user,
 		$isAuthenticated,
@@ -86,6 +86,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 		init();
 	}, [isReady, isTelegramWebApp]);
+
+	// Telegram account-switch defense. The Mini App runs in a single WebView
+	// per Telegram client — cookies and localStorage persist across account
+	// switches. If the user hops from account A to account B inside Telegram
+	// and reopens the app, our stale cookie would keep them "logged in" as A
+	// (because /auth/me validates the JWT, not the active Telegram identity).
+	//
+	// This effect fires whenever $user or the active Telegram user changes
+	// and forces a logout when the two disagree. The next render hits
+	// shouldGate=true and PhoneGate drives a fresh /auth/telegram under the
+	// correct identity.
+	useEffect(() => {
+		if (!isTelegramWebApp) return;
+		if (!user || tgUser?.id == null) return;
+		if (user.telegram_id != null && user.telegram_id !== tgUser.id) {
+			logoutEvent();
+		}
+	}, [isTelegramWebApp, user, tgUser?.id]);
 
 	// Re-fetch session when user switches back to the app (e.g. after bot registration)
 	useEffect(() => {
@@ -129,11 +147,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		logout: handleLogout,
 	};
 
+	// Telegram account-switch: true when the restored session's telegram_id
+	// doesn't match the currently-active Telegram account. The useEffect
+	// above fires logoutEvent to clean up async, but we also need to block
+	// rendering synchronously on this render so Account A's UI never flashes.
+	const telegramIdMismatch =
+		isTelegramWebApp &&
+		user != null &&
+		tgUser?.id != null &&
+		user.telegram_id != null &&
+		user.telegram_id !== tgUser.id;
+
 	// Phone gate: inside Telegram, block ALL routes until the user has an
-	// authenticated session. After checkSessionFx fails, isLoading=false and
-	// isAuthenticated=false → PhoneGate drives requestContact() → /auth/telegram.
+	// authenticated session matching the active Telegram account. After
+	// checkSessionFx fails, isLoading=false and isAuthenticated=false →
+	// PhoneGate drives requestContact() → /auth/telegram.
 	const shouldGate =
-		isReady && isTelegramWebApp && !isLoading && !isAuthenticated;
+		isReady &&
+		isTelegramWebApp &&
+		!isLoading &&
+		(!isAuthenticated || telegramIdMismatch);
 
 	return (
 		<AuthContext.Provider value={value}>
