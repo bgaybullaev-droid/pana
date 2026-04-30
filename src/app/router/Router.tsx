@@ -2,7 +2,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Suspense, lazy, useEffect, useRef } from "react";
 import { LoadingOverlay } from "@mantine/core";
 import { useTelegram } from "@app/providers/useTelegram";
-import { MobileOnlyScreen } from "@shared/ui/MobileOnlyScreen";
+// import { MobileOnlyScreen } from "@shared/ui/MobileOnlyScreen";
 
 // Auth pages (kept local to shell)
 const AuthPage = lazy(() =>
@@ -17,11 +17,11 @@ const AdminRouter = lazy(() =>
 	import("@modules/admin/app").then((m) => ({ default: m.AdminRouter })),
 );
 
-function isMobileDevice(): boolean {
-	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-		navigator.userAgent,
-	);
-}
+// function isMobileDevice(): boolean {
+// 	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+// 		navigator.userAgent,
+// 	);
+// }
 
 // Handle Telegram Mini App deep links via start_param
 function StartParamHandler() {
@@ -80,7 +80,7 @@ function TelegramBackButtonManager() {
 }
 
 export function Router() {
-	const { isTelegramWebApp, isReady } = useTelegram();
+	const { isReady } = useTelegram();
 
 	// Show loading while checking Telegram
 	if (!isReady) {
@@ -89,10 +89,10 @@ export function Router() {
 
 	// Mobile-only guard (skip in development or when inside Telegram WebApp)
 	// Allow desktop Telegram for testing
-	const isDev = import.meta.env.DEV;
-	if (!isDev && !isTelegramWebApp && !isMobileDevice()) {
-		return <MobileOnlyScreen />;
-	}
+	// const isDev = import.meta.env.DEV;
+	// if (!isDev && !isTelegramWebApp && !isMobileDevice()) {
+	// 	return <MobileOnlyScreen />;
+	// }
 
 	return (
 		<Suspense fallback={<LoadingOverlay visible />}>
