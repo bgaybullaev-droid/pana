@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'src/**'
+      - 'frontend/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -22,7 +22,7 @@ jobs:
           script: |
             set -e
             cd /home/kvm/project/ucharmarket/frontend
-            git pullsrc
+            git pull
             cd /home/kvm/project/ucharmarket
             docker compose up -d --build nginx
             docker image prune -f

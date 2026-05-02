@@ -1,4 +1,48 @@
-/node_modules
-# Local Netlify folder
-.netlify
-/dist
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+**/.vite/
+**/.next/
+
+# Env files (NEVER commit secrets)
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.test
+# .env.example MAY be committed (it has no real secrets)
+
+# Logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/celerybeat-schedule
+**/celerybeat.pid
+**/.venv/
+**/venv/
+
+# Backend runtime data (NOT code — must NOT be in git)
+backend/uploads/
+backend/.playwright-mcp/
+
+# Netlify / deploy
+**/.netlify/
+
+# Local Claude settings (per-machine)
+**/.claude/settings.local.json
