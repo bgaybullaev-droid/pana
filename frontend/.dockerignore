@@ -1,0 +1,14 @@
+node_modules
+dist
+.vite
+.env
+.env.local
+.env.*.local
+.netlify
+.git
+*.log
+e2e
+test-olx-claim.mjs
+debug_error.mjs
+RESTRUCTURE.md
+playwright.config.ts
