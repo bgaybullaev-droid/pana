@@ -22,7 +22,7 @@ jobs:
           script: |
             set -e
             cd /home/kvm/project/ucharmarket/frontend
-            git pull
+            git pull origin main
             cd /home/kvm/project/ucharmarket
             docker compose up -d --build nginx
             docker image prune -f
