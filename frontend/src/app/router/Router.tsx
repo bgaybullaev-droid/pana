@@ -59,6 +59,17 @@ function StartParamHandler() {
 	useEffect(() => {
 		if (handledRef.current) return;
 		const startParam = webApp?.initDataUnsafe?.start_param;
+
+		// Bare-token deep links (no "_" body) — parseStartParam returns
+		// null for these, so they must be handled before the
+		// prefix/body split. "found" is emitted by the grouped
+		// crawled-match push (Block A — A4 group-batching).
+		if (startParam === "found") {
+			handledRef.current = true;
+			navigate("/seller/found", { replace: true });
+			return;
+		}
+
 		const parsed = parseStartParam(startParam);
 		if (parsed == null) return;
 		handledRef.current = true;

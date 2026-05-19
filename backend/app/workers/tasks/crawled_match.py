@@ -390,12 +390,18 @@ async def _send_grouped_push(telegram_id: int, count: int, lang: str) -> bool:
         "uz_cyrl": "Found-ни очиш",
     }[lang]
 
-    web_app_base = getattr(settings, "frontend_base_url", None) or ""
-    found_url = (web_app_base.rstrip("/") + "/seller/found") if web_app_base else None
-    kb_rows = []
-    if found_url:
-        kb_rows.append([InlineKeyboardButton(text=cta_label, url=found_url)])
-    kb = InlineKeyboardMarkup(inline_keyboard=kb_rows) if kb_rows else None
+    # Open the Mini App "Found" screen via a Telegram deep link.
+    # The previous ``settings.frontend_base_url`` lookup silently
+    # resolved to None — that config key never existed — so the CTA
+    # button never rendered. ``build_found_link`` always produces a
+    # valid ``t.me/<bot>?startapp=found`` URL.
+    from app.services.deeplink import build_found_link
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=cta_label, url=build_found_link())]
+        ]
+    )
 
     try:
         await bot.send_message(

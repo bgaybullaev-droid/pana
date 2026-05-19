@@ -111,6 +111,18 @@ def build_listing_link(listing_id: UUID | str) -> str:
     return _startapp_url(payload)
 
 
+def build_found_link() -> str:
+    """Mini-App deep link that opens the seller's "Found" screen.
+
+    Used by the grouped crawled-match push (A4): one consolidated
+    message with an "Open Found" CTA. The frontend ``StartParamHandler``
+    special-cases the bare ``found`` token (it has no ``_`` body, so
+    ``parseStartParam`` returns ``None`` for it) and routes to
+    ``/seller/found``.
+    """
+    return _startapp_url("found")
+
+
 async def build_filter_link(
     filters: Mapping[str, Any],
     db: AsyncSession,

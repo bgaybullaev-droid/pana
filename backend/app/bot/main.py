@@ -9,13 +9,19 @@ import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramRetryAfter,
+)
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import ErrorEvent
 
 from app.bot.handlers import router
 from app.bot.i18n import load_translations
 from app.bot.inline import inline_router
 from app.bot.notifications import set_bot_instance
-from app.bot.setup import set_menu_button
+from app.bot.setup import set_bot_commands, set_menu_button
 from app.core.config import settings
 from app.db.database import async_session_maker
 
@@ -34,6 +40,38 @@ class DbSessionMiddleware:
         async with async_session_maker() as session:
             data["session"] = session
             return await handler(event, data)
+
+
+async def _on_telegram_error(event: ErrorEvent) -> bool:
+    """Dispatcher-level catch-all so a Telegram API failure inside any
+    handler (command, callback, or FSM step) never aborts long-polling.
+
+    aiogram routes every unhandled handler exception here. We classify
+    the common Telegram cases and log at an appropriate level, then
+    return ``True`` to mark the update as handled — polling continues.
+
+    * ``TelegramForbiddenError`` — user blocked the bot mid-flow.
+      Expected, benign; INFO. Nothing else can be done for that chat.
+    * ``TelegramRetryAfter`` — flood control. WARNING with the
+      retry-after hint so ops can see throttling.
+    * ``TelegramBadRequest`` — stale callback query, message too old,
+      "message is not modified", etc. WARNING; usually a no-op race.
+    * Anything else — a genuine bug. ERROR with full traceback.
+    """
+    exc = event.exception
+    # ``update`` is best-effort context for the log line.
+    upd_id = getattr(event.update, "update_id", "?")
+    if isinstance(exc, TelegramForbiddenError):
+        logger.info("bot.error.forbidden update=%s — user blocked the bot", upd_id)
+    elif isinstance(exc, TelegramRetryAfter):
+        logger.warning(
+            "bot.error.flood update=%s retry_after=%ss", upd_id, exc.retry_after
+        )
+    elif isinstance(exc, TelegramBadRequest):
+        logger.warning("bot.error.bad_request update=%s: %s", upd_id, exc)
+    else:
+        logger.exception("bot.error.unhandled update=%s: %s", upd_id, exc)
+    return True
 
 
 def create_bot() -> tuple[Bot, Dispatcher]:
@@ -66,10 +104,58 @@ def create_bot() -> tuple[Bot, Dispatcher]:
     # message events; inline_query events are routed independently.
     dp.include_router(inline_router)
 
+    # Dispatcher-level error handler — keeps polling alive when a
+    # handler raises a Telegram API exception (bot blocked, flood
+    # control, stale callback, …). See ``_on_telegram_error``.
+    dp.errors.register(_on_telegram_error)
+
     # Set bot instance for notification service
     set_bot_instance(bot)
 
     return bot, dp
+
+
+async def validate_integrations(bot: Bot) -> bool:
+    """Startup health probe for the bot's critical integrations.
+
+    Probes both dependencies and logs a clear health line for each so
+    failures are visible in monitoring:
+
+      * Telegram — the token is valid (``get_me`` succeeds). This is
+        **fatal**: nothing works without it, so the function returns
+        ``False`` and the caller aborts.
+      * Redis — reachable; it backs the FSM storage. A dead Redis
+        breaks multi-step flows (registration, profile edit) but the
+        bot can still serve stateless commands (/help, /search). So a
+        Redis failure is logged at ERROR but is **non-fatal** — the
+        return value reflects Telegram health only.
+
+    Returns ``True`` iff Telegram is healthy.
+    """
+    telegram_ok = True
+
+    try:
+        me = await bot.get_me()
+        logger.info("Health: Telegram OK — bot=@%s id=%s", me.username, me.id)
+    except Exception as exc:  # noqa: BLE001 — startup probe must catch all
+        logger.error("Health: Telegram FAILED — invalid token or network: %s", exc)
+        telegram_ok = False
+
+    try:
+        from app.db.redis import get_redis
+
+        client = await get_redis()
+        await client.ping()
+        logger.info("Health: Redis OK — FSM storage reachable")
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "Health: Redis FAILED (non-fatal) — FSM-backed flows "
+            "(registration, profile edit) will not work; stateless "
+            "commands still answer. Fix Redis and restart: %s",
+            exc,
+        )
+
+    return telegram_ok
 
 
 async def main():
@@ -83,11 +169,26 @@ async def main():
     # Create bot and dispatcher
     bot, dp = create_bot()
 
+    # Startup health probe. Telegram-token failure is fatal — abort so
+    # the supervisor restarts us rather than spinning on a dead token.
+    # Redis failure is logged loudly inside the probe but is non-fatal
+    # (stateless commands still work), so it never blocks startup.
+    if not await validate_integrations(bot):
+        logger.error(
+            "Telegram health check FAILED — invalid token. Aborting startup."
+        )
+        await bot.session.close()
+        sys.exit(1)
+
     # Drop pending updates on startup
     await bot.delete_webhook(drop_pending_updates=True)
 
     # D1: configure the Menu Button. Idempotent; failure is non-fatal.
     await set_menu_button(bot)
+
+    # Register the "/" command menu so the six commands autocomplete
+    # in every Telegram client. Idempotent; failure is non-fatal.
+    await set_bot_commands(bot)
 
     logger.info(
         "Bot is ready. Supported languages: Russian (ru), "

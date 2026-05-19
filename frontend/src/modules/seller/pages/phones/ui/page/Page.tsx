@@ -5,6 +5,7 @@ import {
 	Card,
 	Container,
 	Group,
+	Loader,
 	Modal,
 	Select,
 	Skeleton,
@@ -43,8 +44,10 @@ const MAX_ADDITIONAL_PHONES = 3;
 function Page() {
 	const { t } = useTranslation("seller");
 	const [phones, isLoading] = useUnit([$phones, $isLoadingPhones]);
-	const [addModalOpened, { open: openAddModal, close: closeAddModal }] =
-		useDisclosure(false);
+	const [
+		addModalOpened,
+		{ open: openAddModal, close: closeAddModal },
+	] = useDisclosure(false);
 	const [
 		deleteModalOpened,
 		{ open: openDeleteModal, close: closeDeleteModal },
@@ -100,7 +103,8 @@ function Page() {
 			if (code === "phone_in_use") message = t("phones.toastErrorPhoneInUse");
 			else if (code === "phone_already_yours")
 				message = "Этот номер уже привязан к вашему аккаунту";
-			else if (code === "quota_exceeded") message = t("phones.toastErrorQuota");
+			else if (code === "quota_exceeded")
+				message = t("phones.toastErrorQuota");
 			else if (typeof detail === "string") message = detail;
 			notifications.show({ color: "red", message });
 		} finally {
@@ -171,7 +175,9 @@ function Page() {
 			notifications.show({
 				color: "red",
 				message:
-					typeof detail === "string" ? detail : t("phones.toastErrorGeneric"),
+					typeof detail === "string"
+						? detail
+						: t("phones.toastErrorGeneric"),
 			});
 		} finally {
 			setDeletePending(false);
@@ -453,7 +459,8 @@ function Page() {
 								onClick={confirmDelete}
 								loading={deletePending}
 								disabled={
-									deleteAction === "transfer_to_other" && !deleteTargetPhone
+									deleteAction === "transfer_to_other" &&
+									!deleteTargetPhone
 								}
 							>
 								{t("phones.deleteModalTitle")}

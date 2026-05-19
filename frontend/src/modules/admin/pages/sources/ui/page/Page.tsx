@@ -107,15 +107,21 @@ function Page() {
 	const [isLoading, setLoading] = useState(true);
 
 	const [editing, setEditing] = useState<Source | null>(null);
-	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
-		useDisclosure(false);
-	const [confirmOpened, { open: openConfirm, close: closeConfirm }] =
-		useDisclosure(false);
+	const [
+		drawerOpened,
+		{ open: openDrawer, close: closeDrawer },
+	] = useDisclosure(false);
+	const [
+		confirmOpened,
+		{ open: openConfirm, close: closeConfirm },
+	] = useDisclosure(false);
 	const [pendingDelete, setPendingDelete] = useState<Source | null>(null);
 
 	// Metrics drawer (A8.4) — opens on row click, shows 7-day daily breakdown.
-	const [metricsOpened, { open: openMetrics, close: closeMetrics }] =
-		useDisclosure(false);
+	const [
+		metricsOpened,
+		{ open: openMetrics, close: closeMetrics },
+	] = useDisclosure(false);
 	const [metricsSource, setMetricsSource] = useState<Source | null>(null);
 	const [metrics, setMetrics] = useState<MetricsRange | null>(null);
 	const [metricsLoading, setMetricsLoading] = useState(false);
@@ -219,21 +225,24 @@ function Page() {
 		}
 	};
 
-	const loadMetrics = useCallback(async (source: Source, days: 7 | 14 | 30) => {
-		setMetricsLoading(true);
-		try {
-			const res = await apiClient.get<MetricsRange>(
-				`/admin/sources/${source.id}/metrics`,
-				{ params: { days } },
-			);
-			setMetrics(res.data);
-		} catch {
-			notifications.show({ color: "red", message: "Failed to load metrics" });
-			setMetrics(null);
-		} finally {
-			setMetricsLoading(false);
-		}
-	}, []);
+	const loadMetrics = useCallback(
+		async (source: Source, days: 7 | 14 | 30) => {
+			setMetricsLoading(true);
+			try {
+				const res = await apiClient.get<MetricsRange>(
+					`/admin/sources/${source.id}/metrics`,
+					{ params: { days } },
+				);
+				setMetrics(res.data);
+			} catch {
+				notifications.show({ color: "red", message: "Failed to load metrics" });
+				setMetrics(null);
+			} finally {
+				setMetricsLoading(false);
+			}
+		},
+		[],
+	);
 
 	const showMetrics = (s: Source) => {
 		setMetricsSource(s);
@@ -515,30 +524,12 @@ function Page() {
 									{t("sources.metricsTotals", { days: metrics.days })}
 								</Text>
 								<Group gap="md" wrap="wrap">
-									<Stat
-										label={t("sources.metricParsed")}
-										value={metrics.totals.listings_found}
-									/>
-									<Stat
-										label={t("sources.metricSaved")}
-										value={metrics.totals.listings_extracted}
-									/>
-									<Stat
-										label={t("sources.metricFailed")}
-										value={metrics.totals.listings_failed}
-									/>
-									<Stat
-										label={t("sources.metricDupes")}
-										value={metrics.totals.dupes_filtered}
-									/>
-									<Stat
-										label={t("sources.metricAiFailed")}
-										value={metrics.totals.ai_failed}
-									/>
-									<Stat
-										label={t("sources.metricNotified")}
-										value={metrics.totals.notified}
-									/>
+									<Stat label={t("sources.metricParsed")} value={metrics.totals.listings_found} />
+									<Stat label={t("sources.metricSaved")} value={metrics.totals.listings_extracted} />
+									<Stat label={t("sources.metricFailed")} value={metrics.totals.listings_failed} />
+									<Stat label={t("sources.metricDupes")} value={metrics.totals.dupes_filtered} />
+									<Stat label={t("sources.metricAiFailed")} value={metrics.totals.ai_failed} />
+									<Stat label={t("sources.metricNotified")} value={metrics.totals.notified} />
 									<Stat
 										label={t("sources.metricSuccessRate")}
 										value={fmtPercent(metrics.totals.extraction_success_rate)}
@@ -555,33 +546,21 @@ function Page() {
 								</Text>
 							) : (
 								<Box style={{ overflowX: "auto" }}>
-									<Table fz="xs" striped>
+									<Table fontSize="xs" striped>
 										<Table.Thead>
 											<Table.Tr>
 												<Table.Th>{t("sources.metricsDay")}</Table.Th>
-												<Table.Th ta="right">
-													{t("sources.metricParsed")}
-												</Table.Th>
-												<Table.Th ta="right">
-													{t("sources.metricSaved")}
-												</Table.Th>
-												<Table.Th ta="right">
-													{t("sources.metricFailed")}
-												</Table.Th>
-												<Table.Th ta="right">
-													{t("sources.metricDupes")}
-												</Table.Th>
-												<Table.Th ta="right">
-													{t("sources.metricNotified")}
-												</Table.Th>
+												<Table.Th ta="right">{t("sources.metricParsed")}</Table.Th>
+												<Table.Th ta="right">{t("sources.metricSaved")}</Table.Th>
+												<Table.Th ta="right">{t("sources.metricFailed")}</Table.Th>
+												<Table.Th ta="right">{t("sources.metricDupes")}</Table.Th>
+												<Table.Th ta="right">{t("sources.metricNotified")}</Table.Th>
 											</Table.Tr>
 										</Table.Thead>
 										<Table.Tbody>
 											{metrics.daily.map((d) => (
 												<Table.Tr key={d.day}>
-													<Table.Td>
-														{new Date(d.day).toLocaleDateString()}
-													</Table.Td>
+													<Table.Td>{new Date(d.day).toLocaleDateString()}</Table.Td>
 													<Table.Td ta="right">{d.listings_found}</Table.Td>
 													<Table.Td ta="right">{d.listings_extracted}</Table.Td>
 													<Table.Td ta="right">{d.listings_failed}</Table.Td>

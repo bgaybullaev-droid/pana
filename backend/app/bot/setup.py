@@ -15,8 +15,15 @@ import logging
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import MenuButtonDefault, MenuButtonWebApp, WebAppInfo
+from aiogram.types import (
+    BotCommand,
+    BotCommandScopeDefault,
+    MenuButtonDefault,
+    MenuButtonWebApp,
+    WebAppInfo,
+)
 
+from app.bot.i18n import t
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,6 +31,31 @@ logger = logging.getLogger(__name__)
 # Per DECISION_MATRIX D1-Q1: a single neutral wordmark, since Telegram
 # does not accept localised menu-button labels.
 MENU_BUTTON_TEXT = "UcharMarket"
+
+# The six slash commands the bot answers, in the order they should
+# appear in Telegram's "/" autocomplete menu. Each tuple is
+# ``(command, i18n description key)``. The command names here MUST
+# stay in sync with the ``@router.message(Command(...))`` decorators
+# in ``handlers.py``.
+_BOT_COMMANDS: tuple[tuple[str, str], ...] = (
+    ("start", "cmd_desc_start"),
+    ("search", "cmd_desc_search"),
+    ("profile", "cmd_desc_profile"),
+    ("language", "cmd_desc_language"),
+    ("help", "cmd_desc_help"),
+    ("cancel", "cmd_desc_cancel"),
+)
+
+# Telegram's ``set_my_commands`` localises by 2-letter client
+# language_code. There is no script-variant code, so ``uz_cyrl`` users
+# fall through to the ``uz`` (Latin) command list — the *in-bot* UI
+# still honours uz_cyrl; only the "/" menu descriptions are Latin.
+# ``None`` is the default scope shown to every other client locale.
+_COMMAND_LOCALES: tuple[tuple[str | None, str], ...] = (
+    (None, "ru"),  # default fallback for all unlisted client languages
+    ("ru", "ru"),
+    ("uz", "uz"),
+)
 
 
 async def set_menu_button(bot: Bot) -> None:
@@ -68,3 +100,37 @@ async def set_menu_button(bot: Bot) -> None:
         )
     except TelegramAPIError as exc:
         logger.warning("Failed to set chat menu button: %s", exc)
+
+
+async def set_bot_commands(bot: Bot) -> None:
+    """Register the bot's slash-command list with Telegram.
+
+    Without this call the six commands still *work* when typed, but
+    don't appear in the client's "/" autocomplete menu — hurting
+    discoverability. Idempotent: Telegram keeps only the latest list.
+
+    Localised per ``_COMMAND_LOCALES``: a default scope plus ``ru`` and
+    ``uz`` client-language scopes. Failure is logged, never fatal — the
+    command menu is a UX nicety, not load-bearing.
+    """
+    for language_code, i18n_lang in _COMMAND_LOCALES:
+        commands = [
+            BotCommand(command=cmd, description=t(i18n_lang, desc_key))
+            for cmd, desc_key in _BOT_COMMANDS
+        ]
+        try:
+            await bot.set_my_commands(
+                commands,
+                scope=BotCommandScopeDefault(),
+                language_code=language_code,
+            )
+        except TelegramAPIError as exc:
+            logger.warning(
+                "Failed to set bot commands (language_code=%s): %s",
+                language_code,
+                exc,
+            )
+    logger.info(
+        "Bot commands registered: %s (locales: default, ru, uz)",
+        ", ".join(f"/{c}" for c, _ in _BOT_COMMANDS),
+    )
