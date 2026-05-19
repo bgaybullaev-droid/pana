@@ -546,7 +546,7 @@ function Page() {
 								</Text>
 							) : (
 								<Box style={{ overflowX: "auto" }}>
-									<Table fontSize="xs" striped>
+									<Table fz="xs" striped>
 										<Table.Thead>
 											<Table.Tr>
 												<Table.Th>{t("sources.metricsDay")}</Table.Th>

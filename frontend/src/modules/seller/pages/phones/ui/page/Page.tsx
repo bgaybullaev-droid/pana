@@ -5,7 +5,6 @@ import {
 	Card,
 	Container,
 	Group,
-	Loader,
 	Modal,
 	Select,
 	Skeleton,

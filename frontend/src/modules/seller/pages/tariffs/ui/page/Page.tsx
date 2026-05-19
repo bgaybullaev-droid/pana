@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
 	Box,
 	Container,
@@ -55,8 +55,6 @@ function Page() {
 			void fetchTariffsStatusFx();
 		}
 	}, [tariffs, isLoading]);
-
-	const showProgress = tariffs && tariffs.test_period_active;
 
 	const listingProgress =
 		tariffs && tariffs.trigger_listings > 0
