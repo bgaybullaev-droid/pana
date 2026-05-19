@@ -46,3 +46,7 @@ backend/.playwright-mcp/
 
 # Local Claude settings (per-machine)
 **/.claude/settings.local.json
+
+# Test reports
+**/report.xml
+**/coverage/
