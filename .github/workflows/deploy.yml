@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - 'backend/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -19,11 +20,38 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 30m
           script: |
             set -e
-            cd /home/kvm/project/ucharmarket/frontend
+            cd /home/kvm/project/ucharmarket/_repo
             git fetch origin main
             git reset --hard origin/main
             cd /home/kvm/project/ucharmarket
-            docker compose up -d --build nginx
+
+            # Sync frontend (full overwrite)
+            rsync -av --delete _repo/frontend/ frontend/
+
+            # Sync backend (preserve .env, uploads, caches)
+            rsync -av --delete \
+              --exclude='.env' \
+              --exclude='.env.test' \
+              --exclude='.env.local' \
+              --exclude='uploads/' \
+              --exclude='__pycache__/' \
+              --exclude='.pytest_cache/' \
+              --exclude='.ruff_cache/' \
+              --exclude='.mypy_cache/' \
+              --exclude='.claude/' \
+              --exclude='.playwright-mcp/' \
+              --exclude='celerybeat-schedule' \
+              --exclude='*.pyc' \
+              _repo/backend/ backend/
+
+            # Rebuild and restart all services
+            docker compose up -d --build
+
+            # Apply database migrations
+            docker compose run --rm api alembic upgrade head
+
+            # Cleanup old images
             docker image prune -f
