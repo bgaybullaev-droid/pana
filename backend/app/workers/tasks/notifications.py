@@ -369,17 +369,45 @@ def send_telegram_notification(
     user_telegram_id: int,
     message: str,
     parse_mode: str = "HTML",
+    reply_markup_spec: Optional[list] = None,
 ) -> Dict[str, Any]:
-    """Send a Telegram notification to a user via the bot."""
+    """Send a Telegram notification to a user via the bot.
+
+    Block D D2 — ``reply_markup_spec`` is an optional list-of-lists of
+    button dicts (as produced by
+    ``services.listing_push.build_listing_action_kb_spec``). When
+    present, the task reconstructs an ``InlineKeyboardMarkup`` and
+    attaches it. Old callers that omit the arg get the original
+    text-only behavior — fully backward compatible.
+
+    Failure modes (unchanged):
+      - Telegram forbidden → swallowed, returns ``reason="blocked"``.
+      - Telegram bad-request → swallowed, returns ``reason="bad_request"``.
+      - Other exceptions → Celery retry (up to 3, with 60s delay).
+    """
     try:
 
         async def _send():
+            from aiogram.types import (
+                InlineKeyboardButton,
+                InlineKeyboardMarkup,
+            )
+
             bot = Bot(token=settings.telegram_bot_token)
             try:
+                reply_markup = None
+                if reply_markup_spec:
+                    reply_markup = InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(**btn) for btn in row]
+                            for row in reply_markup_spec
+                        ]
+                    )
                 await bot.send_message(
                     chat_id=user_telegram_id,
                     text=message,
                     parse_mode=parse_mode,
+                    reply_markup=reply_markup,
                 )
             finally:
                 await bot.session.close()
@@ -456,8 +484,12 @@ async def _send_new_listing_notifications(listing_id: str) -> Dict[str, Any]:
         # Stage 2 — global NotificationPreferences matching (generic
         # fallback). Users already notified by saved-search stage are
         # skipped automatically via the existing dedup query on
-        # (user_id, listing_id).
-        prefs_result = await _match_and_notify(db, listing_attrs, owner_user_id)
+        # (user_id, listing_id). Pass the full ``listing`` so the
+        # match-and-notify path can render the same Block D D2
+        # inline keyboard as the saved-search path.
+        prefs_result = await _match_and_notify(
+            db, listing_attrs, owner_user_id, listing=listing
+        )
 
         return {
             "listing_id": listing_id,
@@ -503,10 +535,22 @@ async def _match_saved_searches(
     stage so a user never receives two notifications for the same listing.
     """
     from app.api.v1.saved_searches import _filters_to_listing_filters
-    from app.db.models import SavedSearch
+    from app.db.models import SavedSearch, Seller
+    from app.services.listing_push import build_listing_action_kb_spec
     from app.services.saved_search_matcher import _match_listing_to_filters
 
     listing_id = listing_attrs["id"]
+
+    # Block D D2 — load the listing's seller once for the whole loop so
+    # the inline keyboard's "Написать продавцу" URL can include the
+    # right telegram_username / phone. Missing seller is fine; the
+    # factory just omits the contact row.
+    seller: Optional["Seller"] = None
+    if listing.seller_id:
+        seller_q = await db.execute(
+            select(Seller).where(Seller.id == listing.seller_id)
+        )
+        seller = seller_q.scalar_one_or_none()
 
     # Load saved searches with notifications enabled, excluding the owner.
     q = (
@@ -654,10 +698,27 @@ async def _match_saved_searches(
                 prefs.time_end,
             )
         else:
+            # Block D D2 — render the inline keyboard against the
+            # user's full language (incl. uz_cyrl). The push body uses
+            # the constrained ``lang`` because the message templates
+            # are still ru/uz-only (i18n sweep is a follow-up).
+            try:
+                kb_spec = build_listing_action_kb_spec(
+                    listing, seller, user.language or lang
+                )
+            except Exception:
+                logger.warning(
+                    "saved-search kb build failed user=%s listing=%s",
+                    user.id,
+                    listing_id,
+                    exc_info=True,
+                )
+                kb_spec = None
             send_telegram_notification.delay(
                 user.telegram_id,
                 _SAVED_SEARCH_TELEGRAM[lang].format(**fmt),
                 "HTML",
+                kb_spec,
             )
             tg_count += 1
             logger.info(
@@ -687,12 +748,30 @@ async def _match_and_notify(
     db: AsyncSession,
     listing_attrs: Dict[str, Any],
     owner_user_id=None,
+    *,
+    listing: Optional["Listing"] = None,
 ) -> Dict[str, Any]:
     """Shared matching and dispatch logic for all listing sources.
 
     listing_attrs must contain: id, listing_type, property_type, district, price, rooms, currency.
+
+    ``listing`` (optional, Block D D2): when supplied, the function
+    renders the standard buyer-facing inline keyboard alongside each
+    Telegram push. Callers that only have a dict (e.g. the crawler
+    pre-conversion path) leave it None — pushes go out as plain HTML.
     """
+    from app.db.models import Seller
+    from app.services.listing_push import build_listing_action_kb_spec
+
     listing_id = listing_attrs["id"]
+
+    # Pre-load the seller once if we have a listing handle.
+    seller: Optional["Seller"] = None
+    if listing is not None and listing.seller_id:
+        seller_q = await db.execute(
+            select(Seller).where(Seller.id == listing.seller_id)
+        )
+        seller = seller_q.scalar_one_or_none()
     listing_type = listing_attrs["listing_type"]
     property_type = listing_attrs["property_type"]
     district = listing_attrs.get("district")
@@ -858,10 +937,27 @@ async def _match_and_notify(
                 prefs.daily_limit,
             )
         else:
+            # Block D D2 — attach the buyer-facing keyboard when we
+            # have a full Listing handle. Crawler-import path has only
+            # the dict and falls back to text-only push.
+            kb_spec = None
+            if listing is not None:
+                try:
+                    kb_spec = build_listing_action_kb_spec(
+                        listing, seller, user.language or lang
+                    )
+                except Exception:
+                    logger.warning(
+                        "prefs kb build failed user=%s listing=%s",
+                        user.id,
+                        listing_id,
+                        exc_info=True,
+                    )
             send_telegram_notification.delay(
                 user.telegram_id,
                 texts["telegram_message"],
                 "HTML",
+                kb_spec,
             )
             telegram_count += 1
             logger.info(

@@ -1,0 +1,31 @@
+{% extends "seo/base.html" %}
+
+{% block content %}
+  <h1>{{ meta.title }}</h1>
+  {%- if intro %}
+  <p style="font-size: 14px; color: #475569; margin: 4px 0 16px;">{{ intro }}</p>
+  {%- endif %}
+
+  {%- if listings %}
+  <div class="filter-grid">
+    {%- for row in listings %}
+    <a class="filter-row" href="{{ row.url }}">
+      <div style="font-weight:600;">{{ row.title }}</div>
+      <div style="font-size:13px; color:#64748b; margin-top:2px;">{{ row.price_display }}</div>
+    </a>
+    {%- endfor %}
+  </div>
+
+  {%- if pagination and pagination.total_pages > 1 %}
+  <div style="margin: 20px 0; text-align: center; font-size: 14px;">
+    {%- if pagination.prev_url %}<a href="{{ pagination.prev_url }}" style="margin: 0 8px;">&larr; {{ labels.prev }}</a>{%- endif %}
+    <span style="color:#94a3b8;">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+    {%- if pagination.next_url %}<a href="{{ pagination.next_url }}" style="margin: 0 8px;">{{ labels.next }} &rarr;</a>{%- endif %}
+  </div>
+  {%- endif %}
+  {%- else %}
+  <p style="font-size: 14px; color: #64748b; margin: 12px 0;">{{ labels.empty }}</p>
+  {%- endif %}
+
+  <a class="cta" href="{{ deeplink }}" rel="nofollow">{{ labels.open_app }}</a>
+{% endblock %}

@@ -1,3 +1,6 @@
+/** F048 — top-of-home tab identifiers (Лента / Подписки / Рекомендуемое). */
+export type HomeTab = "feed" | "subscriptions" | "recommended";
+
 export interface HomeFilters {
   q?: string;
   type?: ('sell' | 'rent')[];

@@ -31,15 +31,15 @@ function generateTags(search: SavedSearch, t: any): string[] {
     }
 
     if (filters.deal_type) {
-        const dealTypeStr = filters.deal_type === "sell" ? t("common.sell", "Продажа") : t("common.rent", "Аренда");
+        const dealTypeStr = filters.deal_type === "sell" ? t("common.sell") : t("common.rent");
         tags.push(capitalize(dealTypeStr));
     }
 
     if (filters.rooms?.length) {
-        const roomsStr = filters.rooms.map((r) => r === 0 ? "Студия" : `${r} ${t("common.rooms", "комн.")}`).join(", ");
+        const roomsStr = filters.rooms.map((r) => r === 0 ? t("common.roomsOption.studio") : `${r} ${t("common.rooms")}`).join(", ");
         tags.push(capitalize(roomsStr));
     }
-    
+
     if (filters.district) {
         tags.push(capitalize(translateDistrict(filters.district, t)));
     } else if (filters.region) {
@@ -48,12 +48,12 @@ function generateTags(search: SavedSearch, t: any): string[] {
 
     if (filters.price_min) {
         const formattedPrice = filters.price_min.toLocaleString('en-US').replace(/,/g, ' ');
-        tags.push(`От $${formattedPrice}`);
+        tags.push(t("filter.priceFrom", { price: formattedPrice }));
     }
 
     if (filters.price_max) {
 		const formattedPrice = filters.price_max.toLocaleString('en-US').replace(/,/g, ' ');
-        tags.push(`До $${formattedPrice}`);
+        tags.push(t("filter.priceTo", { price: formattedPrice }));
     }
 
     return tags;
@@ -148,7 +148,7 @@ export function SavedSearchCard({ search, onClick, onDelete, onToggleNotificatio
 										border: "none",
 									}}
 								>
-									Все объявления
+									{t("filter.allListings")}
 								</Badge>
 							)}
 						</Box>
@@ -183,11 +183,11 @@ export function SavedSearchCard({ search, onClick, onDelete, onToggleNotificatio
 										border: "none",
 									}}
 								>
-									{newCount} новых
+									{t("favorites.searches.newCountShort", { count: newCount })}
 								</Badge>
 							) : (
 								<Text size="sm" c="dimmed">
-									Новых объявлений нет
+									{t("favorites.searches.noNew")}
 								</Text>
 							)}
 						</Box>
@@ -201,7 +201,7 @@ export function SavedSearchCard({ search, onClick, onDelete, onToggleNotificatio
                                 e.stopPropagation();
                                 onToggleNotifications(e, !isNotificationsEnabled);
                             }}
-							title={isNotificationsEnabled ? "Отключить уведомления" : "Включить уведомления"}
+							title={isNotificationsEnabled ? t("favorites.searches.notificationsOff") : t("favorites.searches.notificationsOn")}
 						>
 							{isNotificationsEnabled ? (
 								<IconBellRinging size={18} stroke={1.5} />

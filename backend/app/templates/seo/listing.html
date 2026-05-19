@@ -1,0 +1,36 @@
+{% extends "seo/base.html" %}
+
+{% block jsonld %}
+  <script type="application/ld+json">{{ jsonld | safe }}</script>
+{% endblock %}
+
+{% block content %}
+  <h1>{{ meta.title }}</h1>
+
+  {%- if images %}
+  <div class="gallery">
+    {%- for img in images %}
+    <img src="{{ img.url }}" alt="{{ meta.og_title }}" loading="lazy" decoding="async">
+    {%- endfor %}
+  </div>
+  {%- endif %}
+
+  {%- if price_display %}
+  <div class="price">{{ price_display }}</div>
+  {%- endif %}
+
+  {%- if description %}
+  <div class="description">{{ description }}</div>
+  {%- endif %}
+
+  {%- if params %}
+  <h2>{{ labels.params }}</h2>
+  <ul class="params">
+    {%- for row in params %}
+    <li><span>{{ row.label }}</span><span>{{ row.value }}</span></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+
+  <a class="cta" href="{{ deeplink }}" rel="nofollow">{{ labels.cta }}</a>
+{% endblock %}

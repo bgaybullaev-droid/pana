@@ -1,0 +1,1 @@
+export { SellerAutoposting } from "./Page";

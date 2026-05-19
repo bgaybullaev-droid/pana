@@ -176,7 +176,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 						>
 							{authError?.toLowerCase().includes("запросите") ||
 							authError?.toLowerCase().includes("истёк")
-								? "Запросить новый код"
+								? t("auth.requestNewCode", { ns: "common" })
 								: t("common.login")}
 						</Button>
 
@@ -332,7 +332,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 						</Text>
 					) : (
 						<Text size="sm" c="red" ta="center" fw={500}>
-							Срок действия кода истёк
+							{t("auth.codeExpired", { ns: "common" })}
 						</Text>
 					)}
 
@@ -365,7 +365,7 @@ export function BuyerPhoneLogin({ message, onCancel }: BuyerPhoneLoginProps) {
 							transition: "all 0.3s ease",
 						}}
 					>
-						{timeLeft > 0 ? t("common.login") : "Запросить новый код"}
+						{timeLeft > 0 ? t("common.login") : t("auth.requestNewCode", { ns: "common" })}
 					</Button>
 
 					{onCancel && (

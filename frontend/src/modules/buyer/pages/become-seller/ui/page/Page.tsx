@@ -268,6 +268,19 @@ function Page() {
 							{t("auth.registerViaBot")}
 						</Button>
 					</Box>
+
+					{/* C1 V2.0: pricing visibility for prospective sellers */}
+					<Box ta="center" mt="xs">
+						<Button
+							variant="subtle"
+							color="orange"
+							radius="xl"
+							size="sm"
+							onClick={() => navigate("/seller/tariffs")}
+						>
+							{t("nav.tariffs", { ns: "seller" })}
+						</Button>
+					</Box>
 				</Stack>
 			</Box>
 		</InnerPage>

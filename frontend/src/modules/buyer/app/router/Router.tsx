@@ -43,9 +43,9 @@ const SellerProfilePage = lazy(() =>
 		default: m.SellerProfile.Page,
 	})),
 );
-const SearchPage = lazy(() =>
-	import("../../pages/search").then((m) => ({ default: m.Search.Page })),
-);
+// Legacy /search route — replaced by a `<Navigate>` redirect to home.
+// The page module remains for now in case external links still resolve
+// via the legacy bundle; remove after one deploy cycle.
 const SettingsPage = lazy(() =>
 	import("../../pages/settings").then((m) => ({ default: m.Settings.Page })),
 );
@@ -116,6 +116,33 @@ const SellerRegisterPage = lazy(() =>
 		default: m.SellerRegister.Page,
 	})),
 );
+const SellerTariffsPage = lazy(() =>
+	import("@modules/seller/pages/tariffs").then((m) => ({
+		default: m.SellerTariffs.Page,
+	})),
+);
+const SellerPhonesPage = lazy(() =>
+	import("@modules/seller/pages/phones").then((m) => ({
+		default: m.SellerPhones.Page,
+	})),
+);
+const SellerAutopostingPage = lazy(() =>
+	import("@modules/seller/pages/autoposting").then((m) => ({
+		default: m.SellerAutoposting.Page,
+	})),
+);
+// PR-T — phase-2 referral program cabinet page.
+const SellerReferralsPage = lazy(() =>
+	import("@modules/seller/pages/referrals").then((m) => ({
+		default: m.SellerReferrals.Page,
+	})),
+);
+// PRU — phase-2 CRM cabinet page.
+const SellerClientsPage = lazy(() =>
+	import("@modules/seller/pages/clients").then((m) => ({
+		default: m.SellerClients.Page,
+	})),
+);
 
 // Auth guard for seller features
 function SellerRoute({ children }: { children: React.ReactNode }) {
@@ -141,7 +168,16 @@ export function UserRouter() {
 				<Route element={<Layout />}>
 					{/* ── General pages ── */}
 					<Route path="/" element={<HomePage />} />
-					<Route path="/search" element={<SearchPage />} />
+					{/*
+					 * Legacy /search route — the bottom-nav search button now opens
+					 * the home filter drawer in place. Existing bookmarks redirect
+					 * to home with the original query string preserved so the home
+					 * page can hydrate filters from the URL.
+					 */}
+					<Route
+						path="/search"
+						element={<Navigate to={`/${window.location.search}`} replace />}
+					/>
 					<Route path="/preferences" element={<PreferencesPage />} />
 					<Route path="/notification-settings" element={<NotificationSettingsPage />} />
 					<Route path="/listings" element={<ListingsPage />} />
@@ -167,6 +203,18 @@ export function UserRouter() {
 					<Route path="/seller/create" element={<SellerRoute><CreateListingPage /></SellerRoute>} />
 					<Route path="/seller/edit/:id" element={<SellerRoute><EditListingPage /></SellerRoute>} />
 					<Route path="/seller/profile" element={<SellerRoute><SellerProfileEditPage /></SellerRoute>} />
+					{/* C1 V2.0: tariffs are visible from day 1 — accessible
+					    to prospective sellers BEFORE registration. */}
+					<Route path="/seller/tariffs" element={<SellerTariffsPage />} />
+					<Route path="/seller/phones" element={<SellerRoute><SellerPhonesPage /></SellerRoute>} />
+					{/* Block D D4 — autoposting cabinet. SellerRoute gates entry;
+					    subscription gate is enforced server-side in the API. */}
+					<Route path="/seller/autoposting" element={<SellerRoute><SellerAutopostingPage /></SellerRoute>} />
+					{/* PR-T — phase-2 referral program. Open to any authenticated
+					    user (buyers can refer too); SellerRoute would over-restrict. */}
+					<Route path="/seller/referrals" element={<SellerReferralsPage />} />
+					{/* PRU — phase-2 CRM (clients pipeline). Seller-only. */}
+					<Route path="/seller/clients" element={<SellerRoute><SellerClientsPage /></SellerRoute>} />
 				</Route>
 
 				{/* Full-screen pages (no bottom nav) */}

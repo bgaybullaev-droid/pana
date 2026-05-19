@@ -3,9 +3,24 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.common import UTCDateTime
+
+# Block D D1 — canonical backend identifiers. Frontend folder names
+# use "uz-cyrl" (kebab); we accept either form on input and normalise
+# to underscore form before persisting.
+SUPPORTED_LANGUAGES = ("ru", "uz", "uz_cyrl")
+
+
+def _normalize_language(value: str) -> str:
+    """Map kebab → underscore form; reject unknown values."""
+    canonical = value.lower().replace("-", "_")
+    if canonical not in SUPPORTED_LANGUAGES:
+        raise ValueError(
+            f"language must be one of {SUPPORTED_LANGUAGES}, got {value!r}"
+        )
+    return canonical
 
 
 class UserBase(BaseModel):
@@ -14,6 +29,11 @@ class UserBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     language: str = Field(default="ru", max_length=10)
+
+    @field_validator("language")
+    @classmethod
+    def _validate_language(cls, value: str) -> str:
+        return _normalize_language(value)
 
 
 class UserCreate(UserBase):
@@ -31,6 +51,11 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = Field(None, max_length=100)
     language: Optional[str] = Field(None, max_length=10)
     onboarding_completed: Optional[bool] = None
+
+    @field_validator("language")
+    @classmethod
+    def _validate_language(cls, value: Optional[str]) -> Optional[str]:
+        return _normalize_language(value) if value is not None else None
 
 
 class UserResponse(BaseModel):

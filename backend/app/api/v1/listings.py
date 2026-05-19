@@ -11,7 +11,11 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.v1.deps import get_current_seller, get_current_user_optional
+from app.api.v1.deps import (
+    get_current_seller,
+    get_current_user,
+    get_current_user_optional,
+)
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.db.database import get_db
 from app.db.models import (
@@ -19,6 +23,7 @@ from app.db.models import (
     Favorite,
     Listing,
     ListingImage,
+    ListingSale,
     ListingStatus,
     ModerationStatus,
     OLXListing,
@@ -27,8 +32,12 @@ from app.db.models import (
     User,
     UserPreferences,
 )
+from pydantic import BaseModel, Field
+from sqlalchemy import text
+
 from app.schemas.common import PaginatedResponse
 from app.schemas.listing import (
+    DraftPreviewResponse,
     FacetBucket,
     FacetsResponse,
     ListingCreate,
@@ -37,6 +46,9 @@ from app.schemas.listing import (
     ListingListResponse,
     ListingResponse,
     ListingUpdate,
+    RegenerateRequest,
+    RegenerateResponse,
+    SourceTextResponse,
 )
 from app.schemas.unified import (
     UnifiedListingImage,
@@ -47,6 +59,8 @@ from app.services.crawler_service import (
     convert_olx_to_listing,
     convert_telegram_to_listing,
 )
+from app.services.listing_quota import check_can_create_listing
+from app.services.listing_views import is_self_view
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +72,60 @@ def get_content_language(request: Request) -> str:
     header = request.headers.get("accept-language", "ru")
     lang = header[:2].lower()
     return lang if lang in ("ru", "uz") else "ru"
+
+
+def _dispatch_autopost_for_status_change(
+    seller: "Seller",
+    listing: "Listing",
+    old_status: Optional["ListingStatus"],
+) -> None:
+    """Enqueue the right autopost Celery task for a listing-status change.
+
+    Block D D4. Pure dispatch — runs after the listing transaction has
+    already committed so a task-enqueue failure can never roll back the
+    seller's update. Bails silently if the seller hasn't connected a
+    channel.
+    """
+    if not seller or not getattr(seller, "autopost_channel_id", None):
+        return
+    if not getattr(seller, "autopost_enabled", False):
+        return
+    if seller.autopost_verified_at is None:
+        return
+
+    new_status = listing.status
+    # Only relevant transitions: into / out of ACTIVE, or into SOLD.
+    if old_status == new_status:
+        return
+
+    try:
+        from app.workers.tasks.autopost import (
+            delete_channel_post,
+            mark_channel_post_sold,
+            publish_listing_to_channel,
+        )
+
+        if new_status == ListingStatus.ACTIVE:
+            publish_listing_to_channel.delay(str(listing.id), str(seller.id))
+            return
+        if new_status == ListingStatus.SOLD:
+            mark_channel_post_sold.delay(str(listing.id))
+            return
+        if new_status in (
+            ListingStatus.PAUSED,
+            ListingStatus.DELETED,
+            ListingStatus.EXPIRED,
+        ):
+            delete_channel_post.delay(str(listing.id))
+    except Exception:
+        # Task-broker hiccups must not break the API request.
+        logger.warning(
+            "autopost dispatch failed listing=%s status=%s -> %s",
+            listing.id,
+            old_status,
+            new_status,
+            exc_info=True,
+        )
 
 
 def _resolve_field(listing, field: str, lang: str) -> Optional[str]:
@@ -612,6 +680,12 @@ def _build_full_response_kwargs(listing) -> dict:
         "jk_id": getattr(listing, "jk_id", None),
         # S8 — discoverability
         "slug": getattr(listing, "slug", None),
+        # F1 — Block F AI description per locale. The frontend picks
+        # the active locale on its side; we expose all three so a
+        # language toggle on the buyer side never requires a refetch.
+        "ai_description_ru": getattr(listing, "ai_description_ru", None),
+        "ai_description_uz": getattr(listing, "ai_description_uz", None),
+        "ai_description_uz_cyrl": getattr(listing, "ai_description_uz_cyrl", None),
         # S5 — dual-read mirrors: supplies building_type, market_type,
         # is_furnished, furniture. MUST come last to override any earlier
         # keys.
@@ -657,6 +731,12 @@ _FILTER_TO_FIELD = {
     "area_max": "area",
     "floor_min": "floor",
     "floor_max": "floor",
+    # A2 — house-specific filters (visible only in the house matrix
+    # combos; mapped here so _filter_is_applicable gates them just
+    # like building_type/condition/amenities).
+    "house_type": "house_type",
+    "house_condition": "house_condition",
+    "water_supply": "water_supply",
     # ── Sprint 3 (T-001) — location filters ──────────────────────────
     # city/microdistrict/urgent_flag/jk_name are always-applicable at the
     # listing level (they aren't in the matrix as "visible-only" fields)
@@ -818,6 +898,19 @@ def _apply_filters(query, filters: "ListingFilters"):
     if filters.nearby_amenities and _filter_is_applicable("nearby_amenities", pt, dt):
         query = query.where(Listing.nearby_amenities.contains(filters.nearby_amenities))
 
+    # ── A2 — house-specific filters (visibility-matrix gated) ───────
+    # house_type is a scalar equality match. house_condition and
+    # water_supply are ARRAY columns; use Postgres `&&` (overlap) so a
+    # buyer who selected ANY of the chosen options matches — the same
+    # pattern as `rent_payment` above (whereas amenities uses `@>`
+    # for AND-match, which is intentionally stricter).
+    if filters.house_type and _filter_is_applicable("house_type", pt, dt):
+        query = query.where(Listing.house_type == filters.house_type)
+    if filters.house_condition and _filter_is_applicable("house_condition", pt, dt):
+        query = query.where(Listing.house_condition.overlap(filters.house_condition))
+    if filters.water_supply and _filter_is_applicable("water_supply", pt, dt):
+        query = query.where(Listing.water_supply.overlap(filters.water_supply))
+
     # ── Rent group (silently dropped when type=sell etc.) ────────────
     if filters.rent_period and _filter_is_applicable("rent_period", pt, dt):
         query = query.where(Listing.rent_period == filters.rent_period)
@@ -963,6 +1056,10 @@ async def list_listings(
     furnished: Optional[bool] = Query(None),
     amenities: Optional[List[str]] = Query(None),
     nearby_amenities: Optional[List[str]] = Query(None),
+    # A2 — house-specific filters
+    house_type: Optional[str] = Query(None, max_length=50),
+    house_condition: Optional[List[str]] = Query(None),
+    water_supply: Optional[List[str]] = Query(None),
     # Rent group
     rent_period: Optional[str] = Query(None, pattern="^(long_term|daily)$"),
     utilities_incl: Optional[bool] = Query(None),
@@ -1054,6 +1151,9 @@ async def list_listings(
             furnished=furnished,
             amenities=amenities,
             nearby_amenities=nearby_amenities,
+            house_type=house_type,
+            house_condition=house_condition,
+            water_supply=water_supply,
             rent_period=rent_period,
             utilities_incl=utilities_incl,
             min_rent_months=min_rent_months,
@@ -1170,10 +1270,17 @@ async def _postgres_listings_search(
         total = int(meili_total or 0)
     else:
         # Default Postgres path — unchanged from pre-PR10.
+        # Block A V2.0: ACTIVE + GENERATION_FAILED both surface in B2C; the
+        # latter renders with a template description instead of AI text.
+        # PENDING_GENERATION and UNCONFIRMED are explicitly excluded.
         query = select(Listing).where(
-            Listing.status == ListingStatus.ACTIVE,
+            Listing.status.in_(
+                [ListingStatus.ACTIVE, ListingStatus.GENERATION_FAILED]
+            ),
             Listing.moderation_status == ModerationStatus.APPROVED,
             Listing.deleted_at.is_(None),
+            # F108: hide non-canonical duplicates from the public feed.
+            Listing.master_record_id.is_(None),
         )
         query = _apply_filters(query, filters)
 
@@ -1182,10 +1289,17 @@ async def _postgres_listings_search(
         total = total_result.scalar() or 0
 
         sort_column = getattr(Listing, filters.sort_by)
+        # F108: claimed listings (claimed_at IS NOT NULL) outrank unclaimed
+        # ones at the same age. Boosted still wins overall.
+        claim_rank = (Listing.claimed_at.is_not(None)).desc()
         if filters.sort_order == "desc":
-            query = query.order_by(Listing.is_boosted.desc(), sort_column.desc())
+            query = query.order_by(
+                Listing.is_boosted.desc(), claim_rank, sort_column.desc()
+            )
         else:
-            query = query.order_by(Listing.is_boosted.desc(), sort_column.asc())
+            query = query.order_by(
+                Listing.is_boosted.desc(), claim_rank, sort_column.asc()
+            )
 
         offset = (page - 1) * per_page
         query = query.offset(offset).limit(per_page)
@@ -1458,6 +1572,10 @@ async def list_facets(
     furnished: Optional[bool] = Query(None),
     amenities: Optional[List[str]] = Query(None),
     nearby_amenities: Optional[List[str]] = Query(None),
+    # A2 — house-specific filters (parity with GET /listings)
+    house_type: Optional[str] = Query(None, max_length=50),
+    house_condition: Optional[List[str]] = Query(None),
+    water_supply: Optional[List[str]] = Query(None),
     rent_period: Optional[str] = Query(None, pattern="^(long_term|daily)$"),
     utilities_incl: Optional[bool] = Query(None),
     min_rent_months: Optional[List[int]] = Query(None),
@@ -1539,6 +1657,9 @@ async def list_facets(
             furnished=furnished,
             amenities=amenities,
             nearby_amenities=nearby_amenities,
+            house_type=house_type,
+            house_condition=house_condition,
+            water_supply=water_supply,
             rent_period=rent_period,
             utilities_incl=utilities_incl,
             min_rent_months=min_rent_months,
@@ -1818,9 +1939,11 @@ async def resolve_listing(
     )
     main_listing = main_res.scalar_one_or_none()
     if main_listing:
-        main_listing.views_count = (main_listing.views_count or 0) + 1
-        await db.commit()
-        await db.refresh(main_listing)
+        # Self-view guard: don't inflate a seller's own view counter.
+        if not is_self_view(current_user, main_listing):
+            main_listing.views_count = (main_listing.views_count or 0) + 1
+            await db.commit()
+            await db.refresh(main_listing)
 
         is_favorited = False
         if current_user:
@@ -2292,6 +2415,18 @@ async def claim_olx_listing(
 
     send_new_listing_notifications.delay(str(listing.id))
 
+    # Block A V2.0 (A1 + A7) — flip the freshly claimed listing into
+    # PENDING_GENERATION and enqueue F1. The realtor's raw_text was
+    # carried over by convert_olx_to_listing so AI has context.
+    try:
+        from app.workers.tasks.ai_generation import generate_listing_description
+
+        listing.status = ListingStatus.PENDING_GENERATION
+        await db.commit()
+        generate_listing_description.delay(str(listing.id))
+    except Exception as exc:
+        logger.warning("F1 enqueue (claim-olx) failed: %s", exc)
+
     # Reload with images
     reload_q = (
         select(Listing)
@@ -2473,6 +2608,16 @@ async def claim_telegram_listing(
     from app.workers.tasks.notifications import send_new_listing_notifications
 
     send_new_listing_notifications.delay(str(listing.id))
+
+    # Block A V2.0 (A1 + A7) — F1 enqueue, mirrors claim-olx.
+    try:
+        from app.workers.tasks.ai_generation import generate_listing_description
+
+        listing.status = ListingStatus.PENDING_GENERATION
+        await db.commit()
+        generate_listing_description.delay(str(listing.id))
+    except Exception as exc:
+        logger.warning("F1 enqueue (claim-telegram) failed: %s", exc)
 
     logger.info(
         "Telegram listing %s claimed by seller %s → listing %s",
@@ -2665,7 +2810,10 @@ async def get_listing(
 async def create_listing(
     data: ListingCreate,
     request: Request,
-    seller: Seller = Depends(get_current_seller),
+    # Block C V2.0 (C2): check_can_create_listing replaces
+    # get_current_seller; behaviour identical during test period
+    # (settings.test_period_active=true), enforces quota afterwards.
+    seller: Seller = Depends(check_can_create_listing),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -2673,6 +2821,10 @@ async def create_listing(
 
     Only authenticated sellers can create listings.
     Listings start in 'pending' moderation status.
+
+    During test period: no quota enforcement.
+    After test period: rejects with 402 if seller is over the free
+    limit (per Block C V2.0 / C2 grandfathering policy).
     """
     from app.db.models import Currency, ListingType, PropertyType, SourceType
 
@@ -2819,6 +2971,12 @@ async def create_listing(
 
     send_new_listing_notifications.delay(str(listing.id))
 
+    # Block D D4 — autopost a fresh ACTIVE listing to the seller's
+    # channel (if connected). Listings in PENDING_GENERATION wait
+    # for the F1 worker, which calls _enqueue_autopost on completion.
+    if listing.status == ListingStatus.ACTIVE:
+        _dispatch_autopost_for_status_change(seller, listing, None)
+
     # Reload listing with images
     query = (
         select(Listing)
@@ -2911,6 +3069,434 @@ async def create_listing(
     )
 
 
+# =============================================================================
+# Block F V2.0 (F1) — DRAFT two-step publish flow
+# =============================================================================
+#
+# Sellers create listings in two stages:
+#   Stage 1 (POST /listings/draft): structured params + photos → DRAFT row,
+#           AI generation enqueued with triggered_by="manual".
+#   Stage 2 (GET /listings/{id}/draft-preview + PATCH status=active):
+#           seller reviews + optionally edits the AI text, then publishes.
+#
+# The worker (PR-F5a) preserves DRAFT through generation — only the
+# seller's PATCH flips status to ACTIVE and fires the existing D4
+# autopost + A4 saved-search hooks. This keeps Block D interfaces
+# untouched: every status transition still routes through the same
+# helper as before.
+
+
+def _build_listing_kwargs(data, seller, source_type) -> dict:
+    """Block F F1 — extract Listing-constructor kwargs from a
+    ``ListingCreate`` payload. Used by both ``create_listing`` (status
+    defaults to ACTIVE) and ``create_draft_listing`` (status=DRAFT).
+    Returns a plain dict; caller adds ``status=...`` and constructs.
+    """
+    from app.db.models import Currency, ListingType, PropertyType
+
+    return dict(
+        seller_id=seller.id,
+        type=ListingType(data.type),
+        property_type=PropertyType(data.property_type),
+        rooms=data.rooms,
+        area=data.area,
+        floor=data.floor,
+        total_floors=data.total_floors,
+        region=data.region,
+        district=data.district,
+        address=data.address,
+        latitude=data.latitude,
+        longitude=data.longitude,
+        price=data.price,
+        currency=Currency(data.currency),
+        title=data.title,
+        description=data.description,
+        phone=data.phone or seller.phone,
+        seller_type=data.seller_type,
+        source_type=source_type,
+        moderation_status=ModerationStatus.APPROVED,
+        living_area=data.living_area,
+        kitchen_area=data.kitchen_area,
+        land_area=data.land_area,
+        building_type=data.building_type,
+        condition=data.condition,
+        house_type=data.house_type,
+        house_condition=data.house_condition,
+        location_type=data.location_type,
+        water_supply=data.water_supply,
+        electricity=data.electricity,
+        heating=data.heating,
+        gas_supply=data.gas_supply,
+        sewage=data.sewage,
+        is_furnished=data.is_furnished,
+        is_negotiable=data.is_negotiable,
+        land_purpose=data.land_purpose,
+        amenities=data.amenities,
+        nearby_amenities=data.nearby_amenities,
+        rent_period=data.rent_period,
+        deposit=data.deposit,
+        utilities_incl=data.utilities_incl,
+        min_rent_months=data.min_rent_months,
+        allowed_students=data.allowed_students,
+        allowed_pets=data.allowed_pets,
+        rent_payment=data.rent_payment,
+        mortgage_ok=data.mortgage_ok,
+        installment_ok=data.installment_ok,
+        halol_ok=data.halol_ok,
+        deed_type=data.deed_type,
+        urgent_flag=data.urgent_flag,
+        city=data.city,
+        microdistrict=data.microdistrict,
+        jk_name=data.jk_name,
+        landmark=data.landmark,
+        metro_station=data.metro_station,
+        seller_telegram=data.seller_telegram,
+        commercial_type=data.commercial_type,
+        price_per_sqm=data.price_per_sqm,
+        ceiling_height=data.ceiling_height,
+        entrance=data.entrance,
+        parking_comm=data.parking_comm,
+        building_class=data.building_class,
+        market_type=data.market_type,
+        wall_material=data.wall_material,
+        furniture=data.furniture,
+        garage=data.garage,
+        basement=data.basement,
+        buildings_exist=data.buildings_exist,
+        fence=data.fence,
+        land_shape=data.land_shape,
+        balcony=data.balcony,
+        listing_subtype=data.listing_subtype,
+        floor_plan_url=data.floor_plan_url,
+        jk_id=data.jk_id,
+    )
+
+
+class DraftCreateResponse(BaseModel):
+    """Minimal response for ``POST /listings/draft``. Stage 2 polls
+    ``/draft-preview`` for the full AI text."""
+
+    id: UUID
+    status: str
+
+
+@router.post("/draft", response_model=DraftCreateResponse, status_code=201)
+async def create_draft_listing(
+    data: ListingCreate,
+    seller: Seller = Depends(check_can_create_listing),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block F F1 Stage 1 — create a listing in DRAFT status and
+    enqueue AI generation with ``triggered_by="manual"``.
+
+    No notifications, no autopost — those fire only when the seller's
+    PATCH later flips status DRAFT → ACTIVE (which uses the existing
+    ``_dispatch_autopost_for_status_change`` helper unchanged).
+
+    Quota gate (Block C C2) still applies via ``check_can_create_listing``.
+    """
+    from app.db.models import SourceType
+    from app.workers.tasks.ai_generation import generate_listing_description
+
+    # Sprint 5 dual-read parity with POST "".
+    _dual = _apply_dual_read_inputs(data.model_dump(exclude_unset=True))
+    data.market_type = _dual.get("market_type", data.market_type)
+    data.furniture = _dual.get("furniture", data.furniture)
+
+    kwargs = _build_listing_kwargs(data, seller, SourceType.MANUAL)
+    listing = Listing(**kwargs, status=ListingStatus.DRAFT)
+    _clear_incompatible_fields(listing)
+    _validate_required_fields(listing)
+    _populate_listing_lang_columns(listing)
+
+    db.add(listing)
+    await db.flush()
+
+    if data.images:
+        for idx, img_data in enumerate(data.images):
+            db.add(
+                ListingImage(
+                    listing_id=listing.id,
+                    original_url=img_data.original_url,
+                    thumbnail_url=img_data.thumbnail_url,
+                    medium_url=img_data.medium_url,
+                    large_url=img_data.large_url,
+                    position=img_data.position if img_data.position else idx,
+                    is_primary=img_data.is_primary
+                    if img_data.is_primary
+                    else (idx == 0),
+                    upload_status="completed",
+                )
+            )
+
+    # DRAFT does NOT count against listings_count — that mirrors the
+    # B2C feed which never sees DRAFT. Counter increments on first
+    # PATCH DRAFT → ACTIVE (handled in update_listing). This prevents
+    # abandoned drafts (purged after 7 days) from inflating quotas.
+    await db.commit()
+
+    # Enqueue AI generation immediately. The worker writes
+    # ai_description_* and keeps status=DRAFT (PR-F5a worker change).
+    try:
+        generate_listing_description.delay(str(listing.id), triggered_by="manual")
+        logger.info(
+            "listing.draft.created seller=%s listing=%s images=%d",
+            seller.id,
+            listing.id,
+            len(data.images or []),
+        )
+    except Exception as exc:
+        # Celery hiccup — listing is already saved. Seller can hit
+        # /regenerate from Stage 2 if needed.
+        logger.warning(
+            "listing.draft.ai_enqueue_failed listing=%s: %s",
+            listing.id,
+            exc,
+        )
+
+    return DraftCreateResponse(id=listing.id, status=listing.status.value)
+
+
+@router.get("/{listing_id}/draft-preview", response_model=DraftPreviewResponse)
+async def get_draft_preview(
+    listing_id: UUID,
+    seller: Seller = Depends(get_current_seller),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block F F1 Stage 2 — poll target. Returns the listing's three
+    AI descriptions + the param snapshot at last generation.
+
+    Owner-only. The frontend polls this at 2s × 15 iterations after
+    POST /listings/draft until ``ai_description_ru`` is non-null
+    (typical p95 ~3s).
+    """
+    row = await db.execute(
+        select(Listing).where(
+            Listing.id == listing_id,
+            Listing.seller_id == seller.id,
+            Listing.deleted_at.is_(None),
+        )
+    )
+    listing = row.scalar_one_or_none()
+    if listing is None:
+        raise NotFoundException("Listing", str(listing_id))
+
+    return DraftPreviewResponse(
+        id=listing.id,
+        status=listing.status.value,
+        ai_description_ru=listing.ai_description_ru,
+        ai_description_uz=listing.ai_description_uz,
+        ai_description_uz_cyrl=listing.ai_description_uz_cyrl,
+        last_ai_param_snapshot=listing.last_ai_param_snapshot,
+        ai_generation_attempted_at=listing.ai_generation_attempted_at,
+    )
+
+
+@router.post(
+    "/{listing_id}/regenerate",
+    response_model=RegenerateResponse,
+    status_code=202,
+)
+async def regenerate_listing_text(
+    listing_id: UUID,
+    data: RegenerateRequest,
+    seller: Seller = Depends(get_current_seller),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block F F1 — re-run AI generation for an existing listing.
+
+    Accepted on DRAFT (seller iterating on Stage 2) and on ACTIVE
+    (seller asking for a refresh after edits). ``language=None`` is
+    the only mode currently emitted by the worker — it always re-emits
+    all three locales; the field is reserved for future per-language
+    granularity.
+
+    Owner-only; rejects 403 otherwise. Idempotent at the Celery layer
+    (multiple in-flight tasks for the same listing converge on the
+    same final state — last-write-wins, no consistency invariant).
+    """
+    from app.workers.tasks.ai_generation import generate_listing_description
+
+    row = await db.execute(
+        select(Listing).where(
+            Listing.id == listing_id,
+            Listing.seller_id == seller.id,
+            Listing.deleted_at.is_(None),
+        )
+    )
+    listing = row.scalar_one_or_none()
+    if listing is None:
+        raise NotFoundException("Listing", str(listing_id))
+
+    if listing.status not in (
+        ListingStatus.DRAFT,
+        ListingStatus.ACTIVE,
+        ListingStatus.GENERATION_FAILED,
+    ):
+        raise BadRequestException(
+            f"Cannot regenerate listing in status={listing.status.value}"
+        )
+
+    try:
+        generate_listing_description.delay(
+            str(listing.id), triggered_by=data.triggered_by
+        )
+        logger.info(
+            "listing.regenerate.queued listing=%s triggered_by=%s",
+            listing.id,
+            data.triggered_by,
+        )
+    except Exception as exc:
+        logger.warning(
+            "listing.regenerate.enqueue_failed listing=%s: %s",
+            listing.id,
+            exc,
+        )
+        raise BadRequestException("Could not queue regeneration; try again")
+
+    return RegenerateResponse(status="queued")
+
+
+@router.get("/{listing_id}/source-text", response_model=SourceTextResponse)
+async def get_listing_source_text(
+    listing_id: UUID,
+    seller: Seller = Depends(get_current_seller),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block F F1 — B2B owner-only access to the parser's raw text.
+
+    Per spec: B2C never sees ``raw_text``. Seller cabinet has an
+    expandable "Показать исходный текст из источника" block for
+    listings that came from a parser source (CLAIMED or PARSED).
+    Returns 404 for manually-created listings — there is no source
+    text to show.
+    """
+    from app.db.models import SourceType
+
+    row = await db.execute(
+        select(Listing).where(
+            Listing.id == listing_id,
+            Listing.seller_id == seller.id,
+            Listing.deleted_at.is_(None),
+        )
+    )
+    listing = row.scalar_one_or_none()
+    if listing is None:
+        raise NotFoundException("Listing", str(listing_id))
+
+    if listing.source_type == SourceType.MANUAL:
+        # Manually-created listings have no upstream source. The
+        # frontend should not show the expander in this case but we
+        # still return 404 as a defensive check.
+        raise NotFoundException("Source text", str(listing_id))
+
+    source_label = (
+        listing.source_type.value
+        if hasattr(listing.source_type, "value")
+        else str(listing.source_type)
+    )
+    return SourceTextResponse(raw_text=listing.raw_text, source=source_label)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Block F V2.0 F2 — synonym matcher (Stage-2 text hints)
+# ─────────────────────────────────────────────────────────────────────
+
+
+class _AnalyseTextRequest(BaseModel):
+    text: str = Field(..., max_length=20_000)
+    language: str = Field(..., max_length=8)
+    current_params: dict = Field(default_factory=dict)
+
+
+class _SynonymMatchOut(BaseModel):
+    parameter_key: str
+    parameter_value: Optional[str] = None
+    surface_form: str
+    polarity: str
+    action: str
+    position: int
+
+
+class _AnalyseTextResponse(BaseModel):
+    matches: list[_SynonymMatchOut]
+
+
+_ANALYSE_TEXT_RATE_LIMIT = 30
+_ANALYSE_TEXT_WINDOW_SECONDS = 60
+
+
+@router.post("/{listing_id}/analyse-text", response_model=_AnalyseTextResponse)
+async def analyse_listing_text(
+    listing_id: UUID,
+    payload: _AnalyseTextRequest,
+    seller: Seller = Depends(get_current_seller),
+    db: AsyncSession = Depends(get_db),
+):
+    """Block F F2 — return synonym hints for the seller's Stage-2 text.
+
+    Owner-only. Rate-limited at 30 calls/min/seller via Redis. The
+    debounced FE callsite caps natural traffic well below the limit;
+    the guard is there for misbehaving clients.
+    """
+    # Atomic rate-limit (fail-soft on Redis outage).
+    try:
+        from app.db.redis import get_redis
+
+        client = await get_redis()
+        key = f"f2:rl:{seller.id}"
+        n = await client.incr(key)
+        if n == 1:
+            await client.expire(key, _ANALYSE_TEXT_WINDOW_SECONDS)
+        if n > _ANALYSE_TEXT_RATE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "rate_limited",
+                    "retry_after_s": _ANALYSE_TEXT_WINDOW_SECONDS,
+                },
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("synonym_matcher.rate_limit_check_failed seller=%s", seller.id)
+
+    # Ownership check — keep the listing private to its seller.
+    listing = (
+        await db.execute(
+            select(Listing).where(
+                Listing.id == listing_id,
+                Listing.seller_id == seller.id,
+                Listing.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if listing is None:
+        raise NotFoundException("Listing", str(listing_id))
+
+    from app.services.synonym_matcher import match_text_to_params
+
+    matches = await match_text_to_params(
+        db,
+        text=payload.text,
+        lang=payload.language,
+        current_params=payload.current_params,
+    )
+    return _AnalyseTextResponse(
+        matches=[
+            _SynonymMatchOut(
+                parameter_key=m.parameter_key,
+                parameter_value=m.parameter_value,
+                surface_form=m.surface_form,
+                polarity=m.polarity,
+                action=m.action,
+                position=m.position,
+            )
+            for m in matches
+        ]
+    )
+
+
 @router.patch("/{listing_id}", response_model=ListingResponse)
 async def update_listing(
     listing_id: UUID,
@@ -2952,9 +3538,39 @@ async def update_listing(
     # Capture old price for price-drop notification
     old_price = listing.price
     old_currency = listing.currency.value
+    # Block D D4 — snapshot the status before mutation so we can decide
+    # which autopost task (if any) to fire after commit.
+    old_status = listing.status
 
     # Extract images from update_data to handle separately
     new_images_data = update_data.pop("images", None)
+
+    # Block phase-2 — sale capture. Pull the sale-only fields out of
+    # update_data before the generic setattr loop so we don't try to
+    # write them to non-existent Listing columns. They feed the
+    # ListingSale upsert below once the status transition is committed.
+    sale_price = update_data.pop("sold_price", None)
+    sale_currency = update_data.pop("sold_currency", None)
+    sale_notes = update_data.pop("sold_notes", None)
+
+    target_status_raw = update_data.get("status")
+    is_target_sold = (
+        target_status_raw == ListingStatus.SOLD.value
+        if isinstance(target_status_raw, str)
+        else target_status_raw == ListingStatus.SOLD
+    )
+    # Reject the transition before mutating anything if SOLD lacks price.
+    if is_target_sold and (sale_price is None or sale_currency is None):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "sold_price_required",
+                "message": (
+                    "sold_price and sold_currency are required when "
+                    "transitioning a listing to SOLD."
+                ),
+            },
+        )
 
     # Track whether translatable content changed
     _TRANSLATABLE_FIELDS = {"description", "title", "address"}
@@ -2980,6 +3596,33 @@ async def update_listing(
     # field validation so cleared fields don't trip it.
     _clear_incompatible_fields(listing)
 
+    # Block F F1 — DRAFT → ACTIVE guard. The seller must wait until
+    # AI generation completes before publishing. The worker keeps
+    # status=DRAFT during generation; only ai_description_ru being
+    # populated proves a successful run (or a fallback). On premature
+    # PATCH we return 409 so the frontend can keep polling.
+    if (
+        old_status == ListingStatus.DRAFT
+        and listing.status == ListingStatus.ACTIVE
+        and not listing.ai_description_ru
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "ai_generation_pending"},
+        )
+
+    # Block F F1 — on the first DRAFT → ACTIVE flip the seller's
+    # listings_count increments (DRAFT did not count, mirroring the
+    # B2C invisibility of drafts).
+    if (
+        old_status == ListingStatus.DRAFT
+        and listing.status == ListingStatus.ACTIVE
+    ):
+        seller.listings_count += 1
+        logger.info(
+            "listing.draft.published seller=%s listing=%s", seller.id, listing.id
+        )
+
     # Validate required fields after applying the update — mirrors
     # frontend validation so a PATCH cannot leave a listing incomplete.
     # is_create=False so create-only rules (city, commercial_type) don't
@@ -2989,6 +3632,48 @@ async def update_listing(
     # Re-detect language and reset translation if content changed
     if content_changed:
         _populate_listing_lang_columns(listing)
+
+    # Block D D4 — bump the version counter on every successful edit so
+    # the cabinet's "post stale" badge becomes accurate. Cheap (one
+    # int), no extra schema. Only bumped if SOME field actually changed
+    # (update_data is non-empty after the loop above).
+    if update_data:
+        listing.version = (listing.version or 1) + 1
+
+    # Block phase-2 — sale capture. Now that the status mutation has
+    # been applied (and required-fields validated) we materialise the
+    # ListingSale row. UNIQUE(listing_id) means a re-confirmation
+    # (seller re-PATCHes SOLD with a corrected price) is an in-place
+    # update, not a duplicate-key error. We mirror the sale snapshot
+    # onto the Listing row in the same transaction so the feed-side
+    # filters never observe a half-written sale.
+    if is_target_sold and sale_price is not None and sale_currency is not None:
+        now = datetime.utcnow()
+        existing_sale = (
+            await db.execute(
+                select(ListingSale).where(ListingSale.listing_id == listing.id)
+            )
+        ).scalar_one_or_none()
+        if existing_sale is None:
+            db.add(
+                ListingSale(
+                    listing_id=listing.id,
+                    sold_price=sale_price,
+                    sold_currency=sale_currency,
+                    sold_at=now,
+                    notes=sale_notes,
+                )
+            )
+        else:
+            existing_sale.sold_price = sale_price
+            existing_sale.sold_currency = sale_currency
+            existing_sale.sold_at = now
+            if sale_notes is not None:
+                existing_sale.notes = sale_notes
+        # Mirror onto the Listing row for cheap feed filters.
+        listing.sold_price = sale_price
+        listing.sold_currency = sale_currency
+        listing.sold_at = now
 
     # Replace images if provided — frontend sends the complete final list
     # (kept existing + newly uploaded). Any existing image NOT in this list
@@ -3034,6 +3719,28 @@ async def update_listing(
             new_price,
             old_currency,
         )
+
+    # Block D D4 — autopost status-transition hooks. Fire-and-forget;
+    # task failures never block the seller's listing update.
+    _dispatch_autopost_for_status_change(seller, listing, old_status)
+
+    # Block F F1 — on DRAFT → ACTIVE the listing becomes B2C-visible
+    # for the first time, so saved-search subscribers must be notified
+    # exactly as for the legacy POST /listings create path.
+    if (
+        old_status == ListingStatus.DRAFT
+        and listing.status == ListingStatus.ACTIVE
+    ):
+        from app.workers.tasks.notifications import send_new_listing_notifications
+
+        try:
+            send_new_listing_notifications.delay(str(listing.id))
+        except Exception as exc:
+            logger.warning(
+                "listing.draft.notify_enqueue_failed listing=%s: %s",
+                listing.id,
+                exc,
+            )
 
     # Reload listing with images
     query = (
@@ -3147,6 +3854,7 @@ async def delete_listing(
     if not listing:
         raise NotFoundException("Listing", str(listing_id))
 
+    old_status = listing.status
     listing.deleted_at = datetime.utcnow()
     listing.status = ListingStatus.DELETED
 
@@ -3154,6 +3862,9 @@ async def delete_listing(
     seller.listings_count = max(0, seller.listings_count - 1)
 
     await db.commit()
+
+    # Block D D4 — autopost cleanup if seller has a connected channel.
+    _dispatch_autopost_for_status_change(seller, listing, old_status)
 
     # PR8 — drop from the search index. Soft-deleted rows must not
     # surface in future Meili-backed reads. Failure is non-fatal.
@@ -3163,3 +3874,203 @@ async def delete_listing(
         _mx_delete(listing.id)
     except Exception as exc:
         logger.warning("meili delete failed: %s", exc)
+
+
+# =============================================================================
+# View / contact event tracking — see spec-kit/partial/EXECUTION_PLAN.md §0.2
+# =============================================================================
+
+
+class _RecordViewIn(BaseModel):
+    """Body for POST /listings/{id}/view."""
+
+    dwell_ms: Optional[int] = Field(default=None, ge=0, le=86_400_000)
+    # A5 V2.0 — anonymous-viewer cookie identifier. When the request is
+    # unauthenticated, the frontend supplies an opaque per-browser id so
+    # daily dedup applies to anon traffic too.
+    anon_id: Optional[str] = Field(default=None, max_length=64)
+
+
+def _safe_anon(anon_id: Optional[str]) -> Optional[str]:
+    """Reject implausible anon ids; return None if invalid."""
+    if not anon_id:
+        return None
+    s = anon_id.strip()
+    if len(s) < 8 or len(s) > 64:
+        return None
+    # Only allow URL-safe base64 / hex characters
+    if not all(c.isalnum() or c in "-_" for c in s):
+        return None
+    return s
+
+
+@router.post("/{listing_id}/view", status_code=204)
+async def record_listing_view(
+    listing_id: UUID,
+    body: _RecordViewIn,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a per-listing view event with optional dwell time.
+
+    Authenticated callers write a row keyed by ``user_id``. Anonymous
+    callers may supply an opaque ``anon_id`` (cookie, 24h TTL on the
+    frontend); when provided, anonymous rows are deduped per day. Without
+    a valid id (anonymous, no cookie) the only side-effect is the
+    public ``Listing.views_count`` cached counter.
+
+    Self-views (listing belongs to the requester) are no-ops.
+    Dedup is one row per (user_or_anon, listing, event_type, calendar-day).
+    """
+    listing = await db.execute(
+        select(Listing)
+        .where(Listing.id == listing_id, Listing.deleted_at.is_(None))
+        .options(selectinload(Listing.seller))
+    )
+    listing = listing.scalar_one_or_none()
+    if listing is None:
+        raise NotFoundException("Listing", str(listing_id))
+    if is_self_view(current_user, listing):
+        return
+
+    anon = _safe_anon(body.anon_id)
+    user_id = current_user.id if current_user else None
+
+    if user_id is None and anon is None:
+        # Anonymous viewer without a cookie — nothing to dedup against.
+        # Bump the cached counter only (cheap, idempotent at the read layer).
+        listing.views_count = (listing.views_count or 0) + 1
+        await db.commit()
+        return
+
+    await db.execute(
+        text(
+            """
+            INSERT INTO listing_view_event (user_id, anon_id, listing_id, event_type, viewed_at, dwell_ms)
+            VALUES (:uid, :anon, :lid, 'view', now(), :dwell)
+            ON CONFLICT (
+                COALESCE(user_id::text, anon_id),
+                listing_id,
+                event_type,
+                (date(viewed_at))
+              )
+              WHERE COALESCE(user_id::text, anon_id) IS NOT NULL
+            DO UPDATE
+              SET dwell_ms = GREATEST(
+                              COALESCE(listing_view_event.dwell_ms, 0),
+                              COALESCE(EXCLUDED.dwell_ms, 0)
+                             )
+            RETURNING xmax = 0 AS inserted
+            """
+        ),
+        {
+            "uid": user_id,
+            "anon": anon,
+            "lid": listing_id,
+            "dwell": body.dwell_ms,
+        },
+    )
+    # views_count is the cached aggregate; bump on every distinct (user/anon, day)
+    # event. ON CONFLICT … DO UPDATE means we cannot distinguish first-write from
+    # update at the SQL level, so we approximate with a separate count.
+    cnt = await db.execute(
+        text(
+            """
+            SELECT 1 FROM listing_view_event
+              WHERE listing_id = :lid
+                AND event_type = 'view'
+                AND date(viewed_at) = current_date
+                AND COALESCE(user_id::text, anon_id) = COALESCE(:uid::text, :anon)
+              LIMIT 1
+            """
+        ),
+        {"lid": listing_id, "uid": user_id, "anon": anon},
+    )
+    # If the row already existed before this insert/update we don't re-bump
+    # because we can't tell. Acceptable: counter slightly under-counts repeat
+    # views by the same user the same day — which is the desired behaviour.
+    # The first-of-day case is rare-enough that we increment optimistically here.
+    if cnt.first() is not None:
+        # The row exists for today — but did THIS request create it?
+        # PostgreSQL doesn't expose that directly with ON CONFLICT DO UPDATE.
+        # Compromise: only bump views_count for the very first view of the day
+        # by querying the count of today's rows for this listing first.
+        pass
+
+    # Simpler correct path: separate insert-or-noop, then conditional bump.
+    # The block above is left for documentation; the real bump happens via:
+    today_first = await db.execute(
+        text(
+            """
+            SELECT (
+                SELECT count(*) FROM listing_view_event
+                WHERE listing_id = :lid
+                  AND event_type = 'view'
+                  AND date(viewed_at) = current_date
+                  AND COALESCE(user_id::text, anon_id) = COALESCE(:uid::text, :anon)
+            ) = 1 AS is_first
+            """
+        ),
+        {"lid": listing_id, "uid": user_id, "anon": anon},
+    )
+    is_first = today_first.scalar()
+    if is_first:
+        listing.views_count = (listing.views_count or 0) + 1
+
+    await db.commit()
+
+
+@router.post("/{listing_id}/contact", status_code=204)
+async def record_listing_contact(
+    listing_id: UUID,
+    body: Optional[_RecordViewIn] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a contact event ("Связаться" tap).
+
+    Same dedup contract as ``/view`` — auth user_id or anonymous anon_id.
+    Only the first tap of the day increments ``Listing.contacts_count``.
+    Self-contacts are no-ops.
+    """
+    listing = await db.execute(
+        select(Listing)
+        .where(Listing.id == listing_id, Listing.deleted_at.is_(None))
+        .options(selectinload(Listing.seller))
+    )
+    listing = listing.scalar_one_or_none()
+    if listing is None:
+        raise NotFoundException("Listing", str(listing_id))
+    if is_self_view(current_user, listing):
+        return
+
+    anon = _safe_anon(body.anon_id if body else None)
+    user_id = current_user.id if current_user else None
+
+    if user_id is None and anon is None:
+        # No identifier — bump cached counter, no event row.
+        listing.contacts_count = (listing.contacts_count or 0) + 1
+        await db.commit()
+        return
+
+    inserted = await db.execute(
+        text(
+            """
+            INSERT INTO listing_view_event (user_id, anon_id, listing_id, event_type, viewed_at)
+            VALUES (:uid, :anon, :lid, 'contact', now())
+            ON CONFLICT (
+                COALESCE(user_id::text, anon_id),
+                listing_id,
+                event_type,
+                (date(viewed_at))
+              )
+              WHERE COALESCE(user_id::text, anon_id) IS NOT NULL
+            DO NOTHING
+            RETURNING id
+            """
+        ),
+        {"uid": user_id, "anon": anon, "lid": listing_id},
+    )
+    if inserted.scalar_one_or_none() is not None:
+        listing.contacts_count = (listing.contacts_count or 0) + 1
+    await db.commit()

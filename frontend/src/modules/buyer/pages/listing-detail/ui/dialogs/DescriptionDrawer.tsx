@@ -14,6 +14,7 @@ import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { formatPhone } from "@shared/lib/formatPhone";
+import { trackContact } from "@shared/lib/viewTracking";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { radii } from "@app/styles/theme";
 
@@ -42,12 +43,27 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		enabled: opened,
 	});
 
+	// Block A6 — locale-driven section markers. The raw_text shipped by the
+	// crawler embeds source-language section headers (currently always Russian
+	// for OLX, but we route through i18n so future per-locale crawlers can
+	// override). Each key resolves to a regex *source* string; we build the
+	// RegExp here.
 	const rawText = listing.raw_text || listing.description;
+	const photoHeaderRe = new RegExp(
+		t("descriptionDrawer.section.photoHeaderRe"),
+		"gi",
+	);
+	const imageLineRe = new RegExp(t("descriptionDrawer.section.imageLineRe"), "g");
+	const imageHostRe = new RegExp(t("descriptionDrawer.section.imageHostRe"), "g");
+	const sellerTrailerRe = new RegExp(
+		t("descriptionDrawer.section.sellerTrailerRe"),
+		"i",
+	);
 	const fullText = rawText
-		?.replace(/##\s*Фото\s*\/\s*Images\s*/gi, "")
-		.replace(/-\s*Image\s*\d+:\s*https?:\/\/\S+/g, "")
-		.replace(/https?:\/\/\S*apollo\.olxcdn\.com\S*/g, "")
-		.replace(/\*{0,2}Продавец:\*{0,2}[\s\S]*$/i, "")
+		?.replace(photoHeaderRe, "")
+		.replace(imageLineRe, "")
+		.replace(imageHostRe, "")
+		.replace(sellerTrailerRe, "")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
 
@@ -199,6 +215,9 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 										fw={500}
 										component="a"
 										href={`tel:${listing.contact_phone}`}
+										onClick={() => {
+											void trackContact(listing.id);
+										}}
 									>
 										{formatPhone(listing.contact_phone)}
 									</Text>

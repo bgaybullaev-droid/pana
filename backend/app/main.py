@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import router as api_v1_router
+from app.api.v1 import seo
 from app.core.config import settings
 from app.core.exceptions import RealEstateException
 from app.db.redis import close_redis
@@ -161,11 +162,30 @@ async def health_check():
 
 
 # Include API routes
+#
+# ORDER MATTERS — DO NOT REORDER WITHOUT BLOCK F R3 REVIEW.
+#
+# 1. ``api_v1_router`` is registered first under ``/api/v1`` so it
+#    always matches before anything else. Critical: the F3 SEO router
+#    is mounted at the **root**, and although its routes use literal
+#    prefixes like ``/{lang}/listing/...`` that wouldn't collide
+#    syntactically with ``/api/v1/...``, registering the API router
+#    first is a defence-in-depth measure against any future
+#    catch-all SEO route accidentally shadowing the API.
+# 2. ``/uploads`` static mount — narrow, prefix-scoped, can't collide.
+# 3. ``seo_router`` (Block F V2.0 F3b) — root-level SSR routes for
+#    ``/robots.txt``, ``/sitemap*``, and ``/{lang}/...`` content pages.
+#    Includes the TWA-UA bounce + dedicated read-only DB pool so a
+#    crawler burst can't starve the API pool.
 app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
 
 # Mount static files for uploads
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
+# Block F V2.0 F3b — SSR routes for SEO traffic. Registered last so
+# more-specific API + static-file paths always match first.
+app.include_router(seo.router)
 
 
 # Root endpoint

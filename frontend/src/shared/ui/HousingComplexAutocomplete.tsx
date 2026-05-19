@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Loader, Paper, Text, TextInput } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import {
 	searchHousingComplexes,
 	type HousingComplexListItem,
@@ -51,6 +52,7 @@ export function HousingComplexAutocomplete({
 	region,
 	disabled,
 }: HousingComplexAutocompleteProps) {
+	const { t } = useTranslation("common");
 	// The text input is controlled by jk_name — it always reflects what
 	// the user sees, whether they typed it or picked from the dropdown.
 	const [text, setText] = useState<string>(value.jk_name ?? "");
@@ -121,8 +123,8 @@ export function HousingComplexAutocomplete({
 	const description = useMemo(() => {
 		if (!value.jk_id) return undefined;
 		// Show a small cue that the user has a linked HC, not just free text.
-		return "✓ связан с жилым комплексом";
-	}, [value.jk_id]);
+		return t("housingComplex.linked");
+	}, [value.jk_id, t]);
 
 	return (
 		<Box ref={boxRef} style={{ position: "relative" }}>

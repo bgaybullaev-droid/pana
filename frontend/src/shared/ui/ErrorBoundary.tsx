@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Button, Container, Title, Text, Stack } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
+import i18n from "@shared/i18n";
 
 interface Props {
 	children: ReactNode;
@@ -49,12 +50,12 @@ export class ErrorBoundary extends Component<Props, State> {
 				<Container style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
 					<Stack align="center" style={{ textAlign: "center" }}>
 						<IconAlertTriangle size={64} color="red" />
-						<Title order={2}>Что-то пошло не так</Title>
+						<Title order={2}>{i18n.t("errors.boundaryTitle", { ns: "common" })}</Title>
 						<Text color="dimmed" size="sm" style={{ maxWidth: 400 }}>
-							Произошла непредвиденная ошибка при загрузке страницы. Попробуйте обновить страницу.
+							{i18n.t("errors.boundaryDescription", { ns: "common" })}
 						</Text>
 						<Button variant="light" onClick={() => window.location.reload()}>
-							Обновить страницу
+							{i18n.t("errors.boundaryRetry", { ns: "common" })}
 						</Button>
 					</Stack>
 				</Container>

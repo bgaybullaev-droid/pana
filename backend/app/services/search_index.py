@@ -21,7 +21,7 @@ import logging
 from typing import Iterable, List, Optional
 
 from app.core.config import settings
-from app.db.models import Listing
+from app.db.models import Listing, ListingStatus
 
 logger = logging.getLogger(__name__)
 
@@ -345,7 +345,14 @@ def _map_listing_to_document(listing: Listing) -> dict:
 def index_listing(listing: Listing) -> bool:
     """Upsert a single listing document into Meilisearch. Returns True on
     success, False on any error. Never raises — Postgres writes must
-    still succeed if Meili is down."""
+    still succeed if Meili is down.
+
+    Block F F1 — DRAFT listings are skipped explicitly: they are never
+    B2C-visible and should not occupy index space. PATCH on a DRAFT
+    therefore does not introduce a temporary index entry.
+    """
+    if getattr(listing, "status", None) == ListingStatus.DRAFT:
+        return False
     index = ensure_index_exists()
     if index is None:
         _BACKFILL_COUNTERS["meili_index_failure_total"] += 1

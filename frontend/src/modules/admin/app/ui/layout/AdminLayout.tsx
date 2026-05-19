@@ -8,6 +8,13 @@ import {
 	IconWorldSearch,
 	IconServerCog,
 	IconHistory,
+	IconBroadcast,
+	IconSparkles,
+	IconLanguage,
+	IconFileExport,
+	IconChartLine,
+	IconPhoto,
+	IconShieldExclamation,
 } from "@tabler/icons-react";
 import { useUnit } from "effector-react";
 import { useEffect } from "react";
@@ -49,6 +56,41 @@ const NAV_ITEMS: NavItem[] = [
 		icon: IconWorldSearch,
 		labelKey: "nav.crawled",
 		path: "/admin/crawled",
+	},
+	{
+		icon: IconBroadcast,
+		labelKey: "nav.sources",
+		path: "/admin/sources",
+	},
+	{
+		icon: IconSparkles,
+		labelKey: "nav.aiQuality",
+		path: "/admin/ai-quality",
+	},
+	{
+		icon: IconLanguage,
+		labelKey: "nav.synonyms",
+		path: "/admin/synonyms",
+	},
+	{
+		icon: IconFileExport,
+		labelKey: "nav.exportTemplates",
+		path: "/admin/export-templates",
+	},
+	{
+		icon: IconChartLine,
+		labelKey: "nav.analytics",
+		path: "/admin/analytics",
+	},
+	{
+		icon: IconPhoto,
+		labelKey: "nav.banners",
+		path: "/admin/banners",
+	},
+	{
+		icon: IconShieldExclamation,
+		labelKey: "nav.suspicions",
+		path: "/admin/suspicions",
 	},
 	{
 		icon: IconServerCog,

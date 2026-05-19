@@ -37,6 +37,9 @@ import { translateDistrict } from "@shared/lib/regions";
 import {
 	fetchSellerOLXListings,
 	fetchSellerTelegramListings,
+	claimOlxListing,
+	claimTelegramListing,
+	rejectCrawledListing,
 } from "@modules/seller/shared/api/sellerCrawledListings";
 import type { OLXListing, TelegramListing } from "@shared/api/types";
 
@@ -67,6 +70,8 @@ function Page() {
 	const [activeListingId, setActiveListingId] = useState<string | null>(null);
 
 	const [isLoading, setIsLoading] = useState(true);
+	const [hasError, setHasError] = useState(false);
+	const [reloadTick, setReloadTick] = useState(0);
 	const [olxListings, setOlxListings] = useState<OLXListing[]>([]);
 	const [telegramListings, setTelegramListings] = useState<TelegramListing[]>(
 		[],
@@ -74,17 +79,17 @@ function Page() {
 
 	useEffect(() => {
 		let active = true;
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 15_000);
+
 		const loadListings = async () => {
 			setIsLoading(true);
+			setHasError(false);
 			try {
 				if (selectedPlatform === "all") {
 					const [resOlx, resTg] = await Promise.all([
-						fetchSellerOLXListings({ page: 1, per_page: 50 }).catch(() => ({
-							items: [],
-						})),
-						fetchSellerTelegramListings({ page: 1, per_page: 50 }).catch(
-							() => ({ items: [] }),
-						),
+						fetchSellerOLXListings({ page: 1, per_page: 50 }),
+						fetchSellerTelegramListings({ page: 1, per_page: 50 }),
 					]);
 					if (active) {
 						setOlxListings(resOlx.items);
@@ -92,25 +97,37 @@ function Page() {
 					}
 				} else if (selectedPlatform === "olx") {
 					const res = await fetchSellerOLXListings({ page: 1, per_page: 50 });
-					if (active) setOlxListings(res.items);
+					if (active) {
+						setOlxListings(res.items);
+						setTelegramListings([]);
+					}
 				} else if (selectedPlatform === "telegram") {
 					const res = await fetchSellerTelegramListings({
 						page: 1,
 						per_page: 50,
 					});
-					if (active) setTelegramListings(res.items);
+					if (active) {
+						setTelegramListings(res.items);
+						setOlxListings([]);
+					}
 				}
 			} catch (err) {
 				console.error("Failed to load crawled listings", err);
+				if (active) setHasError(true);
 			} finally {
+				clearTimeout(timeout);
 				if (active) setIsLoading(false);
 			}
 		};
 		loadListings();
 		return () => {
 			active = false;
+			clearTimeout(timeout);
+			controller.abort();
 		};
-	}, [selectedPlatform]);
+	}, [selectedPlatform, reloadTick]);
+
+	const handleReload = () => setReloadTick((n) => n + 1);
 
 	const propertyTypeLabel = (type: string) => {
 		const map: Record<string, string> = {
@@ -195,327 +212,118 @@ function Page() {
 		return cards;
 	}, [olxListings, telegramListings, selectedPlatform, searchQuery, t]);
 
-	const handleClaim = (e: React.MouseEvent | null, _id: string) => {
-		if (e) e.stopPropagation();
-		notifications.show({
-			title: "Информация",
-			message: 'Действие "Это моё" пока в разработке',
-			color: "blue",
-		});
+	const removeCard = (id: string, source: Platform) => {
+		if (source === "olx") {
+			setOlxListings((prev) => prev.filter((l) => l.id !== id));
+		} else if (source === "telegram") {
+			setTelegramListings((prev) => prev.filter((l) => l.id !== id));
+		}
+		setActiveListingId((curr) => (curr === id ? null : curr));
 	};
 
-	const handleReject = (e: React.MouseEvent | null, _id: string) => {
+	// A1 V2.0 — per-card pending state guards against double-click.
+	// Map of card_id → "claim" | "reject" while a mutation is in flight.
+	const [pendingActions, setPendingActions] = useState<
+		Record<string, "claim" | "reject">
+	>({});
+
+	const handleClaim = async (e: React.MouseEvent | null, id: string) => {
 		if (e) e.stopPropagation();
-		notifications.show({
-			title: "Информация",
-			message: 'Действие "Не моё" пока в разработке',
-			color: "orange",
-		});
+		if (pendingActions[id]) return; // double-click guard
+		const card = unifiedCards.find((c) => c.id === id);
+		if (!card || (card.source !== "olx" && card.source !== "telegram")) return;
+		const source = card.source;
+		setPendingActions((prev) => ({ ...prev, [id]: "claim" }));
+		try {
+			if (source === "olx") {
+				await claimOlxListing(id);
+			} else {
+				await claimTelegramListing(id);
+			}
+			removeCard(id, source);
+			notifications.show({
+				title: t("listings.claimedTitle"),
+				message: t("listings.claimedMsg"),
+				color: "green",
+			});
+			// Block C V2.0 (C4) — first-claim hint to add additional phones.
+			// Localstorage-gated; shown once per seller.
+			if (typeof window !== "undefined") {
+				const KEY = "ucm_phones_hint_shown";
+				if (!localStorage.getItem(KEY)) {
+					localStorage.setItem(KEY, "1");
+					setTimeout(() => {
+						notifications.show({
+							title: t("phones.postClaimHintTitle"),
+							message: t("phones.postClaimHintBody"),
+							color: "blue",
+							autoClose: 8000,
+						});
+					}, 1500);
+				}
+			}
+		} catch (err: any) {
+			const status = err?.response?.status;
+			const detail = err?.response?.data?.detail;
+			// 409 = already claimed by someone else (per A1 spec)
+			const message =
+				status === 409
+					? t("listings.alreadyClaimedByOther")
+					: detail || t("listings.claimFailedMsg");
+			notifications.show({
+				title: t("listings.claimFailedTitle"),
+				message,
+				color: "red",
+			});
+			// On 409 also remove the card — it isn't ours anymore
+			if (status === 409) removeCard(id, source);
+		} finally {
+			setPendingActions((prev) => {
+				const next = { ...prev };
+				delete next[id];
+				return next;
+			});
+		}
+	};
+
+	const handleReject = async (e: React.MouseEvent | null, id: string) => {
+		if (e) e.stopPropagation();
+		if (pendingActions[id]) return; // double-click guard
+		const card = unifiedCards.find((c) => c.id === id);
+		if (!card || (card.source !== "olx" && card.source !== "telegram")) return;
+		const source = card.source;
+		setPendingActions((prev) => ({ ...prev, [id]: "reject" }));
+		try {
+			await rejectCrawledListing(source, id);
+			removeCard(id, source);
+			notifications.show({
+				title: t("listings.rejectedTitle"),
+				message: t("listings.rejectedMsg"),
+				color: "gray",
+			});
+		} catch (err: any) {
+			const detail = err?.response?.data?.detail;
+			notifications.show({
+				title: t("listings.rejectFailedTitle"),
+				message: detail || t("listings.rejectFailedMsg"),
+				color: "red",
+			});
+		} finally {
+			setPendingActions((prev) => {
+				const next = { ...prev };
+				delete next[id];
+				return next;
+			});
+		}
 	};
 
 	const ALL_PLATFORMS: { value: Platform; label: string }[] = [
-		{ value: "all", label: t("listings.all", "Все") },
+		{ value: "all", label: t("listings.all") },
 		{ value: "olx", label: "OLX" },
 		{ value: "telegram", label: "Telegram" },
 	];
 
-	// Mockup data to show if arrays are empty
-	const getMockups = (): UnifiedCard[] => {
-		const realEstateImages = [
-			"https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600607687940-47a04fdd38ca?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600585154542-a8436a0dc22e?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1513584684374-8bdb7489feef?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1200&q=80",
-			"https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=80",
-		];
-
-		const generateImages = (index: number) => {
-			// Rotate through the curated list so they are varied
-			const start = (index * 3) % realEstateImages.length;
-			return [
-				{ url: realEstateImages[start] },
-				{ url: realEstateImages[(start + 1) % realEstateImages.length] },
-				{ url: realEstateImages[(start + 2) % realEstateImages.length] },
-			];
-		};
-
-		const olxMockups: UnifiedCard[] = [
-			{
-				id: "mock-olx-1",
-				source: "olx",
-				price: 45000,
-				currency: "USD",
-				title: "2-комн. Квартира Юнусабадский район",
-				imageUrl: realEstateImages[0],
-				images: generateImages(0),
-				rooms: 2,
-				area: 55,
-				district: "yunusabadskiy",
-				views_count: 120,
-			},
-			{
-				id: "mock-olx-2",
-				source: "olx",
-				price: 120000,
-				currency: "USD",
-				title: "Современный дом в Мирзо-Улугбекском районе",
-				imageUrl: realEstateImages[1],
-				images: generateImages(1),
-				rooms: 5,
-				area: 250,
-				district: "mirzo-ulugbekskiy",
-				views_count: 45,
-			},
-			{
-				id: "mock-olx-3",
-				source: "olx",
-				price: 32000,
-				currency: "USD",
-				title: "1-комн. Квартира Чиланзар",
-				imageUrl: realEstateImages[2],
-				images: generateImages(2),
-				rooms: 1,
-				area: 36,
-				district: "chilanzarskiy",
-				views_count: 310,
-			},
-			{
-				id: "mock-olx-4",
-				source: "olx",
-				price: 85000,
-				currency: "USD",
-				title: "3-комн. Квартира Яккасарайский район",
-				imageUrl: realEstateImages[3],
-				images: generateImages(3),
-				rooms: 3,
-				area: 90,
-				district: "yakkasarayskiy",
-				views_count: 85,
-			},
-			{
-				id: "mock-olx-5",
-				source: "olx",
-				price: 150000,
-				currency: "USD",
-				title: "Евродом в Сергелийском районе",
-				imageUrl: realEstateImages[4],
-				images: generateImages(4),
-				rooms: 6,
-				area: 300,
-				district: "sergeliyskiy",
-				views_count: 12,
-			},
-			{
-				id: "mock-olx-6",
-				source: "olx",
-				price: 62000,
-				currency: "USD",
-				title: "2-комн. Квартира Мирабадский район",
-				imageUrl: realEstateImages[5],
-				images: generateImages(5),
-				rooms: 2,
-				area: 68,
-				district: "mirabadskiy",
-				views_count: 220,
-			},
-			{
-				id: "mock-olx-7",
-				source: "olx",
-				price: 110000,
-				currency: "USD",
-				title: "4-комн. Квартира Шайхантахурский район",
-				imageUrl: realEstateImages[6],
-				images: generateImages(6),
-				rooms: 4,
-				area: 120,
-				district: "shayhantahurskiy",
-				views_count: 67,
-			},
-			{
-				id: "mock-olx-8",
-				source: "olx",
-				price: 48000,
-				currency: "USD",
-				title: "Участок 4 сотки Алмазарский район",
-				imageUrl: realEstateImages[7],
-				images: generateImages(7),
-				rooms: null,
-				area: 400,
-				district: "almazarskiy",
-				views_count: 19,
-			},
-			{
-				id: "mock-olx-9",
-				source: "olx",
-				price: 55000,
-				currency: "USD",
-				title: "Новостройка 2-комн. Яшнобод",
-				imageUrl: realEstateImages[8],
-				images: generateImages(8),
-				rooms: 2,
-				area: 54,
-				district: "yashnobodskiy",
-				views_count: 154,
-			},
-			{
-				id: "mock-olx-10",
-				source: "olx",
-				price: 210000,
-				currency: "USD",
-				title: "Особняк 8 комн. Мирзо-Улугбекский",
-				imageUrl: realEstateImages[9],
-				images: generateImages(9),
-				rooms: 8,
-				area: 450,
-				district: "mirzo-ulugbekskiy",
-				views_count: 23,
-			},
-		];
-
-		const tgMockups: UnifiedCard[] = [
-			{
-				id: "mock-tg-1",
-				source: "telegram",
-				price: 32000,
-				currency: "USD",
-				title: "3-комн. Квартира Чиланзар",
-				imageUrl: realEstateImages[2],
-				images: generateImages(2),
-				rooms: 3,
-				area: 72,
-				district: "chilanzarskiy",
-			},
-			{
-				id: "mock-tg-2",
-				source: "telegram",
-				price: 800,
-				currency: "USD",
-				title: "Аренда 2-комн. Мирабадский",
-				imageUrl: realEstateImages[5],
-				images: generateImages(5),
-				rooms: 2,
-				area: 65,
-				district: "mirabadskiy",
-			},
-			{
-				id: "mock-tg-3",
-				source: "telegram",
-				price: 42000,
-				currency: "USD",
-				title: "Срочно 2-комн. Сергели",
-				imageUrl: realEstateImages[8],
-				images: generateImages(8),
-				rooms: 2,
-				area: 50,
-				district: "sergeliyskiy",
-			},
-			{
-				id: "mock-tg-4",
-				source: "telegram",
-				price: 105000,
-				currency: "USD",
-				title: "Дом 4 сотки Учтепа",
-				imageUrl: realEstateImages[1],
-				images: generateImages(11),
-				rooms: 5,
-				area: 180,
-				district: "uchtepinskiy",
-			},
-			{
-				id: "mock-tg-5",
-				source: "telegram",
-				price: 65000,
-				currency: "USD",
-				title: "3-комн. новостройка Яккасарай",
-				imageUrl: realEstateImages[4],
-				images: generateImages(14),
-				rooms: 3,
-				area: 78,
-				district: "yakkasarayskiy",
-			},
-			{
-				id: "mock-tg-6",
-				source: "telegram",
-				price: 54000,
-				currency: "USD",
-				title: "Юнусабад 3 квартал 2-комн.",
-				imageUrl: realEstateImages[0],
-				images: generateImages(6),
-				rooms: 2,
-				area: 55,
-				district: "yunusabadskiy",
-			},
-			{
-				id: "mock-tg-7",
-				source: "telegram",
-				price: 1500,
-				currency: "USD",
-				title: "Аренда дома на Ц-1",
-				imageUrl: realEstateImages[3],
-				images: generateImages(7),
-				rooms: 4,
-				area: 150,
-				district: "tashkent_central",
-			},
-			{
-				id: "mock-tg-8",
-				source: "telegram",
-				price: 28000,
-				currency: "USD",
-				title: "Участок Зангиота",
-				imageUrl: realEstateImages[7],
-				images: generateImages(17),
-				rooms: null,
-				area: 600,
-				district: "tashkent_region",
-			},
-			{
-				id: "mock-tg-9",
-				source: "telegram",
-				price: 39000,
-				currency: "USD",
-				title: "Квартира студия Мирзо-Улугбек",
-				imageUrl: realEstateImages[9],
-				images: generateImages(19),
-				rooms: 1,
-				area: 40,
-				district: "mirzo-ulugbekskiy",
-			},
-			{
-				id: "mock-tg-10",
-				source: "telegram",
-				price: 77000,
-				currency: "USD",
-				title: "4-комн. Шайхантахур панельный",
-				imageUrl: realEstateImages[6],
-				images: generateImages(10),
-				rooms: 4,
-				area: 92,
-				district: "shayhantahurskiy",
-			},
-		];
-
-		if (selectedPlatform === "all") {
-			return [...olxMockups, ...tgMockups];
-		} else if (selectedPlatform === "olx") {
-			return olxMockups;
-		} else {
-			return tgMockups;
-		}
-	};
-
-	const displayedCards =
-		unifiedCards.length > 0 ? unifiedCards : isLoading ? [] : getMockups();
+	const displayedCards = unifiedCards;
 
 	const listingsMap = useMemo(() => {
 		const map: Record<string, any> = {};
@@ -543,7 +351,7 @@ function Page() {
 	const slideIds = displayedCards.map((c) => c.id);
 
 	return (
-		<InnerPage title={t("dashboard.found", "Найденные")} noPadding>
+		<InnerPage title={t("dashboard.found")} noPadding>
 			<Container px="md" py="md">
 				<Stack gap={16}>
 					{/* Informational block */}
@@ -577,16 +385,10 @@ function Page() {
 									</Box>
 									<Box style={{ flex: 1 }}>
 										<Text size="sm" fw={700} c="dark.9">
-											{t(
-												"listings.crawledContextTitle",
-												"Ваши найденные объявления",
-											)}
+											{t("listings.crawledContextTitle")}
 										</Text>
 										<Text size="13px" mt={4} fw={500} c="dimmed" lh={1.4}>
-											{t(
-												"listings.crawledContextDesc",
-												"Мы нашли эти объявления по вашему номеру на внешних площадках. Просмотрите их и нажмите «Это моё», чтобы управлять ими.",
-											)}
+											{t("listings.crawledContextDesc")}
 										</Text>
 									</Box>
 								</Group>
@@ -675,7 +477,24 @@ function Page() {
 						</Stack>
 					)}
 
-					{!isLoading && displayedCards.length === 0 && (
+					{!isLoading && hasError && (
+						<Box
+							style={{
+								animation: "fade-in-up 0.4s ease-out 0.1s both",
+								marginTop: 32,
+							}}
+						>
+							<EmptyState
+								icon={IconInfoCircle}
+								title={t("listings.loadErrorTitle")}
+								description={t("listings.loadErrorDesc")}
+								actionLabel={t("listings.reloadBtn")}
+								onAction={handleReload}
+							/>
+						</Box>
+					)}
+
+					{!isLoading && !hasError && displayedCards.length === 0 && (
 						<Box
 							style={{
 								animation: "fade-in-up 0.4s ease-out 0.1s both",
@@ -686,11 +505,8 @@ function Page() {
 								icon={searchQuery ? IconSearch : IconBuilding}
 								title={
 									searchQuery
-										? t("listings.emptySearch", "Ничего не найдено")
-										: t(
-												"listings.emptySource",
-												"Нет объявлений в этом источнике",
-											)
+										? t("listings.emptySearch")
+										: t("listings.emptySource")
 								}
 								description=""
 							/>
@@ -699,13 +515,15 @@ function Page() {
 
 					<Stack gap="xs">
 						{displayedCards.map((card) => {
+							const isPending = !!pendingActions[card.id];
 							const menuActions = (
-								<Menu position="bottom-end">
+								<Menu position="bottom-end" disabled={isPending}>
 									<Menu.Target>
 										<ActionIcon
 											variant="subtle"
 											radius="xl"
 											size="sm"
+											disabled={isPending}
 											style={{ backgroundColor: "var(--mantine-color-gray-0)" }}
 											onClick={(e) => {
 												e.stopPropagation();
@@ -719,17 +537,19 @@ function Page() {
 										<Menu.Item
 											leftSection={<IconCheck size={14} />}
 											color="blue"
+											disabled={isPending}
 											onClick={(e) => handleClaim(e, card.id)}
 										>
-											{t("listings.claimBtn", "Это моё")}
+											{t("listings.claimBtn")}
 										</Menu.Item>
 										<Menu.Divider />
 										<Menu.Item
 											leftSection={<IconTrash size={14} />}
 											color="red"
+											disabled={isPending}
 											onClick={(e) => handleReject(e, card.id)}
 										>
-											{t("listings.rejectBtn", "Не моё")}
+											{t("listings.rejectBtn")}
 										</Menu.Item>
 									</Menu.Dropdown>
 								</Menu>

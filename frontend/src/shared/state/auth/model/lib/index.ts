@@ -26,6 +26,7 @@ export const authResponseToUser = (
 		approval_status: data.approval_status,
 		auth_source: data.auth_source,
 		phone: data.phone,
+		language: data.language ?? "ru",
 	};
 };
 
@@ -42,4 +43,5 @@ export const userMeResponseToUser = (data: UserMeResponse): AuthUser => ({
 	approval_status: data.approval_status,
 	auth_source: data.auth_source,
 	phone: data.phone,
+	language: data.language ?? "ru",
 });

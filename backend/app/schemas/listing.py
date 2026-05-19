@@ -316,6 +316,11 @@ class ListingUpdate(BaseModel):
     floor_plan_url: Optional[str] = Field(None, max_length=500)
     jk_id: Optional[UUID] = None
 
+    # ── Block phase-2 — sale capture (only honored when status=sold) ─
+    sold_price: Optional[int] = Field(None, gt=0, le=10**12)
+    sold_currency: Optional[str] = Field(None, pattern="^(USD|UZS)$")
+    sold_notes: Optional[str] = Field(None, max_length=2000)
+
     @field_validator("min_rent_months")
     @classmethod
     def validate_min_rent_months(cls, v):
@@ -457,6 +462,13 @@ class ListingResponse(BaseModel):
     original_language: Optional[str] = None
     is_translated: bool = False
 
+    # ── Block F V2.0 (F1) — AI description per locale ───────────────
+    # Buyer feed / detail responses expose all three locales; the
+    # frontend picks the active one based on the user's UI language.
+    ai_description_ru: Optional[str] = None
+    ai_description_uz: Optional[str] = None
+    ai_description_uz_cyrl: Optional[str] = None
+
     model_config = {"from_attributes": True}
 
 
@@ -550,6 +562,14 @@ class ListingFilters(BaseModel):
     furnished: Optional[bool] = None  # maps to is_furnished column
     amenities: Optional[List[str]] = None  # AND-match (listing must contain all)
     nearby_amenities: Optional[List[str]] = None  # AND-match
+
+    # ── A2 — house-specific filters (columns shipped in Phase 2) ────
+    # `house_type` is a scalar string; the other two are ARRAY(String)
+    # columns and use the array-overlap pattern (matches the listing
+    # if it contains ANY of the selected options).
+    house_type: Optional[str] = Field(None, max_length=50)
+    house_condition: Optional[List[str]] = None  # ARRAY overlap
+    water_supply: Optional[List[str]] = None  # ARRAY overlap
 
     # ── Sprint 3 (T-001) filters ────────────────────────────────────
     urgent_flag: Optional[bool] = None  # true-only (mirrors sale-finance booleans)
@@ -742,3 +762,58 @@ class ListingClaimVerifyRequest(BaseModel):
     """Request to verify claim with OTP."""
 
     otp_code: str = Field(..., min_length=6, max_length=6)
+
+
+# =============================================================================
+# Block F V2.0 (F1) — DRAFT two-step publish schemas
+# =============================================================================
+
+
+class DraftPreviewResponse(BaseModel):
+    """``GET /listings/{id}/draft-preview`` response payload.
+
+    The frontend Stage 2 polls this until ``ai_description_ru`` is non-null
+    (max 30s @ 2s interval). The ``last_ai_param_snapshot`` lets the
+    frontend detect param drift between Stage 1 edits and the text in
+    the editor.
+    """
+
+    id: UUID
+    status: str
+    ai_description_ru: Optional[str] = None
+    ai_description_uz: Optional[str] = None
+    ai_description_uz_cyrl: Optional[str] = None
+    last_ai_param_snapshot: Optional[dict] = None
+    ai_generation_attempted_at: Optional[UTCDateTime] = None
+
+
+class RegenerateRequest(BaseModel):
+    """``POST /listings/{id}/regenerate`` body.
+
+    ``language=None`` regenerates all three locales (the worker always
+    emits all three per the F1 spec; per-language regeneration is
+    reserved for future scope).
+    """
+
+    language: Optional[str] = Field(
+        None,
+        pattern=r"^(ru|uz|uz_cyrl)$",
+        description="Reserved — currently all three locales always re-emitted",
+    )
+    triggered_by: str = Field(
+        default="manual_retry",
+        pattern=r"^(manual_retry|param_change)$",
+    )
+
+
+class RegenerateResponse(BaseModel):
+    """``POST /listings/{id}/regenerate`` response."""
+
+    status: str = "queued"
+
+
+class SourceTextResponse(BaseModel):
+    """``GET /listings/{id}/source-text`` response — B2B owner only."""
+
+    raw_text: Optional[str] = None
+    source: Optional[str] = None  # "telegram" | "olx" | "manual"

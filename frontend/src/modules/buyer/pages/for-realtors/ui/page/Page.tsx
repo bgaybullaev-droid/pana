@@ -117,6 +117,19 @@ function Page() {
 			>
 				{t("realtors.cta")}
 			</Button>
+
+			{/* C1 V2.0: tariffs visible from day 1 — secondary CTA */}
+			<Button
+				fullWidth
+				variant="subtle"
+				color="orange"
+				radius={14}
+				size="md"
+				mt="sm"
+				onClick={() => navigate("/seller/tariffs")}
+			>
+				{t("nav.tariffs", { ns: "seller" })}
+			</Button>
 		</InnerPage>
 	);
 }

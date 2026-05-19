@@ -51,6 +51,39 @@ const ListingEditPage = lazy(() =>
 		default: m.AdminListingEdit.Page,
 	})),
 );
+const SourcesPage = lazy(() =>
+	import("../../pages/sources").then((m) => ({ default: m.AdminSources.Page })),
+);
+const AIQualityPage = lazy(() =>
+	import("../../pages/ai-quality").then((m) => ({
+		default: m.AdminAIQuality.Page,
+	})),
+);
+const SynonymsPage = lazy(() =>
+	import("../../pages/synonyms").then((m) => ({
+		default: m.AdminSynonyms.Page,
+	})),
+);
+const ExportTemplatesPage = lazy(() =>
+	import("../../pages/export-templates").then((m) => ({
+		default: m.AdminExportTemplates.Page,
+	})),
+);
+const AnalyticsPage = lazy(() =>
+	import("../../pages/analytics").then((m) => ({
+		default: m.AdminAnalytics.Page,
+	})),
+);
+const BannersPage = lazy(() =>
+	import("../../pages/banners").then((m) => ({
+		default: m.AdminBanners.Page,
+	})),
+);
+const SuspicionsPage = lazy(() =>
+	import("../../pages/suspicions").then((m) => ({
+		default: m.AdminSuspicions.Page,
+	})),
+);
 
 export function AdminRouter() {
 	return (
@@ -66,6 +99,13 @@ export function AdminRouter() {
 					<Route path="listings/:id/edit" element={<ListingEditPage />} />
 					<Route path="crawled" element={<CrawledPage />} />
 					<Route path="crawled/:source/:id" element={<CrawledDetailPage />} />
+					<Route path="sources" element={<SourcesPage />} />
+					<Route path="ai-quality" element={<AIQualityPage />} />
+					<Route path="synonyms" element={<SynonymsPage />} />
+					<Route path="export-templates" element={<ExportTemplatesPage />} />
+					<Route path="analytics" element={<AnalyticsPage />} />
+					<Route path="banners" element={<BannersPage />} />
+					<Route path="suspicions" element={<SuspicionsPage />} />
 					<Route path="ops/meili" element={<MeiliOpsPage />} />
 					<Route path="audit" element={<AuditLogPage />} />
 				</Route>

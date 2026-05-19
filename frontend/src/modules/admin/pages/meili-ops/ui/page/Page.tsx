@@ -23,6 +23,7 @@ import {
 	Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 import {
 	getMeiliCounters,
 	reindexAllMeili,
@@ -32,37 +33,37 @@ import {
 
 const COUNTER_ROWS: Array<{
 	key: keyof MeiliCounters;
-	label: string;
+	labelKey: string;
 	kind: "success" | "failure";
 }> = [
 	{
 		key: "meili_backfill_success_total",
-		label: "Backfill success",
+		labelKey: "meiliOps.backfillSuccess",
 		kind: "success",
 	},
 	{
 		key: "meili_backfill_failure_total",
-		label: "Backfill failure",
+		labelKey: "meiliOps.backfillFailure",
 		kind: "failure",
 	},
 	{
 		key: "meili_index_success_total",
-		label: "Per-write index success",
+		labelKey: "meiliOps.indexSuccess",
 		kind: "success",
 	},
 	{
 		key: "meili_index_failure_total",
-		label: "Per-write index failure",
+		labelKey: "meiliOps.indexFailure",
 		kind: "failure",
 	},
 	{
 		key: "meili_delete_success_total",
-		label: "Delete success",
+		labelKey: "meiliOps.deleteSuccess",
 		kind: "success",
 	},
 	{
 		key: "meili_delete_failure_total",
-		label: "Delete failure",
+		labelKey: "meiliOps.deleteFailure",
 		kind: "failure",
 	},
 ];
@@ -70,6 +71,7 @@ const COUNTER_ROWS: Array<{
 const POLL_INTERVAL_MS = 10_000;
 
 function Page() {
+	const { t } = useTranslation("admin");
 	const [counters, setCounters] = useState<MeiliCounters | null>(null);
 	const [countersError, setCountersError] = useState<string | null>(null);
 	const [isReindexing, setIsReindexing] = useState(false);
@@ -113,8 +115,11 @@ function Page() {
 			const result = await reindexAllMeili();
 			setLastResult(result);
 			notifications.show({
-				title: "Reindex complete",
-				message: `Indexed ${result.indexed_count} / failed ${result.failed_count}`,
+				title: t("meiliOps.reindexCompleteTitle"),
+				message: t("meiliOps.reindexCompleteMessage", {
+					indexed: result.indexed_count,
+					failed: result.failed_count,
+				}),
 				color: result.failed_count > 0 ? "yellow" : "green",
 			});
 			// Refresh counters immediately so the new totals show up.
@@ -127,7 +132,7 @@ function Page() {
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e);
 			notifications.show({
-				title: "Reindex failed",
+				title: t("meiliOps.reindexFailedTitle"),
 				message: msg,
 				color: "red",
 			});
@@ -140,10 +145,9 @@ function Page() {
 		<Box p="md">
 			<Stack gap="xl">
 				<Box>
-					<Title order={2}>Meilisearch ops</Title>
+					<Title order={2}>{t("meiliOps.title")}</Title>
 					<Text c="dimmed" size="sm" mt={4}>
-						Live counters from the backend's in-process metrics + one-click
-						full-table reindex.
+						{t("meiliOps.description")}
 					</Text>
 				</Box>
 
@@ -156,16 +160,18 @@ function Page() {
 					}}
 				>
 					<Group justify="space-between" mb="sm">
-						<Text fw={600}>Counters</Text>
+						<Text fw={600}>{t("meiliOps.counters")}</Text>
 						<Text size="xs" c="dimmed">
-							Auto-refresh every {POLL_INTERVAL_MS / 1000}s
+							{t("meiliOps.autoRefresh", {
+								seconds: POLL_INTERVAL_MS / 1000,
+							})}
 						</Text>
 					</Group>
 					{counters === null && countersError === null && (
 						<Group gap="xs">
 							<Loader size="xs" />
 							<Text size="sm" c="dimmed">
-								Loading counters…
+								{t("meiliOps.loadingCounters")}
 							</Text>
 						</Group>
 					)}
@@ -179,7 +185,7 @@ function Page() {
 							<Table.Tbody>
 								{COUNTER_ROWS.map((row) => (
 									<Table.Tr key={row.key}>
-										<Table.Td>{row.label}</Table.Td>
+										<Table.Td>{t(row.labelKey)}</Table.Td>
 										<Table.Td
 											style={{
 												textAlign: "right",
@@ -209,17 +215,16 @@ function Page() {
 					}}
 				>
 					<Text fw={600} mb="xs">
-						Full-table reindex
+						{t("meiliOps.fullReindex")}
 					</Text>
 					<Text size="sm" c="dimmed" mb="md">
-						Streams every ACTIVE, non-deleted listing through the indexer. Safe
-						to re-run — Meili upserts by primary key.
+						{t("meiliOps.fullReindexDesc")}
 					</Text>
 					{lastResult && (
 						<SimpleGrid cols={2} mb="md">
 							<Box>
 								<Text size="xs" c="dimmed">
-									Last run — indexed
+									{t("meiliOps.lastRunIndexed")}
 								</Text>
 								<Text fw={600} size="lg">
 									{lastResult.indexed_count.toLocaleString("ru-RU")}
@@ -227,7 +232,7 @@ function Page() {
 							</Box>
 							<Box>
 								<Text size="xs" c="dimmed">
-									Last run — failed
+									{t("meiliOps.lastRunFailed")}
 								</Text>
 								<Text
 									fw={600}
@@ -240,7 +245,7 @@ function Page() {
 						</SimpleGrid>
 					)}
 					<Button color="blue" loading={isReindexing} onClick={handleReindex}>
-						{isReindexing ? "Reindexing…" : "Reindex all listings"}
+						{isReindexing ? t("meiliOps.reindexing") : t("meiliOps.reindexAll")}
 					</Button>
 				</Box>
 			</Stack>

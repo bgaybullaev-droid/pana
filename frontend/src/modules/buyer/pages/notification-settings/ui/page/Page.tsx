@@ -268,7 +268,7 @@ function Page() {
 							styles={{ track: { cursor: "pointer" } }}
 							label={
 								<Text size="sm" fw={600} c={paused ? "red.6" : "dimmed"}>
-									{paused ? "Приостановлено" : "Активно"}
+									{paused ? t("notificationSettings.statusPaused") : t("notificationSettings.statusActive")}
 								</Text>
 							}
 						/>

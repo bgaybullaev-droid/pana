@@ -11,4 +11,8 @@ export interface AuthUser {
   approval_status: 'pending' | 'approved' | 'rejected';
   auth_source: string | null;
   phone: string | null;
+  // Block D D1: canonical backend identifier ("ru" | "uz" | "uz_cyrl").
+  // Map to the frontend i18n locale ("uz_cyrl" → "uz-cyrl") via
+  // shared/i18n/index.ts helpers when applying.
+  language: 'ru' | 'uz' | 'uz_cyrl';
 }

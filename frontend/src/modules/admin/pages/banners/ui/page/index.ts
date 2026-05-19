@@ -1,0 +1,1 @@
+export { AdminBanners } from "./Page";

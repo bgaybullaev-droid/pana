@@ -11,17 +11,30 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, ContentType, Message
+from aiogram.types import (
+    CallbackQuery,
+    ContentType,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services import deeplink
+
 from app.bot.analytics import check_rate_limit, track_event
-from app.bot.i18n import DEFAULT_LANGUAGE, get_language, t
+from app.bot.i18n import (
+    DEFAULT_LANGUAGE,
+    get_language,
+    language_from_telegram_code,
+    t,
+)
 from app.bot.keyboards import (
     get_back_kb,
     get_cancel_kb,
@@ -102,7 +115,7 @@ async def _get_user_language(
     if user and user.language:
         return get_language(user.language)
     if telegram_lang:
-        return get_language(telegram_lang)
+        return language_from_telegram_code(telegram_lang)
     return DEFAULT_LANGUAGE
 
 
@@ -218,8 +231,260 @@ def _format_profile(user: User, seller: Seller, lang: str) -> str:
 
 
 # =============================================================================
-# /start — Language selection for new users, status for returning
+# /start — registry-based deep-link dispatcher
 # =============================================================================
+#
+# Block D V2.0 (D3). The bot accepts ``/start <prefix>_<body>`` for seven
+# prefixes. Each prefix has a handler that returns True if it fully
+# handled the message; False means the dispatcher falls through to the
+# normal "no payload" flow (language picker / status).
+#
+# The dispatcher always writes one row to ``deep_link_events`` before
+# delegation so analytics see every attempted entry, valid or not.
+
+
+async def _start_payload_link(
+    *,
+    body: str,
+    message: Message,
+    session: AsyncSession,
+    lang: str,
+    user: User | None,
+    telegram_id: int,
+) -> tuple[bool, str]:
+    """``/start link_<phone_suffix>`` — preserved verbatim from pre-D3a.
+
+    Returns (handled, outcome). ``user`` arg is unused; this is a phone
+    flow, not telegram_id-based.
+    """
+    del user, lang  # unused — message text below is hard-coded ru today
+    phone = f"+998{body}"
+    phone_user_q = await session.execute(
+        select(User).where(User.phone == phone, User.deleted_at.is_(None))
+    )
+    phone_user = phone_user_q.scalar_one_or_none()
+
+    if phone_user:
+        if phone_user.telegram_id == telegram_id:
+            await message.answer("✅ Telegram уже привязан. Вернитесь в приложение.")
+            return True, deeplink.OUTCOME_RESOLVED
+        old_user = await _find_user_by_telegram_id(session, telegram_id)
+        if old_user and old_user.id != phone_user.id:
+            old_user.telegram_id = None
+        phone_user.telegram_id = telegram_id
+        await session.commit()
+        await message.answer(
+            f"✅ Telegram привязан к номеру {phone}. "
+            f"Вернитесь в приложение и попробуйте снова."
+        )
+        return True, deeplink.OUTCOME_RESOLVED
+
+    await message.answer(
+        "❌ Пользователь не найден. Сначала введите номер телефона в приложении."
+    )
+    return True, deeplink.OUTCOME_REJECTED_UNKNOWN
+
+
+def _twa_open_kb(payload: str, lang: str) -> InlineKeyboardMarkup:
+    """Inline keyboard that re-opens the chat via ``?startapp=<payload>``.
+
+    Telegram routes the click back to itself which then opens the Mini
+    App with ``initDataUnsafe.start_param`` populated — the existing
+    frontend ``StartParamHandler`` (Router.tsx) consumes it.
+    """
+    username = settings.telegram_bot_username or "UcharMarketBot"
+    url = f"https://t.me/{username}?startapp={payload}"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t(lang, "btn_open_app"), url=url)]
+        ]
+    )
+
+
+async def _start_payload_listing(
+    *,
+    body: str,
+    message: Message,
+    session: AsyncSession,
+    lang: str,
+    user: User | None,
+    telegram_id: int,
+) -> tuple[bool, str]:
+    """``/start listing_<uuid>`` (or ``obj_<uuid>`` alias) — hand off to TWA."""
+    del session, user, telegram_id
+    # Emit on the canonical ``listing_`` form so deep-link share targets
+    # keep matching what notifications.py already emits.
+    await message.answer(
+        t(lang, "deep_link_open_listing"),
+        reply_markup=_twa_open_kb(f"listing_{body}", lang),
+    )
+    return True, deeplink.OUTCOME_RESOLVED
+
+
+async def _start_payload_filter(
+    *,
+    body: str,
+    message: Message,
+    session: AsyncSession,
+    lang: str,
+    user: User | None,
+    telegram_id: int,
+) -> tuple[bool, str]:
+    """``/start filter_<short_id>`` — verify the payload exists, hand off to TWA."""
+    del user, telegram_id
+    payload = await deeplink.resolve_filter_payload(body, session)
+    if payload is None:
+        return False, deeplink.OUTCOME_REJECTED_UNKNOWN
+    await session.commit()
+    await message.answer(
+        t(lang, "deep_link_open_filter"),
+        reply_markup=_twa_open_kb(f"filter_{body}", lang),
+    )
+    return True, deeplink.OUTCOME_RESOLVED
+
+
+async def _start_payload_claim(
+    *,
+    body: str,
+    message: Message,
+    session: AsyncSession,
+    lang: str,
+    user: User | None,
+    telegram_id: int,
+    kind: str = "claim",
+) -> tuple[bool, str]:
+    """``/start claim_<id>`` and ``/start agent_<id>`` — single-use B2B tickets."""
+    del user
+    invite, outcome = await deeplink.consume_claim_invite(
+        body, telegram_id, session, expected_kind=kind
+    )
+    if invite is None:
+        # Soft failure: log and fall through to normal welcome flow.
+        return False, outcome
+    await session.commit()
+    # Minimal acknowledgement; the actual "redirect to Found" UX lands
+    # with E5 (manual B2B onboarding). For PR-D3a we record consumption
+    # and let the user reach Found via the Menu Button.
+    await message.answer(
+        t(lang, "deep_link_claim_accepted"),
+        reply_markup=_twa_open_kb("found", lang),
+    )
+    return True, deeplink.OUTCOME_RESOLVED
+
+
+async def _start_payload_agent(**kwargs) -> tuple[bool, str]:
+    return await _start_payload_claim(kind="agent", **kwargs)
+
+
+async def _start_payload_ref(
+    *,
+    body: str,
+    message: Message,
+    session: AsyncSession,
+    lang: str,
+    user: User | None,
+    telegram_id: int,
+) -> tuple[bool, str]:
+    """``/start ref_<id>`` — attribute referral on first registration only.
+
+    Returns (False, outcome) so the dispatcher continues into the normal
+    welcome flow; the attribution itself is a side-effect applied when
+    the User row is later created by an /auth/* endpoint.
+
+    Implementation: stash ``(telegram_id → referrer_user_id)`` in Redis
+    with a 7-day TTL. The auth endpoints check this on new-user
+    creation via ``deeplink.consume_pending_referral`` and write
+    ``User.referred_by_user_id`` if present.
+    """
+    del message
+    payload = await deeplink.resolve_referral_payload(body, session)
+    if payload is None:
+        return False, deeplink.OUTCOME_REJECTED_UNKNOWN
+    if user is not None:
+        # Existing user — D3-Q3: silently ignore retroactive attribution.
+        logger.info(
+            "deeplink.ref.ignored existing_user=%s payload_id=%s",
+            user.id,
+            body,
+        )
+        return False, deeplink.OUTCOME_REJECTED_MISMATCH
+
+    referrer_id = payload.get("referrer_user_id")
+    if not referrer_id:
+        return False, deeplink.OUTCOME_REJECTED_UNKNOWN
+
+    # Stash for the eventual /auth/* user-create path to consume.
+    # Fail-soft on Redis outage — referral attribution is observational.
+    await deeplink.stash_pending_referral(
+        telegram_id=telegram_id,
+        referrer_user_id=referrer_id,
+        source=payload.get("source"),
+    )
+    await deeplink.record_event(
+        "ref",
+        f"ref_{body}",
+        session,
+        user_id=None,
+        is_new_user=True,
+        outcome=deeplink.OUTCOME_RESOLVED,
+    )
+    logger.info(
+        "deeplink.ref.pending payload=%s referrer=%s tg=%s",
+        body,
+        referrer_id,
+        telegram_id,
+    )
+    # Fall through to normal welcome.
+    return False, deeplink.OUTCOME_RESOLVED
+
+
+async def _start_payload_inv(
+    *,
+    body: str,
+    message: Message,
+    session: AsyncSession,
+    lang: str,
+    user: User | None,
+    telegram_id: int,
+) -> tuple[bool, str]:
+    """``/start inv_*`` — Phase-2 invoice stub."""
+    del body, session, user, telegram_id
+    await message.answer(t(lang, "deep_link_inv_soon"))
+    return True, deeplink.OUTCOME_RESOLVED
+
+
+# Registry. Both ``listing`` and ``obj`` map to the same handler
+# (D3-Q1 — accept both forms inbound; emit ``listing_`` outbound).
+_START_PAYLOAD_HANDLERS: dict[str, callable] = {
+    "link": _start_payload_link,
+    "listing": _start_payload_listing,
+    "obj": _start_payload_listing,
+    "filter": _start_payload_filter,
+    "claim": _start_payload_claim,
+    "agent": _start_payload_agent,
+    "ref": _start_payload_ref,
+    "inv": _start_payload_inv,
+}
+
+
+def _parse_start_payload(text: str | None) -> tuple[str, str, str] | None:
+    """Split ``/start <prefix>_<body>`` into ``(payload, prefix, body)``.
+
+    Returns ``None`` for plain ``/start`` (no payload). The prefix is
+    extracted up to the first underscore; body is everything after.
+    """
+    if not text:
+        return None
+    parts = text.split(maxsplit=1)
+    if len(parts) <= 1 or not parts[1]:
+        return None
+    payload = parts[1].strip()
+    if "_" not in payload:
+        return None
+    prefix, body = payload.split("_", 1)
+    if not body:
+        return None
+    return payload, prefix, body
 
 
 @router.message(CommandStart())
@@ -229,52 +494,61 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession):
     telegram_lang = message.from_user.language_code
     telegram_id = message.from_user.id
 
-    # Handle deep link: /start link_PHONE — links telegram_id to phone-only user
-    args = message.text.split(maxsplit=1)
-    if len(args) > 1 and args[1].startswith("link_"):
-        phone_suffix = args[1].replace("link_", "")
-        phone = f"+998{phone_suffix}"
-        lang = get_language(telegram_lang)
-
-        # Find user by phone (created by OTP auth)
-        phone_user_q = await session.execute(
-            select(User).where(
-                User.phone == phone,
-                User.deleted_at.is_(None),
-            )
-        )
-        phone_user = phone_user_q.scalar_one_or_none()
-
-        if phone_user:
-            if phone_user.telegram_id == telegram_id:
-                await message.answer(
-                    "✅ Telegram уже привязан. Вернитесь в приложение."
-                )
-            else:
-                # Remove telegram_id from any other user that has it
-                old_user = await _find_user_by_telegram_id(session, telegram_id)
-                if old_user and old_user.id != phone_user.id:
-                    old_user.telegram_id = None
-
-                phone_user.telegram_id = telegram_id
-                await session.commit()
-                await message.answer(
-                    f"✅ Telegram привязан к номеру {phone}. Вернитесь в приложение и попробуйте снова."
-                )
-        else:
-            await message.answer(
-                "❌ Пользователь не найден. Сначала введите номер телефона в приложении."
-            )
-        return
-
     user = await _find_user_by_telegram_id(session, telegram_id)
+
+    # Resolve language up front so every downstream message respects
+    # the user's preference (or the best fallback we have).
+    lang = (
+        get_language(user.language)
+        if (user and user.language)
+        else language_from_telegram_code(telegram_lang)
+    )
+
+    parsed = _parse_start_payload(message.text)
+    if parsed is not None:
+        payload_str, prefix, body = parsed
+        handler = _START_PAYLOAD_HANDLERS.get(prefix)
+        if handler is None:
+            await deeplink.record_event(
+                prefix,
+                payload_str,
+                session,
+                user_id=(user.id if user else None),
+                is_new_user=user is None,
+                outcome=deeplink.OUTCOME_REJECTED_UNKNOWN,
+            )
+            await session.commit()
+            # Unknown prefix → fall through to the standard welcome flow
+            # (quiet degradation per D3 spec).
+        else:
+            handled, outcome = await handler(
+                body=body,
+                message=message,
+                session=session,
+                lang=lang,
+                user=user,
+                telegram_id=telegram_id,
+            )
+            await deeplink.record_event(
+                prefix,
+                payload_str,
+                session,
+                user_id=(user.id if user else None),
+                is_new_user=user is None,
+                outcome=outcome,
+            )
+            await session.commit()
+            if handled:
+                return
+            # Handler asked us to continue with normal flow (e.g. ref_
+            # when no user exists yet — the welcome still applies).
 
     # Returning user — use saved language
     if user:
         lang = (
             get_language(user.language)
             if user.language
-            else get_language(telegram_lang)
+            else language_from_telegram_code(telegram_lang)
         )
         await _set_lang(state, lang)
 
@@ -305,9 +579,11 @@ async def cmd_start(message: Message, state: FSMContext, session: AsyncSession):
         )
         return
 
-    # New user — show language selection first
+    # New user — show trilingual welcome with the 3-language picker.
+    # Per Block D D1 spec: same content visible to every new user in
+    # all three locales so the choice is informed.
     await message.answer(
-        t(DEFAULT_LANGUAGE, "choose_language"),
+        t(DEFAULT_LANGUAGE, "welcome_trilingual"),
         reply_markup=get_language_kb(),
     )
 
@@ -328,7 +604,8 @@ async def process_language_selection(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await callback.answer()
-    new_lang = callback.data.split("_")[1]
+    # split("_", 1) so multi-segment codes like "uz_cyrl" survive intact.
+    new_lang = callback.data.split("_", 1)[1]
     await _set_lang(state, new_lang)
 
     user = await _find_user_by_telegram_id(session, callback.from_user.id)
@@ -1531,3 +1808,542 @@ async def receive_shared_contact(message: Message):
     redis = await get_redis()
     await redis.setex(f"contact_share:{sender_id}", 120, phone)
     logger.info("Cached Mini App shared contact for telegram_id=%s", sender_id)
+
+
+# =============================================================================
+# Block A V2.0 — A4: crawled-match inline callback handlers
+# =============================================================================
+
+
+@router.callback_query(F.data.startswith("claim_crawled:"))
+async def handle_claim_crawled(call: CallbackQuery):
+    """Telegram inline-button claim. Reuses the OLX/Telegram claim service.
+
+    Flow:
+    1. Parse listing_id from callback_data.
+    2. Find the user by telegram_id; verify role is SELLER (or admin).
+    3. Look up the source row(s) by phone match; call the convert service.
+    4. Edit the bot message to a "Confirmed. Open in cabinet" footer.
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.db.models import (
+        ListingStatus,
+        OLXListing,
+        Seller,
+        TelegramListing,
+    )
+    from app.db.session import async_session_factory
+    from app.services.crawler_service import (
+        convert_olx_to_listing,
+        convert_telegram_to_listing,
+    )
+
+    if call.data is None or call.from_user is None:
+        return
+    listing_id = call.data.split(":", 1)[1]
+    telegram_id = call.from_user.id
+
+    async with async_session_factory() as db:
+        user = await _find_user_by_telegram_id(db, telegram_id)
+        if not user or user.role not in (UserRole.SELLER, UserRole.ADMIN):
+            try:
+                await call.answer("Not authorised.", show_alert=True)
+            except Exception:
+                pass
+            return
+
+        seller_row = (
+            await db.execute(select(Seller).where(Seller.user_id == user.id))
+        ).scalar_one_or_none()
+        if seller_row is None:
+            await call.answer("Seller profile required.", show_alert=True)
+            return
+
+        # Resolve the crawled row. The notification's listing_id refers to
+        # the canonical Listing row; A4 fanout was for unclaimed parser
+        # rows that already had a Listing — try OLX first, then Telegram.
+        from uuid import UUID
+
+        try:
+            lid = UUID(listing_id)
+        except ValueError:
+            await call.answer("Invalid id.", show_alert=True)
+            return
+
+        olx = (
+            await db.execute(
+                select(OLXListing).where(OLXListing.converted_listing_id == lid)
+            )
+        ).scalar_one_or_none()
+        try:
+            if olx is not None:
+                if olx.converted_listing_id is None:
+                    await convert_olx_to_listing(olx, seller_row, db)
+            else:
+                tg = (
+                    await db.execute(
+                        select(TelegramListing).where(
+                            TelegramListing.converted_listing_id == lid
+                        )
+                    )
+                ).scalar_one_or_none()
+                if tg is None:
+                    await call.answer("Listing not found.", show_alert=True)
+                    return
+                if tg.converted_listing_id is None:
+                    await convert_telegram_to_listing(tg, seller_row, db)
+            await db.commit()
+        except Exception as exc:
+            logger.warning("Bot claim_crawled failed: %s", exc)
+            await db.rollback()
+            await call.answer("Could not confirm.", show_alert=True)
+            return
+
+    # Edit the message to the confirmed footer. Bot-blocked is silently
+    # swallowed — the DB state has been updated, the cabinet will reflect it.
+    from aiogram.exceptions import TelegramForbiddenError as _TgForbidden
+
+    try:
+        if call.message is not None:
+            await call.message.edit_text(
+                text="✓ Подтверждено. Открыть в кабинете.",
+            )
+        await call.answer("Confirmed.")
+    except _TgForbidden:
+        pass
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("reject_crawled:"))
+async def handle_reject_crawled(call: CallbackQuery):
+    """Telegram inline-button reject. Stamps rejected_by_seller_id."""
+    from datetime import datetime
+
+    from app.db.models import OLXListing, Seller, TelegramListing
+    from app.db.session import async_session_factory
+
+    if call.data is None or call.from_user is None:
+        return
+    listing_id = call.data.split(":", 1)[1]
+    telegram_id = call.from_user.id
+
+    async with async_session_factory() as db:
+        user = await _find_user_by_telegram_id(db, telegram_id)
+        if not user or user.role not in (UserRole.SELLER, UserRole.ADMIN):
+            await call.answer("Not authorised.", show_alert=True)
+            return
+
+        seller_row = (
+            await db.execute(select(Seller).where(Seller.user_id == user.id))
+        ).scalar_one_or_none()
+        if seller_row is None:
+            await call.answer("Seller profile required.", show_alert=True)
+            return
+
+        from uuid import UUID
+
+        try:
+            lid = UUID(listing_id)
+        except ValueError:
+            await call.answer("Invalid id.", show_alert=True)
+            return
+
+        olx = (
+            await db.execute(
+                select(OLXListing).where(OLXListing.converted_listing_id == lid)
+            )
+        ).scalar_one_or_none()
+        if olx is not None:
+            olx.rejected_by_seller_id = seller_row.id
+            olx.rejected_at = datetime.utcnow()
+        else:
+            tg = (
+                await db.execute(
+                    select(TelegramListing).where(
+                        TelegramListing.converted_listing_id == lid
+                    )
+                )
+            ).scalar_one_or_none()
+            if tg is not None:
+                tg.rejected_by_seller_id = seller_row.id
+                tg.rejected_at = datetime.utcnow()
+        await db.commit()
+
+    # Bot-blocked while editing the message is swallowed — DB state already
+    # reflects the reject.
+    from aiogram.exceptions import TelegramForbiddenError as _TgForbidden
+
+    try:
+        if call.message is not None:
+            await call.message.edit_text(text="✗ Отклонено")
+        await call.answer("Rejected.")
+    except _TgForbidden:
+        pass
+    except Exception:
+        pass
+
+
+# =============================================================================
+# Block D V2.0 (D2) — favorite-toggle inline-button callbacks
+# =============================================================================
+#
+# Handlers for the buyer-facing push keyboard built by
+# ``services.listing_push.build_listing_action_kb_spec``. The callback
+# data format is ``fav:<verb>:<listing_uuid>``; the verb encodes user
+# intent at tap time but the final DB state is reconciled with what
+# already exists (idempotent). "Написать продавцу" is a URL button
+# so it has no callback; "Подробнее →" routes through the existing
+# D3a deep-link plumbing.
+
+
+def _kb_from_spec(spec: list) -> InlineKeyboardMarkup:
+    """Convert keyboard-spec lists back into aiogram markup."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(**btn) for btn in row] for row in spec
+        ]
+    )
+
+
+async def _handle_fav_toggle(
+    call: CallbackQuery, *, intent: str
+) -> None:
+    """Shared body for ``fav:add`` and ``fav:remove`` callbacks.
+
+    Idempotent: looks at current DB state, ensures it matches intent,
+    flips the keyboard verb, records a behavioral signal. Failures in
+    secondary side-effects (signal write, keyboard edit) never break
+    the primary favorite write — per "graceful degradation" principle.
+    """
+    from app.db.database import async_session_maker
+    from app.db.models import (
+        Favorite,
+        Listing,
+        ListingStatus,
+        Notification,
+        NotificationType,
+        Seller,
+    )
+    from app.services import behavioral_signals as signals
+    from app.services.listing_push import build_listing_action_kb_spec
+
+    if call.data is None or call.from_user is None or call.message is None:
+        return
+
+    parts = call.data.split(":", 2)
+    if len(parts) != 3:
+        await call.answer()
+        return
+    _ns, verb, listing_id_str = parts
+
+    try:
+        listing_id = UUID(listing_id_str)
+    except ValueError:
+        await call.answer()
+        return
+
+    telegram_id = call.from_user.id
+
+    async with async_session_maker() as db:
+        user = await _find_user_by_telegram_id(db, telegram_id)
+        if user is None:
+            # Push reached a Telegram account with no linked UcharMarket
+            # user (account deleted, identity changed). Rare; no
+            # behavioral signal recorded — no consumer for it.
+            logger.info(
+                "fav_toggle: no user for telegram_id=%s listing=%s",
+                telegram_id,
+                listing_id,
+            )
+            try:
+                await call.answer(
+                    "Откройте приложение, чтобы добавить в избранное",
+                    show_alert=False,
+                )
+            except Exception:
+                pass
+            return
+
+        lang = user.language or DEFAULT_LANGUAGE
+
+        # Load listing + seller + current favorite state in parallel.
+        listing_row = await db.execute(
+            select(Listing).where(Listing.id == listing_id)
+        )
+        listing = listing_row.scalar_one_or_none()
+        if listing is None or listing.status not in (
+            ListingStatus.ACTIVE,
+            ListingStatus.GENERATION_FAILED,
+        ):
+            # Listing went away or is unavailable — soft fail. No
+            # signal recorded; the recommender has no consumer for
+            # stale-tap events.
+            logger.info(
+                "fav_toggle: stale listing user=%s listing=%s status=%s",
+                user.id,
+                listing_id,
+                getattr(listing, "status", None),
+            )
+            try:
+                await call.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
+            try:
+                await call.answer(
+                    t(lang, "push_listing_unavailable"), show_alert=False
+                )
+            except Exception:
+                pass
+            return
+
+        seller_row = await db.execute(
+            select(Seller).where(Seller.id == listing.seller_id)
+        )
+        seller = seller_row.scalar_one_or_none() if listing.seller_id else None
+
+        fav_row = await db.execute(
+            select(Favorite).where(
+                Favorite.user_id == user.id,
+                Favorite.listing_id == listing_id,
+            )
+        )
+        existing_fav = fav_row.scalar_one_or_none()
+
+        # Reconcile intent vs current state. Intent wins; idempotent if
+        # already in the requested state.
+        if intent == "add" and existing_fav is None:
+            db.add(Favorite(user_id=user.id, listing_id=listing_id))
+            if isinstance(listing, Listing):
+                listing.favorites_count += 1
+                # Mirror the in-app side-effect: notify the listing
+                # owner. Skip self-favoriting.
+                if listing.seller_id and seller and seller.user_id != user.id:
+                    seller_user_q = await db.execute(
+                        select(User).where(User.id == seller.user_id)
+                    )
+                    seller_user = seller_user_q.scalar_one_or_none()
+                    owner_lang = (
+                        seller_user.language
+                        if seller_user and seller_user.language in ("ru", "uz")
+                        else "ru"
+                    )
+                    from app.workers.tasks.notifications import (
+                        _FAVORITE_UPDATE_MESSAGE,
+                        _FAVORITE_UPDATE_TITLE,
+                    )
+
+                    db.add(
+                        Notification(
+                            user_id=seller.user_id,
+                            type=NotificationType.FAVORITE_UPDATE,
+                            title=_FAVORITE_UPDATE_TITLE[owner_lang],
+                            message=_FAVORITE_UPDATE_MESSAGE[owner_lang].format(
+                                name=user.first_name
+                            ),
+                            listing_id=listing_id,
+                            actor_id=user.id,
+                        )
+                    )
+            is_favorited_after = True
+            toast_key = "push_fav_added_toast"
+            signal_event = signals.EVENT_FAV_ADD
+        elif intent == "remove" and existing_fav is not None:
+            await db.delete(existing_fav)
+            if isinstance(listing, Listing) and listing.favorites_count > 0:
+                listing.favorites_count -= 1
+            is_favorited_after = False
+            toast_key = "push_fav_removed_toast"
+            signal_event = signals.EVENT_FAV_REMOVE
+        else:
+            # Intent already satisfied — flip the keyboard to match
+            # actual state and emit no signal (idempotent no-op).
+            is_favorited_after = existing_fav is not None
+            toast_key = (
+                "push_fav_added_toast"
+                if is_favorited_after
+                else "push_fav_removed_toast"
+            )
+            signal_event = None
+
+        if signal_event is not None:
+            await signals.record_event(
+                db,
+                event_type=signal_event,
+                source=signals.SOURCE_PUSH_INLINE,
+                user_id=user.id,
+                listing_id=listing_id,
+            )
+
+        await db.commit()
+
+    # ── Secondary side effects below run outside the session and never
+    # block on each other. ─────────────────────────────────────────────
+    try:
+        spec = build_listing_action_kb_spec(
+            listing, seller, lang, is_favorited=is_favorited_after
+        )
+        await call.message.edit_reply_markup(reply_markup=_kb_from_spec(spec))
+    except Exception:
+        # ``MessageNotModified`` and Telegram transients fall here.
+        logger.debug("fav: edit_reply_markup failed", exc_info=True)
+
+    try:
+        await call.answer(t(lang, toast_key), show_alert=False)
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("fav:add:"))
+async def handle_fav_add(call: CallbackQuery) -> None:
+    await _handle_fav_toggle(call, intent="add")
+
+
+@router.callback_query(F.data.startswith("fav:remove:"))
+async def handle_fav_remove(call: CallbackQuery) -> None:
+    await _handle_fav_toggle(call, intent="remove")
+
+
+# =============================================================================
+# Block D V2.0 (D5) — /search command + free-text fallback
+# =============================================================================
+#
+# Two entry points share the same execution path:
+#   1) ``/search [query]`` — explicit command; empty body shows a prompt.
+#   2) Free-text message — parsed; if the parser extracted any filter
+#      we treat it as a search. Otherwise (e.g. "Привет, как дела?")
+#      we stay silent so we don't interfere with normal chat. This
+#      mirrors the spec's conservative heuristic and avoids
+#      noise / mis-routed taps.
+
+
+async def _run_bot_search_reply(
+    message: Message, *, raw_query: str, lang: str, session: AsyncSession
+) -> bool:
+    """Execute a search and reply with up to 10 results + a deep-link CTA.
+
+    Returns True if a reply was sent, False otherwise (caller decides
+    whether to fall through to other handlers).
+    """
+    from app.services import bot_search as _search
+    from app.services import deeplink as _deeplink
+    from app.services import query_parser as _parser
+
+    parsed = _parser.parse(raw_query, lang=lang)
+
+    if not raw_query or parsed.is_empty:
+        # Nothing parseable. For /search this is a prompt; for free-text
+        # we silently skip (caller returns False).
+        return False
+
+    results = _search.search(parsed, limit=_search.DEFAULT_BOT_LIMIT)
+    if not results:
+        # Parsed something but Meilisearch returned nothing — give the
+        # user a helpful next step rather than dead air.
+        await message.answer(
+            t(lang, "search_no_results"),
+            reply_markup=_twa_open_kb("home", lang),
+        )
+        return True
+
+    # Build a compact text listing.
+    lines = [t(lang, "search_header", count=len(results))]
+    for i, r in enumerate(results, start=1):
+        bits: list[str] = [f"{i}."]
+        if r.rooms:
+            bits.append(f"{r.rooms}-комн" if lang == "ru" else f"{r.rooms}-xona")
+        if r.district:
+            bits.append(r.district)
+        if r.area:
+            bits.append(f"{int(r.area)} м²" if lang == "ru" else f"{int(r.area)} m²")
+        if r.price:
+            sym = "$" if r.currency == "USD" else ("сум" if lang == "ru" else "so'm")
+            bits.append(f"— {r.price:,} {sym}")
+        lines.append(" ".join(bits))
+
+    # "Open all in app" button: materialise a filter link via D3a so
+    # the TWA receives the same filter state the bot used.
+    filter_payload = {
+        "district": parsed.district,
+        "rooms_min": parsed.rooms_min,
+        "rooms_max": parsed.rooms_max,
+        "price_min": parsed.price_min,
+        "price_max": parsed.price_max,
+        "price_currency": parsed.price_currency,
+        "deal_type": parsed.deal_type,
+        "property_type": parsed.property_type,
+    }
+    # Strip None values to keep the JSON tidy.
+    filter_payload = {k: v for k, v in filter_payload.items() if v is not None}
+    try:
+        short_id, _ = await _deeplink.build_filter_link(filter_payload, session)
+        await session.commit()
+        open_payload = f"filter_{short_id}"
+    except Exception:
+        logger.warning("bot_search: filter link build failed", exc_info=True)
+        open_payload = "home"
+
+    await message.answer(
+        "\n".join(lines),
+        reply_markup=_twa_open_kb(open_payload, lang),
+        disable_web_page_preview=True,
+    )
+
+    # Conversion-first hint per D5-Q2: no "Save search" button in
+    # the bot; one-line nudge toward the in-app save flow.
+    try:
+        await message.answer(t(lang, "search_save_hint"))
+    except Exception:
+        pass
+
+    return True
+
+
+@router.message(Command("search"))
+async def cmd_search(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
+    """``/search`` command — explicit entry point."""
+    # If user is in the middle of an FSM flow (e.g. seller registration),
+    # let those handlers manage — we shouldn't interrupt mid-form.
+    current_state = await state.get_state()
+    if current_state is not None:
+        return
+
+    lang = await _get_lang(state)
+    args = (message.text or "").split(maxsplit=1)
+    raw_query = args[1].strip() if len(args) > 1 else ""
+
+    if not raw_query:
+        await message.answer(t(lang, "search_prompt"))
+        return
+
+    sent = await _run_bot_search_reply(
+        message, raw_query=raw_query, lang=lang, session=session
+    )
+    if not sent:
+        await message.answer(t(lang, "search_not_understood"))
+
+
+@router.message(StateFilter(None), F.text & ~F.text.startswith("/"))
+async def free_text_search(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
+    """Free-text fallback. Only fires when no FSM state is active.
+
+    Conservative: if the parser extracts zero filters, we stay silent
+    so casual chat ("Спасибо", "Привет") doesn't get hijacked. This
+    is the second handler for the same message type; aiogram will
+    dispatch by registration order, so any state-bound handler that
+    matches will preempt this one.
+    """
+    user = await _find_user_by_telegram_id(session, message.from_user.id)
+    lang = (
+        get_language(user.language)
+        if (user and user.language)
+        else language_from_telegram_code(message.from_user.language_code)
+    )
+    await _run_bot_search_reply(
+        message, raw_query=(message.text or ""), lang=lang, session=session
+    )

@@ -105,3 +105,15 @@ export const updateProfileFx = createEffect(
 		return response.data;
 	},
 );
+
+// Block D D1 — dedicated language-update effect. Kept separate from
+// updateProfileFx so the i18n side-effect wiring (in connections) only
+// fires on actual language changes, not every profile edit.
+export const updateLanguageFx = createEffect(
+	async (language: "ru" | "uz" | "uz_cyrl") => {
+		const response = await apiClient.patch<UserMeResponse>("/auth/me", {
+			language,
+		});
+		return response.data;
+	},
+);

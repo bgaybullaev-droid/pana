@@ -4,18 +4,13 @@
     "locale": "ru",
     "direction": "ltr"
   },
-
   "choose_language": "🌐 Выберите язык / Tilni tanlang:",
-
   "welcome": "Добро пожаловать в <b>Real Estate</b>!\n\nЗдесь вы можете зарегистрироваться как продавец недвижимости.\nПосле регистрации администратор рассмотрит вашу заявку.",
-
   "status_pending": "Ваша заявка уже отправлена и ожидает одобрения администратора.\nМы уведомим вас, когда она будет рассмотрена.\n\n💡 Используйте /start чтобы проверить статус.",
   "status_approved": "Вы уже зарегистрированы как продавец!\nИспользуйте веб-приложение для управления объявлениями.",
   "status_rejected": "К сожалению, ваша заявка была отклонена.",
   "status_rejected_reason": "К сожалению, ваша заявка была отклонена.\n\n📝 Причина: {reason}",
-
   "step_indicator": "📝 Шаг {current} из {total}\n\n",
-
   "enter_first_name": "Введите ваше <b>имя</b>:",
   "enter_last_name": "Введите <b>фамилию</b> (или пропустите):",
   "enter_phone": "Отправьте ваш <b>номер телефона</b>.\nНажмите кнопку ниже или введите вручную.\n\n💡 Примеры: +998901234567, 901234567",
@@ -26,9 +21,7 @@
   "enter_website": "Введите <b>ссылку на веб-сайт</b> (или пропустите):",
   "enter_email": "Введите <b>email</b> (или пропустите):",
   "enter_logo": "Отправьте <b>логотип компании</b> (фото) или пропустите:",
-
   "telegram_detected": "Ваш Telegram: @{username}\n\nВведите <b>ссылку на Instagram</b> (или пропустите):",
-
   "error_name_length": "❌ Имя должно быть от 1 до 100 символов. Попробуйте ещё раз:",
   "error_lastname_length": "❌ Фамилия не должна превышать 100 символов. Попробуйте ещё раз:",
   "error_phone_format": "❌ Введите узбекский номер.\n\n💡 Примеры: +998 90 123 45 67, 901234567",
@@ -44,7 +37,6 @@
   "error_instagram_format": "❌ Введите ссылку на Instagram.\n\n💡 Примеры:\nhttps://instagram.com/username\n@username",
   "error_website_format": "❌ Введите корректную ссылку на сайт.\n\n💡 Пример: https://example.com",
   "error_email_format": "❌ Введите корректный email.\n\n💡 Пример: name@example.com",
-
   "summary_title": "📋 <b>Ваша заявка:</b>\n",
   "summary_name": "Имя: {name}",
   "summary_lastname": "   Фамилия: {lastname}",
@@ -58,28 +50,20 @@
   "summary_logo": "Логотип: загружен",
   "summary_not_specified": "— не указано",
   "summary_confirm_question": "\nВсё верно?",
-
   "already_registered": "Вы уже зарегистрированы. Используйте /start для проверки статуса.",
-
   "registration_success": "✅ <b>Заявка отправлена!</b>\n\n📋 <b>Что дальше:</b>\n1. Администратор рассмотрит вашу заявку\n2. Вы получите уведомление в этом чате\n3. После одобрения — откроется доступ к веб-приложению\n\n💡 Используйте /start чтобы проверить статус заявки",
   "registration_auto_approved": "✅ <b>Вы зарегистрированы!</b>\n\nВаша заявка автоматически одобрена.\nТеперь вы можете добавлять объявления через веб-приложение Real Estate.",
   "restart_registration": "🔄 Начнём сначала.",
-
   "notification_approved": "🎉 Ваша заявка одобрена!\n\nТеперь вы можете добавлять объявления через веб-приложение Real Estate.",
   "notification_rejected": "К сожалению, ваша заявка была отклонена.\n\nПричина: {reason}\n\nВы можете подать заявку заново с помощью /start.",
-
   "help_title": "<b>Помощь</b>\n\n",
   "help_text": "Real Estate — платформа для продавцов недвижимости.\n\n<b>Доступные команды:</b>\n/start — Начать регистрацию\n/profile — Просмотр профиля продавца\n/language — Изменить язык\n/help — Показать эту справку\n/cancel — Отменить текущее действие\n\n<b>Как это работает:</b>\n1. Выберите язык\n2. Зарегистрируйтесь как продавец (10 шагов)\n3. Дождитесь одобрения администратора\n4. Добавляйте объявления через веб-приложение",
-
   "cancel_message": "❌ Регистрация отменена.\n\nИспользуйте /start чтобы начать заново.",
   "cancel_nothing": "Нечего отменять. Используйте /start чтобы начать.",
   "cancel_confirm": "Вы уверены, что хотите отменить регистрацию?",
-
   "language_select": "🌐 Выберите язык / Tilni tanlang:",
   "language_changed": "✅ Язык изменён на русский.",
-
   "edit_select_field": "✏️ Какое поле вы хотите изменить?",
-
   "btn_register": "📝 Зарегистрироваться",
   "btn_skip": "Пропустить ▶️",
   "btn_back": "◀️ Назад",
@@ -91,7 +75,6 @@
   "btn_uzbek": "🇺🇿 O'zbekcha",
   "btn_cancel": "❌ Отменить",
   "btn_reapply": "🔄 Подать заново",
-
   "btn_edit_name": "👤 Имя",
   "btn_edit_lastname": "👤 Фамилия",
   "btn_edit_phone": "📱 Телефон",
@@ -103,11 +86,8 @@
   "btn_edit_email": "📧 Email",
   "btn_edit_logo": "🖼 Логотип",
   "btn_back_to_summary": "◀️ Назад к заявке",
-
   "rejection_reason_default": "Причина не указана",
-
   "admin_new_registration": "🆕 <b>Новая заявка продавца</b>\n\n👤 Имя: {first_name} {last_name}\n📱 Телефон: {phone}\n🏢 Компания: {company}\n💬 Telegram: @{telegram}\n\n📋 Проверьте в панели администратора.",
-
   "profile_title": "👤 <b>Ваш профиль продавца:</b>\n",
   "profile_name": "Имя: {name}",
   "profile_lastname": "Фамилия: {lastname}",
@@ -126,7 +106,29 @@
   "profile_status_approved": "✅ Одобрен",
   "profile_status_pending": "⏳ На рассмотрении",
   "profile_status_rejected": "❌ Отклонён",
-
   "btn_edit_profile": "✏️ Изменить профиль",
-  "btn_change_language": "🌐 Сменить язык"
+  "btn_change_language": "🌐 Сменить язык",
+  "welcome_trilingual": "🏠 Добро пожаловать в UcharMarket!\n🏠 Xush kelibsiz UcharMarketʼga!\n🏠 Хуш келибсиз UcharMarketʼга!\n\nВыберите язык / Tilni tanlang / Тилни танланг:",
+  "btn_open_app": "Открыть приложение",
+  "deep_link_open_listing": "👁 Открываю объявление в приложении…",
+  "deep_link_open_filter": "🔍 Открываю поиск по вашим параметрам…",
+  "deep_link_claim_accepted": "✅ Приглашение принято. Откройте приложение, чтобы увидеть найденные объявления.",
+  "deep_link_inv_soon": "📋 Эта функция скоро будет доступна.",
+  "btn_fav_add": "⭐ В избранное",
+  "btn_fav_remove": "✓ В избранном",
+  "btn_contact_seller": "✉️ Написать продавцу",
+  "btn_call_seller": "📞 Позвонить продавцу",
+  "btn_listing_details": "Подробнее →",
+  "push_fav_added_toast": "Добавлено в избранное",
+  "push_fav_removed_toast": "Удалено из избранного",
+  "push_listing_unavailable": "Это объявление уже неактуально",
+  "search_prompt": "🔍 Введите запрос — район, количество комнат, цену.\nНапример: «2-комн Чиланзар до 35тыс у.е.»",
+  "search_header": "Найдено: {count} объявлений",
+  "search_no_results": "По вашему запросу пока нет объявлений. Попробуйте расширить параметры или сохраните поиск в приложении — мы пришлём уведомление, когда появится подходящее.",
+  "search_not_understood": "Не понял запрос. Попробуйте: район, количество комнат, цену.",
+  "search_save_hint": "💡 Сохраните поиск в приложении, чтобы получать уведомления о новых объявлениях.",
+  "search_open_in_app": "Открыть в UcharMarket",
+  "autopost_footer": "Через @ucharmarket_bot",
+  "autopost_overlay_sold": "🔴 ПРОДАНО",
+  "autopost_overlay_rented": "🔴 СДАНО"
 }

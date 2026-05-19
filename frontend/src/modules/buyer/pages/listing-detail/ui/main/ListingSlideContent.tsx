@@ -30,6 +30,7 @@ import type { UnifiedListing } from "@shared/api/types";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
+import { trackContact } from "@shared/lib/viewTracking";
 import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
 import { MapDrawer } from "../dialogs/MapDrawer";
 
@@ -264,7 +265,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 									/>
 								</ActionIcon>
 								<Text size="xs" fw={700} c="#4dabf7" style={{ textShadow: shadow }}>
-									Это моё
+									{t("listingDetail.claimMine")}
 								</Text>
 							</Stack>
 							<Stack gap={1} align="center">
@@ -280,7 +281,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 									/>
 								</ActionIcon>
 								<Text size="xs" fw={700} c="#ff8787" style={{ textShadow: shadow }}>
-									Не моё
+									{t("listingDetail.claimNotMine")}
 								</Text>
 							</Stack>
 						</Stack>
@@ -340,6 +341,10 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 								variant="transparent"
 								size={36}
 								onClick={() => {
+									// Telemetry first (fire-and-forget) so the
+									// contacts_count bump is recorded even if the
+									// tel: navigation tears the page down.
+									void trackContact(listing.id);
 									window.location.href = `tel:${listing.contact_phone}`;
 								}}
 							>

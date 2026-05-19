@@ -1,0 +1,1 @@
+export { SellerPhones } from "./Page";

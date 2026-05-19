@@ -13,7 +13,9 @@ from aiogram.fsm.storage.redis import RedisStorage
 
 from app.bot.handlers import router
 from app.bot.i18n import load_translations
+from app.bot.inline import inline_router
 from app.bot.notifications import set_bot_instance
+from app.bot.setup import set_menu_button
 from app.core.config import settings
 from app.db.database import async_session_maker
 
@@ -59,6 +61,10 @@ def create_bot() -> tuple[Bot, Dispatcher]:
 
     # Register handlers
     dp.include_router(router)
+    # Block D D5 — Inline Mode handler. Register *after* the main
+    # router so command/state-bound dispatch retains priority on
+    # message events; inline_query events are routed independently.
+    dp.include_router(inline_router)
 
     # Set bot instance for notification service
     set_bot_instance(bot)
@@ -80,8 +86,40 @@ async def main():
     # Drop pending updates on startup
     await bot.delete_webhook(drop_pending_updates=True)
 
-    logger.info("Bot is ready. Supported languages: Russian (ru), Uzbek (uz)")
-    logger.info("Available commands: /start, /profile, /language, /help, /cancel")
+    # D1: configure the Menu Button. Idempotent; failure is non-fatal.
+    await set_menu_button(bot)
+
+    logger.info(
+        "Bot is ready. Supported languages: Russian (ru), "
+        "Uzbek Latin (uz), Uzbek Cyrillic (uz_cyrl)"
+    )
+    logger.info(
+        "Available commands: /start, /profile, /language, /help, /cancel, /search"
+    )
+    # Block D D5 — Inline Mode must be enabled in BotFather:
+    #   /setinline @<bot> → placeholder "Район, комнаты, цена"
+    # The registration above is necessary but not sufficient; the
+    # BotFather flag is also required for ``@<bot> <q>`` to surface.
+    logger.info("Inline Mode handler registered (BotFather flag also required).")
+    # Block D D4 — surface the subscription gate mode at startup so
+    # ops sees which policy is active.
+    if settings.cabinet_subscription_open_to_all:
+        logger.info(
+            "Cabinet subscription: PHASE-1 (open to all sellers). "
+            "Flip CABINET_SUBSCRIPTION_OPEN_TO_ALL=false to enforce."
+        )
+    else:
+        logger.info(
+            "Cabinet subscription: ENFORCED (paid-only). "
+            "Sellers without an active CABINET subscription cannot use D4 autopost."
+        )
+    # Block D D1 — surface the uz_cyrl fallback safety switch state.
+    if settings.i18n_uz_cyrl_bot_fallback_to_ru:
+        logger.warning(
+            "uz_cyrl bot translations are temporarily falling back to ru "
+            "(I18N_UZ_CYRL_BOT_FALLBACK_TO_RU=true). Disable once native "
+            "review of uz_cyrl.json completes."
+        )
 
     await dp.start_polling(bot)
 

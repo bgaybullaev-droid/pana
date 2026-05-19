@@ -41,6 +41,8 @@ export interface UserMeResponse {
 	approval_status: "pending" | "approved" | "rejected";
 	auth_source: string | null;
 	phone: string | null;
+	// Block D D1: canonical backend identifier; frontend maps to i18n locale.
+	language: "ru" | "uz" | "uz_cyrl";
 	scope: string | null;
 }
 
@@ -57,6 +59,7 @@ export interface AuthResponse {
 	approval_status: "pending" | "approved" | "rejected";
 	auth_source: string | null;
 	phone: string | null;
+	language: "ru" | "uz" | "uz_cyrl";
 	scope: string;
 	access_token: string;
 	refresh_token: string;

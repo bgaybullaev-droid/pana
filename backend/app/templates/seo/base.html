@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  {%- if robots is defined and robots %}
+  <meta name="robots" content="{{ robots }}">
+  {%- endif %}
+  <title>{{ meta.title }}</title>
+  <meta name="description" content="{{ meta.description }}">
+
+  <link rel="canonical" href="{{ meta.canonical }}">
+  {%- for code, url in meta.hreflang.items() %}
+  <link rel="alternate" hreflang="{{ code }}" href="{{ url }}">
+  {%- endfor %}
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ meta.og_title }}">
+  <meta property="og:description" content="{{ meta.og_description }}">
+  <meta property="og:url" content="{{ meta.canonical }}">
+  {%- if meta.og_image %}
+  <meta property="og:image" content="{{ meta.og_image }}">
+  {%- endif %}
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ meta.og_title }}">
+  <meta name="twitter:description" content="{{ meta.og_description }}">
+  {%- if meta.og_image %}
+  <meta name="twitter:image" content="{{ meta.og_image }}">
+  {%- endif %}
+
+  {%- block jsonld %}{%- endblock %}
+
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #fff; color: #1f2937; }
+    .container { max-width: 720px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 22px; margin: 12px 0 8px; line-height: 1.3; }
+    h2 { font-size: 16px; margin: 16px 0 8px; }
+    .gallery { display: grid; gap: 6px; grid-template-columns: repeat(2, 1fr); margin: 12px 0 16px; }
+    .gallery img { width: 100%; height: auto; border-radius: 8px; display: block; }
+    .params { list-style: none; margin: 0; padding: 0; }
+    .params li { padding: 6px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 14px; }
+    .params li span:first-child { color: #64748b; }
+    .params li span:last-child { color: #0f172a; font-weight: 500; }
+    .price { font-size: 24px; font-weight: 700; color: #0369a1; margin: 8px 0 16px; }
+    .description { font-size: 15px; line-height: 1.55; color: #334155; margin: 12px 0 20px; white-space: pre-wrap; }
+    .cta { display: inline-block; background: #0ea5e9; color: #fff; padding: 12px 20px; border-radius: 999px; text-decoration: none; font-weight: 600; margin: 16px 0; }
+    .cta:hover { background: #0284c7; }
+    .filter-grid { display: grid; gap: 8px; }
+    .filter-row { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: inherit; display: block; }
+    .filter-row:hover { border-color: #0ea5e9; }
+    footer { margin: 40px 0 24px; color: #94a3b8; font-size: 12px; text-align: center; }
+    .lang-switch { font-size: 13px; color: #64748b; }
+    .lang-switch a { margin: 0 4px; color: #0ea5e9; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  {%- block content %}{%- endblock %}
+  <footer>
+    <div class="lang-switch">
+      {%- for code, url in meta.hreflang.items() %}{%- if code != "x-default" %}
+      <a href="{{ url }}">{{ code }}</a>{% if not loop.last %} ·{% endif %}
+      {%- endif %}{%- endfor %}
+    </div>
+    <div style="margin-top: 8px;">UcharMarket © {{ year }}</div>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,4 +1,28 @@
 {
+  "errors": {
+    "boundaryTitle": "Nimadir noto'g'ri ketdi",
+    "boundaryDescription": "Sahifani yuklashda kutilmagan xatolik yuz berdi. Sahifani yangilashga harakat qiling.",
+    "boundaryRetry": "Sahifani yangilash",
+    "serverError": "Serverning ichki xatosi yuz berdi (Internal Server Error). Iltimos, keyinroq qayta urinib ko'ring."
+  },
+  "auth": {
+    "requestNewCode": "Yangi kod so'rash",
+    "codeExpired": "Kodning amal qilish muddati tugadi",
+    "phoneShareTitle": "Xush kelibsiz",
+    "phoneShareGreeting": "Xush kelibsiz, {{name}}",
+    "phoneShareDescription": "Xizmatdan foydalanish uchun telefon raqamingiz bilan ulashing.",
+    "phoneShareAction": "Telefon raqamni ulashish",
+    "phoneShareConnecting": "Ulanmoqda…",
+    "phoneSharePrivacy": "Raqam Telegram tomonidan boshqariladi — SMS-kodlar yo'q.",
+    "phoneShareUpdateClient": "Davom etish uchun Telegramni so'nggi versiyasiga yangilang.",
+    "phoneShareRequired": "Telefon raqamni ulashish majburiy. Tugmani bosib qayta urinib ko'ring."
+  },
+  "map": {
+    "selectLocation": "Joylashuvni tanlang"
+  },
+  "housingComplex": {
+    "linked": "✓ turar-joy majmuasi bilan bog'langan"
+  },
   "locations": {
     "region": {
       "qoraqalpogiston": "Qoraqalpog'iston",
@@ -208,5 +232,15 @@
       "yunusobod": "Yunusobod t.",
       "yangihayot": "Yangihayot t."
     }
-  }
+  },
+  "bot.crawled.cardTitle": "Yangi e'loningiz topildi",
+  "bot.crawled.batchTitle": "{{count}} ta yangi e'loningiz topildi",
+  "bot.crawled.openFound": "Kabinetda ochish",
+  "bot.crawled.claim": "Meniki",
+  "bot.crawled.reject": "Meniki emas",
+  "bot.crawled.confirmedFooter": "✓ Tasdiqlandi. Kabinetda ochish",
+  "bot.crawled.rejectedFooter": "✗ Rad etildi",
+  "bot.crawled.expiredFooter": "Bu e'lon Found bo'limida sizni kutmoqda",
+  "bot.crawled.alreadyClaimed": "Bu e'lon allaqachon boshqa hisob tomonidan tasdiqlangan",
+  "bot.crawled.confirmedInCabinet": "Kabinetda tasdiqlangan"
 }

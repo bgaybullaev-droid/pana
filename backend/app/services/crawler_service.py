@@ -107,26 +107,41 @@ OLX_UPDATABLE_FIELDS: List[str] = [
 
 def generate_signature(
     phone: Optional[str],
-    address: Optional[str],
+    address: Optional[str],  # kept in signature for backward compat with extra dim
     price: Optional[float],
     rooms: Optional[int],
     area: Optional[float],
+    floor: Optional[int] = None,
 ) -> str:
     """Generate a deduplication hash from core listing fields.
 
-    Uses MD5 to produce a 32-char hex string.
+    Per Block A V2.0 (A7) the signature is dominated by ``phone + area + floor +
+    price`` with a ±5% price bucket. ``address`` and ``rooms`` are kept as
+    extra noise-reducing dimensions but address-only differences will not split
+    duplicates because the price/area/floor/phone tuple collapses them.
+
+    Returns a 32-char hex string.
     """
     normalized_phone = normalize_phone(phone)
 
-    # Normalize address
+    # Normalize address (kept as a soft dim — see docstring)
     normalized_address = (address or "").lower().strip()
+
+    # Bucket the price into ±5% windows so small fluctuations between sources
+    # don't produce false-distinct signatures.
+    price_bucket = ""
+    if price and price > 0:
+        # Bucket size = max(1, 5% of price). int() floors to bucket index.
+        bucket_size = max(1.0, price * 0.05)
+        price_bucket = str(int(price / bucket_size))
 
     components = [
         normalized_phone,
         normalized_address,
-        str(int(price)) if price else "",
+        price_bucket,
         str(rooms) if rooms is not None else "",
         str(int(area)) if area else "",
+        str(floor) if floor is not None else "",
     ]
 
     signature_string = "|".join(components)
@@ -165,6 +180,7 @@ async def import_telegram_listing(
         data.price,
         data.rooms,
         data.area_sqm,
+        floor=data.floor,
     )
 
     existing = await _find_by_signature(db, TelegramListing, signature)
@@ -254,6 +270,7 @@ async def _update_olx_if_changed(
             data.price,
             data.rooms,
             data.area_sqm,
+            floor=data.floor,
         )
         # Refresh crawled_at
         crawled_at = data.crawled_at
@@ -288,6 +305,7 @@ async def import_olx_listing(
         data.price,
         data.rooms,
         data.area_sqm,
+        floor=data.floor,
     )
     existing = await _find_by_signature(db, OLXListing, signature)
     if existing:
@@ -558,6 +576,10 @@ async def convert_olx_to_listing(
         address_uz=olx.address_uz,
         translation_status=olx.translation_status or "pending",
         translated_at=olx.translated_at,
+        # A1 V2.0: preserve the realtor's raw source text as metadata —
+        # surfaced in cabinet via the "Show source" block, used by F1 as
+        # context. Never shown in B2C.
+        raw_text=olx.raw_text,
     )
     db.add(listing)
     await db.flush()  # get listing.id
@@ -637,6 +659,8 @@ async def convert_telegram_to_listing(
         address_uz=tg.address_uz,
         translation_status=tg.translation_status or "pending",
         translated_at=tg.translated_at,
+        # A1 V2.0: see convert_olx_to_listing for rationale.
+        raw_text=tg.raw_text,
     )
     db.add(listing)
     await db.flush()

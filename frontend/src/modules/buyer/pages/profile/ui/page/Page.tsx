@@ -25,6 +25,8 @@ import {
 	IconPlus,
 	IconChartBar,
 	IconArrowLeft,
+	IconPhone,
+	IconCoin,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -153,6 +155,20 @@ function Page() {
 			color: "#7950f2",
 			bg: "#f3f0ff",
 			onClick: () => navigate("/seller/dashboard"),
+		},
+		{
+			icon: IconPhone,
+			label: t("nav.phones", { ns: "seller" }),
+			color: "#0891b2",
+			bg: "#cffafe",
+			onClick: () => navigate("/seller/phones"),
+		},
+		{
+			icon: IconCoin,
+			label: t("nav.tariffs", { ns: "seller" }),
+			color: "#f59e0b",
+			bg: "#fef3c7",
+			onClick: () => navigate("/seller/tariffs"),
 		},
 		{
 			icon: IconBell,
@@ -304,6 +320,53 @@ function Page() {
 										</Box>
 									</Group>
 									<IconArrowRight size={20} color="white" />
+								</Group>
+							</Box>
+						</UnstyledButton>
+					)}
+
+					{/* C1 V2.0: pricing info available to non-sellers too —
+					    tariffs are visible from day 1 per spec. */}
+					{!user?.is_seller && (
+						<UnstyledButton
+							onClick={() => navigate("/seller/tariffs")}
+							style={{ display: "block" }}
+						>
+							<Box
+								style={{
+									background:
+										"linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+									border: "1px solid #fcd34d",
+									borderRadius: radii.lg,
+									padding: "14px 16px",
+									boxShadow: shadows.sm,
+								}}
+							>
+								<Group justify="space-between" wrap="nowrap">
+									<Group gap={12} wrap="nowrap">
+										<Box
+											style={{
+												width: 40,
+												height: 40,
+												borderRadius: radii.md,
+												backgroundColor: "rgba(255,255,255,0.7)",
+												display: "flex",
+												alignItems: "center",
+												justifyContent: "center",
+											}}
+										>
+											<IconCoin size={20} color="#b45309" />
+										</Box>
+										<Box>
+											<Text fw={700} c="#78350f" size="sm">
+												{t("nav.tariffs", { ns: "seller" })}
+											</Text>
+											<Text size="xs" c="#92400e">
+												{t("tariffs.heroBanner", { ns: "seller" })}
+											</Text>
+										</Box>
+									</Group>
+									<IconArrowRight size={20} color="#92400e" />
 								</Group>
 							</Box>
 						</UnstyledButton>

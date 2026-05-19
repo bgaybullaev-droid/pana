@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
+import { trackView } from "@shared/lib/viewTracking";
 import {
 	Box,
 	LoadingOverlay,
@@ -64,6 +65,14 @@ function Page() {
 			pageOpened(id);
 		}
 	}, [id, navigate]);
+
+	// Per-user view event with dwell — fires immediately on mount with
+	// dwell=null, then a follow-up on unmount/page-hide with the elapsed
+	// time. Skipped for anonymous users (server requires auth).
+	useEffect(() => {
+		if (!id || !isValidUUID(id)) return;
+		return trackView(id, isAuthenticated);
+	}, [id, isAuthenticated]);
 
 	const handleLike = useCallback(
 		(listingId: string) => {

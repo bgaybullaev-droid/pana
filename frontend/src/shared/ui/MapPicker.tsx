@@ -1,5 +1,6 @@
 import { FC, useEffect, useRef, useState } from "react";
 import { Box, ActionIcon, Group, Text } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { IconMaximize, IconMinimize, IconMapPin } from "@tabler/icons-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -42,6 +43,7 @@ export const MapPicker: FC<MapPickerProps> = ({
 	centerZoom,
 	height = 220,
 }) => {
+	const { t } = useTranslation("common");
 	const containerRef = useRef<HTMLDivElement>(null);
 	const mapRef = useRef<L.Map | null>(null);
 	const markerRef = useRef<L.Marker | null>(null);
@@ -225,7 +227,7 @@ export const MapPicker: FC<MapPickerProps> = ({
 						<Group gap={6}>
 							<IconMapPin size={18} color="#228be6" />
 							<Text fw={600} size="sm">
-								Select location
+								{t("map.selectLocation")}
 							</Text>
 						</Group>
 						<ActionIcon variant="subtle" onClick={toggleFullscreen}>

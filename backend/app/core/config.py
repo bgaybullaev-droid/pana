@@ -1,5 +1,6 @@
 """Application configuration using Pydantic Settings."""
 
+from datetime import datetime
 from functools import lru_cache
 from typing import List, Optional
 from urllib.parse import quote_plus
@@ -98,6 +99,46 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_bot_username: str = ""
     telegram_webhook_secret: str = ""
+    # Block D D1: Mini App URL that the Menu Button opens (e.g.
+    # "https://ucharmarket.uz"). When empty the Menu Button setup is
+    # skipped silently — useful for dev environments without a TWA host.
+    telegram_webapp_url: str = ""
+
+    # Block D D4 (D4-Q1): subscription test-period flag.
+    # During Phase-1 the Cabinet subscription is open to all sellers
+    # (autopost, multi-phone, etc.). Flip this to False to enforce the
+    # paid-only check via ``services.subscriptions``. Per DECISION_MATRIX,
+    # the boundary date is product-controlled, not code-controlled.
+    # PRODUCTION-SAFE DEFAULT: True (matches Phase-1 launch policy).
+    cabinet_subscription_open_to_all: bool = True
+
+    # Block D D1 — safety net for the uz_cyrl bot translations. The
+    # initial file was produced by programmatic transliteration of
+    # uz.json; quality is acceptable but not native-reviewed. Set this
+    # to True to force every uz_cyrl bot string to fall back to ru
+    # without a code deploy. Default False — uz_cyrl serves uz_cyrl.
+    i18n_uz_cyrl_bot_fallback_to_ru: bool = False
+
+    # Block F F1 — DRAFT listings older than this are purged by the
+    # daily `purge_abandoned_drafts` Celery beat task (PR-F1a).
+    f1_draft_lifetime_days: int = 7
+
+    # Block F F5 — daily OpenAI spend ceiling (USD). When exceeded the
+    # worker falls back to the structured-params template instead of
+    # calling the API. Cap resets at UTC midnight.
+    f5_openai_daily_budget_usd: int = 50
+
+    # Block F F5 — quality threshold for the hourly admin alert.
+    # Bad-feedback rate over rolling 24h that triggers a Telegram alert.
+    f5_alert_bad_feedback_rate: float = 0.10
+
+    # Block F F5 — p95 generation duration alert threshold (ms).
+    f5_alert_p95_duration_ms: int = 8000
+
+    # Block F F3 — public SEO host. Used for canonical URLs in HTML
+    # rendering + sitemap absolute URLs. Empty in dev = SEO routes
+    # return relative URLs (harmless for testing).
+    f3_public_web_host: str = "https://ucharmarket.uz"
 
     # Admin notification chat IDs (comma-separated Telegram chat IDs)
     admin_chat_ids_str: str = Field("", alias="ADMIN_CHAT_IDS")
@@ -176,6 +217,35 @@ class Settings(BaseSettings):
     # Exchange Rate
     exchange_rate_api_url: str = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/"
     exchange_rate_fallback: int = 12800
+
+    # Block C — Test-period / monetization triggers (decision-pass G1 / C1).
+    # ALL prices are in smallest-currency-unit per MONEY_STORAGE_DECISION:
+    # for UZS, that's whole UZS (no kopeks).
+    test_period_active: bool = True
+    test_period_started_at: Optional[datetime] = None  # defaults to deploy time
+    monetization_trigger_listings: int = 5_000
+    monetization_trigger_days: int = 60
+    free_listings_per_seller: int = 2
+    extra_listing_price_uzs: int = 25_000
+    cabinet_subscription_price_uzs: int = 99_000
+
+    # Block C — Multi-phone (C4)
+    multi_phone_enabled: bool = True
+    multi_phone_max_additional: int = 3  # primary + 3 = 4 total
+
+    # Block C — Payment provider env-var slots (C3 PR4 — Phase 2 will populate).
+    # Empty in MVP; production secrets via secret manager.
+    click_merchant_id: str = ""
+    click_secret: str = ""
+    click_webhook_url: str = ""
+    payme_merchant_id: str = ""
+    payme_key: str = ""
+    payme_webhook_url: str = ""
+
+    # Block C — C5 multi-account-detection signal thresholds (decision #28).
+    similar_name_edit_distance_threshold: int = 2
+    similar_name_suffix_chars: int = 4
+    similar_name_registration_window_days: int = 7
 
 
 @lru_cache()

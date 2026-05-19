@@ -84,7 +84,7 @@ export const MasonryListingCard: FC<MasonryListingCardProps> = ({ listing, onCli
             }}
           >
             <Text size="sm" fw={800} c="dark.8" lh={1.3}>
-              {formattedPrice} sum
+              {formattedPrice} {t('common.currencySum')}
             </Text>
           </Box>
         </Box>

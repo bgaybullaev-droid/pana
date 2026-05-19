@@ -17,7 +17,6 @@ import {
 	Chip,
 	RangeSlider,
 	UnstyledButton,
-	Badge,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -77,10 +76,13 @@ import {
 import {
 	$listings,
 	$isLoading,
+	$isSubscriptionsLoading,
+	$isRecommendedLoading,
 	$hasMore,
 	$favoritedIds,
 	$searchQuery,
 	$filters,
+	$activeTab,
 	pageOpened,
 	loadMore,
 	toggleFavorite,
@@ -88,7 +90,9 @@ import {
 	filtersChanged,
 	applyFilters,
 	clearFilters,
+	tabChanged,
 	type HomeFilters,
+	type HomeTab,
 } from "../../model";
 import {
 	$savedSearches,
@@ -98,6 +102,7 @@ import {
 } from "@modules/buyer/feature/saved-searches";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "@app/providers/useAuth";
+import { HomeBanners } from "@modules/buyer/feature/home-banners";
 
 function Page() {
 	const { t } = useTranslation(["buyer", "seller"]);
@@ -106,20 +111,33 @@ function Page() {
 	const [
 		listings,
 		isLoading,
+		isSubscriptionsLoading,
+		isRecommendedLoading,
 		hasMore,
 		favoritedIds,
 		searchQuery,
 		filters,
 		userStats,
+		activeTab,
 	] = useUnit([
 		$listings,
 		$isLoading,
+		$isSubscriptionsLoading,
+		$isRecommendedLoading,
 		$hasMore,
 		$favoritedIds,
 		$searchQuery,
 		$filters,
 		$userStats,
+		$activeTab,
 	]);
+	// Tab-aware loading flag so spinners and skeletons reflect the active feed.
+	const tabIsLoading =
+		activeTab === "subscriptions"
+			? isSubscriptionsLoading
+			: activeTab === "recommended"
+				? isRecommendedLoading
+				: isLoading;
 	const observerRef = useRef<IntersectionObserver | null>(null);
 	const loadMoreRef = useRef<HTMLDivElement | null>(null);
 	const initializedRef = useRef(false);
@@ -182,7 +200,7 @@ function Page() {
 			// Fire effect (store updates via .on(doneData))
 			deleteSavedSearchFx(currentSavedSearch.id).catch(() => {
 				notifications.show({
-					message: "Ошибка удаления поиска",
+					message: t("favorites.searches.deleteError", { ns: "buyer" }),
 					color: "red",
 					autoClose: 3000,
 				});
@@ -209,7 +227,7 @@ function Page() {
 				sort: sortBy,
 			}).catch(() => {
 				notifications.show({
-					message: "Не удалось сохранить поиск",
+					message: t("favorites.searches.saveError", { ns: "buyer" }),
 					color: "red",
 					autoClose: 3000,
 				});
@@ -583,15 +601,18 @@ function Page() {
 	const isCom = ptArray.includes("commercial");
 	const hasAnyType = ptArray.length > 0;
 
+	// Filters wired to backend (A2 hybrid): building_type, condition, amenities
+	// are filtered server-side at /listings. house_type, utilities, water_supply,
+	// house_condition do NOT have a server-side filter yet, so we keep those
+	// sections hidden until the backend lands.
 	const showMockup = {
 		buildingType: !hasAnyType || isApt,
 		condition: !hasAnyType || isApt || isCom || isHouse,
-		houseType: !hasAnyType || isHouse,
 		amenities: !hasAnyType || isApt || isHouse || isCom,
-		utilities: !hasAnyType || isHouse,
+		// hidden: no backend filter yet
+		houseType: false,
+		utilities: false,
 	};
-
-	const MockupBadge = <Badge color="gray" variant="light" size="xs">Mockup</Badge>;
 
 	const renderChipGroup = (
 		options: { value: string; label: string }[],
@@ -950,7 +971,6 @@ function Page() {
 								iconColor="#FF6E01"
 								iconBg="#FFF4E6"
 								title={t("seller:createListing.buildingType")}
-								badge={MockupBadge}
 								isActive={(draftFilters.building_type?.length ?? 0) > 0}
 							>
 								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
@@ -966,7 +986,6 @@ function Page() {
 								iconColor="#be4bdb"
 								iconBg="#f3f0ff"
 								title={t("seller:createListing.houseType")}
-								badge={MockupBadge}
 								isActive={(draftFilters.house_type?.length ?? 0) > 0}
 							>
 								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
@@ -981,7 +1000,6 @@ function Page() {
 							iconColor="#40c057"
 							iconBg="#ebfbee"
 							title={t("seller:createListing.area")}
-							badge={MockupBadge}
 							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
 						>
 							<Group justify="center" mb={12}>
@@ -993,7 +1011,7 @@ function Page() {
 									}}
 								>
 									<Text size="sm" fw={700} c="green.7">
-										{draftFilters.area_min || 0} м² — {draftFilters.area_max || 500} м²
+										{t("filter.areaRange", { min: draftFilters.area_min || 0, max: draftFilters.area_max || 500 })}
 									</Text>
 								</Box>
 							</Group>
@@ -1013,8 +1031,8 @@ function Page() {
 									}}
 									marks={[
 										{ value: 0, label: "0" },
-										{ value: 250, label: "250 м²" },
-										{ value: 500, label: "500 м²" },
+										{ value: 250, label: t("filter.areaMark", { value: 250 }) },
+										{ value: 500, label: t("filter.areaMark", { value: 500 }) },
 									]}
 									labelAlwaysOn={false}
 									mb={24}
@@ -1089,7 +1107,6 @@ function Page() {
 								iconColor="#228be6"
 								iconBg="#e7f5ff"
 								title={t("seller:createListing.condition")}
-								badge={MockupBadge}
 								isActive={(draftFilters.condition?.length ?? 0) > 0}
 							>
 								{renderChipGroup(getConditionOpts(t), draftFilters.condition || [], (v) => 
@@ -1105,7 +1122,6 @@ function Page() {
 								iconColor="#fcc419"
 								iconBg="#fff9db"
 								title={t("seller:createListing.amenitiesSection")}
-								badge={MockupBadge}
 								isActive={(draftFilters.amenities?.length ?? 0) > 0 || (draftFilters.water_supply?.length ?? 0) > 0}
 							>
 								<Stack gap={16}>
@@ -1245,16 +1261,125 @@ function Page() {
 		</RootPage>
 	);
 
+	// F048 — Three-tab bar (Feed / Subscriptions / Recommended).
+	const HomeTabBar = (
+		<Box
+			px="md"
+			pt={6}
+			pb={4}
+			style={{ maxWidth: 980, margin: "0 auto" }}
+		>
+			<Group gap={6} wrap="nowrap">
+				{(["feed", "subscriptions", "recommended"] as HomeTab[]).map(
+					(tab) => {
+						const isActive = activeTab === tab;
+						return (
+							<UnstyledButton
+								key={tab}
+								onClick={() => {
+									if (activeTab !== tab) tabChanged(tab);
+								}}
+								style={{
+									flex: 1,
+									height: 36,
+									borderRadius: 18,
+									backgroundColor: isActive ? "#228be6" : "#f1f3f5",
+									color: isActive ? "#fff" : "#495057",
+									display: "inline-flex",
+									alignItems: "center",
+									justifyContent: "center",
+									fontWeight: 600,
+									fontSize: 13,
+									transition: "all 0.15s ease",
+								}}
+							>
+								{t(`home.tabs.${tab}`)}
+							</UnstyledButton>
+						);
+					},
+				)}
+			</Group>
+		</Box>
+	);
+
+	// Tab-aware empty state copy (no saved searches / no view history).
+	const renderEmptyTabState = () => {
+		if (activeTab === "subscriptions") {
+			return (
+				<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+					{FilterDrawer}
+					{HomeTabBar}
+					<Container className="listings-container">
+						<Center py={60}>
+							<Stack align="center" gap="md">
+								<Box
+									style={{
+										width: 80,
+										height: 80,
+										borderRadius: radii.full,
+										backgroundColor: "#fff0f6",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+									}}
+								>
+									<IconHeart size={36} color="#e64980" stroke={1.5} />
+								</Box>
+								<Text c="dimmed" size="sm" ta="center" maw={280}>
+									{t("home.empty.subscriptions")}
+								</Text>
+							</Stack>
+						</Center>
+					</Container>
+				</RootPage>
+			);
+		}
+		if (activeTab === "recommended") {
+			return (
+				<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+					{FilterDrawer}
+					{HomeTabBar}
+					<Container className="listings-container">
+						<Center py={60}>
+							<Stack align="center" gap="md">
+								<Box
+									style={{
+										width: 80,
+										height: 80,
+										borderRadius: radii.full,
+										backgroundColor: "#e7f5ff",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+									}}
+								>
+									<IconSparkles size={36} color="#74c0fc" stroke={1.5} />
+								</Box>
+								<Text c="dimmed" size="sm" ta="center" maw={280}>
+									{t("home.empty.recommended")}
+								</Text>
+							</Stack>
+						</Center>
+					</Container>
+				</RootPage>
+			);
+		}
+		return null;
+	};
+
 	// Show skeletons while initial loading
-	if (isLoading && listings.length === 0) {
+	if (tabIsLoading && listings.length === 0) {
 		return ShimmerSkeleton;
 	}
 
-	// Empty state
-	if (!isLoading && listings.length === 0) {
+	// Empty state — tab-specific copy for subscriptions / recommended.
+	if (!tabIsLoading && listings.length === 0) {
+		const tabEmpty = renderEmptyTabState();
+		if (tabEmpty) return tabEmpty;
 		return (
 			<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
 				{FilterDrawer}
+				{HomeTabBar}
 				<Container className="listings-container">
 					<Center py={60}>
 						<Stack align="center" gap="md">
@@ -1297,7 +1422,10 @@ function Page() {
 	return (
 		<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
 			{FilterDrawer}
+			{HomeTabBar}
 			<Container className="listings-container" px="md" pt="sm">
+				{/* Block phase-2 — marketing banners (home_top placement) */}
+				<HomeBanners placement="home_top" />
 				{viewMode === "masonry" ? (
 					<div className="listings-masonry-grid">
 						{[0, 1].map((col) => (
@@ -1336,7 +1464,7 @@ function Page() {
 				<div ref={loadMoreRef} style={{ height: 1 }} />
 
 				{/* Loading indicator */}
-				{isLoading && (
+				{tabIsLoading && (
 					<Center py="xl">
 						<Stack align="center" gap={6}>
 							<Loader size="sm" color="blue.5" />

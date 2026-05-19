@@ -1,0 +1,1 @@
+export { SellerTariffs } from "./Page";

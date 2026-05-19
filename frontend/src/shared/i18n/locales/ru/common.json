@@ -1,4 +1,28 @@
 {
+  "errors": {
+    "boundaryTitle": "Что-то пошло не так",
+    "boundaryDescription": "Произошла непредвиденная ошибка при загрузке страницы. Попробуйте обновить страницу.",
+    "boundaryRetry": "Обновить страницу",
+    "serverError": "Произошла внутренняя ошибка сервера (Internal Server Error). Пожалуйста, повторите попытку позже."
+  },
+  "auth": {
+    "requestNewCode": "Запросить новый код",
+    "codeExpired": "Срок действия кода истёк",
+    "phoneShareTitle": "Добро пожаловать",
+    "phoneShareGreeting": "Добро пожаловать, {{name}}",
+    "phoneShareDescription": "Чтобы пользоваться сервисом, поделитесь номером телефона.",
+    "phoneShareAction": "Поделиться номером",
+    "phoneShareConnecting": "Подключение…",
+    "phoneSharePrivacy": "Номер обрабатывается Telegram — без SMS-кодов.",
+    "phoneShareUpdateClient": "Пожалуйста, обновите Telegram до последней версии, чтобы продолжить.",
+    "phoneShareRequired": "Для продолжения необходимо поделиться номером. Нажмите кнопку и попробуйте снова."
+  },
+  "map": {
+    "selectLocation": "Выберите местоположение"
+  },
+  "housingComplex": {
+    "linked": "✓ связан с жилым комплексом"
+  },
   "locations": {
     "region": {
       "qoraqalpogiston": "Каракалпакстан",
@@ -208,5 +232,15 @@
       "yunusobod": "Юнусабадский р-н",
       "yangihayot": "Янгихаётский р-н"
     }
-  }
+  },
+  "bot.crawled.cardTitle": "Мы нашли ваше новое объявление",
+  "bot.crawled.batchTitle": "Мы нашли {{count}} ваших новых объявлений",
+  "bot.crawled.openFound": "Открыть в кабинете",
+  "bot.crawled.claim": "Это моё",
+  "bot.crawled.reject": "Не моё",
+  "bot.crawled.confirmedFooter": "✓ Подтверждено. Открыть в кабинете",
+  "bot.crawled.rejectedFooter": "✗ Отклонено",
+  "bot.crawled.expiredFooter": "Это объявление ждёт вас в разделе Found",
+  "bot.crawled.alreadyClaimed": "Это объявление уже подтверждено другим аккаунтом",
+  "bot.crawled.confirmedInCabinet": "Подтверждено в кабинете"
 }

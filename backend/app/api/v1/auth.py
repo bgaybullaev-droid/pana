@@ -5,9 +5,11 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import get_current_user, get_current_user_optional
+from app.bot.i18n import language_from_telegram_code
 from app.core.config import settings
 from app.core.exceptions import (
     BadRequestException,
@@ -45,15 +47,69 @@ from app.schemas.auth import (
 )
 from app.schemas.common import MessageResponse
 from app.schemas.user import UserUpdate
-from app.services.account_linking import get_account_linking_service
-from app.utils.phone import normalize_phone
+from app.services.account_linking import (
+    get_account_linking_service,
+    reserve_phone_for_user,
+)
+from app.utils.phone import normalize_phone, normalize_phone_e164
 
 router = APIRouter()
+
+
+logger = __import__("logging").getLogger(__name__)
 
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+
+async def _apply_pending_referral_if_any(
+    db, user: "User", telegram_id: int | None
+) -> None:
+    """Block D D3 — consume a pending ``ref_<id>`` referral if one was
+    stashed for this telegram_id and persist the attribution.
+
+    Guards:
+      - Only writes if ``user.referred_by_user_id`` is currently NULL.
+      - Self-referral rejected (referrer != new_user_id).
+      - All failures are swallowed; attribution is observational and
+        must never block the auth flow.
+    """
+    if telegram_id is None or user is None or user.id is None:
+        return
+    if getattr(user, "referred_by_user_id", None) is not None:
+        return
+    try:
+        from app.services.deeplink import consume_pending_referral
+
+        pending = await consume_pending_referral(telegram_id)
+        if pending is None:
+            return
+        referrer_id_str, source = pending
+        try:
+            referrer_id = UUID(referrer_id_str)
+        except (TypeError, ValueError):
+            return
+        if referrer_id == user.id:
+            logger.info(
+                "ref.self_referral_rejected user=%s tg=%s", user.id, telegram_id
+            )
+            return
+        user.referred_by_user_id = referrer_id
+        if source:
+            user.referral_source = source[:64]
+        await db.flush()
+        logger.info(
+            "ref.applied user=%s referrer=%s source=%s",
+            user.id,
+            referrer_id,
+            source,
+        )
+    except Exception:
+        logger.warning(
+            "ref.apply_failed user=%s tg=%s", user.id, telegram_id, exc_info=True
+        )
 
 
 def _build_auth_response(
@@ -77,6 +133,7 @@ def _build_auth_response(
         approval_status=user.approval_status.value,
         auth_source=user.auth_source,
         phone=user.phone,
+        language=user.language or "ru",
         scope=scope,
         access_token=access_token,
         refresh_token=refresh_token,
@@ -233,6 +290,7 @@ async def get_me(
         approval_status=user.approval_status.value,
         auth_source=user.auth_source,
         phone=user.phone,
+        language=user.language or "ru",
         scope=token_scope,
     )
 
@@ -277,6 +335,7 @@ async def update_profile(
         approval_status=user.approval_status.value,
         auth_source=user.auth_source,
         phone=user.phone,
+        language=user.language or "ru",
     )
 
 
@@ -332,51 +391,19 @@ async def authenticate_telegram(
 
     # Phone uniqueness guard — only when we're about to attach a NEW phone
     # (shared_phone is set AND either the user is new or the shared phone
-    # differs from what's on file).
+    # differs from what's on file). Bot-supplied phone is already E.164.
     incoming_phone = shared_phone if shared_phone else None
     if incoming_phone and (not user or user.phone != incoming_phone):
-        # Active-user clash → hard stop. Can't silently steal someone else's
-        # phone.
-        active_clash_q = select(User).where(
-            User.phone == incoming_phone,
-            User.deleted_at.is_(None),
-        )
-        if user:
-            active_clash_q = active_clash_q.where(User.id != user.id)
-        active_clash = (await db.execute(active_clash_q)).scalar_one_or_none()
-        if active_clash:
+        try:
+            await reserve_phone_for_user(
+                db,
+                incoming_phone=incoming_phone,
+                target_user_id=user.id if user else None,
+            )
+        except BadRequestException:
             # Clear the one-shot key so stale collisions don't loop forever.
             await redis.delete(f"contact_share:{telegram_id}")
-            raise BadRequestException("This phone is linked to another account.")
-
-        # Soft-deleted row holding this phone → the DB-level unique index
-        # (ix_users_phone) doesn't care about deleted_at, so without clearing
-        # the ghost row's phone first, our UPDATE/INSERT throws
-        # UniqueViolationError. Mirrors the telegram_id collision guard below.
-        stale_q = select(User).where(
-            User.phone == incoming_phone,
-            User.deleted_at.is_not(None),
-        )
-        if user:
-            stale_q = stale_q.where(User.id != user.id)
-        stale_rows = (await db.execute(stale_q)).scalars().all()
-        if stale_rows:
-            for stale in stale_rows:
-                stale.phone = None
-            await db.flush()
-
-        # Same ghost problem on sellers.phone (ix_sellers_phone_unique):
-        # a Seller row owned by a soft-deleted user — or orphaned after a
-        # prior failed migration — can still hold this phone. Clear any
-        # seller.phone that matches, except the one we're about to update.
-        seller_clash_q = select(Seller).where(Seller.phone == incoming_phone)
-        if user:
-            seller_clash_q = seller_clash_q.where(Seller.user_id != user.id)
-        stale_sellers = (await db.execute(seller_clash_q)).scalars().all()
-        if stale_sellers:
-            for s in stale_sellers:
-                s.phone = None
-            await db.flush()
+            raise
 
     if user:
         user.first_name = first_name
@@ -404,6 +431,9 @@ async def authenticate_telegram(
             collision.telegram_id = None
             await db.flush()
 
+        # Block D D1-Q2: map Telegram language_code → canonical
+        # backend identifier. Telegram "uz" maps to "uz_cyrl" (the
+        # default Uzbek script). Anything else falls back to "ru".
         user = User(
             id=uuid4(),
             telegram_id=telegram_id,
@@ -412,7 +442,7 @@ async def authenticate_telegram(
             last_name=user_data.get("last_name"),
             username=user_data.get("username"),
             avatar_url=user_data.get("photo_url"),
-            language=(user_data.get("language_code") or "ru")[:2],
+            language=language_from_telegram_code(user_data.get("language_code")),
             role=UserRole.SELLER,
             approval_status=UserApprovalStatus.APPROVED,
             auth_source="telegram_webapp",
@@ -421,6 +451,11 @@ async def authenticate_telegram(
         )
         db.add(user)
         await db.flush()
+
+        # Block D D3 — apply pending referral attribution if the user
+        # arrived via /start ref_<id>. Self-referral guarded; existing
+        # attribution never overwritten.
+        await _apply_pending_referral_if_any(db, user, telegram_id)
 
     if user.role in (UserRole.SELLER, UserRole.ADMIN):
         seller_result = await db.execute(
@@ -630,10 +665,10 @@ async def login_olx_phone(
     Checks if crawled OLX listings exist for this phone.
     If yes, creates or retrieves User + Seller and issues JWT.
     """
-    phone = request.phone
-    phone_suffix = normalize_phone(phone)
+    phone = normalize_phone_e164(request.phone)
+    phone_suffix = normalize_phone(request.phone)
 
-    if not phone_suffix or len(phone_suffix) != 9:
+    if not phone or not phone_suffix or len(phone_suffix) != 9:
         raise BadRequestException("Invalid phone number format")
 
     # Check OLX listings exist for this phone
@@ -648,10 +683,15 @@ async def login_olx_phone(
     if olx_count == 0:
         raise BadRequestException("No OLX listings found for this phone number")
 
-    # Find existing user by phone
+    # Find existing user by canonical phone
     user_q = select(User).where(User.phone == phone, User.deleted_at.is_(None))
     user_result = await db.execute(user_q)
     user = user_result.scalar_one_or_none()
+
+    # Reserve the phone — frees stale rows + hard-stops on active clash.
+    await reserve_phone_for_user(
+        db, incoming_phone=phone, target_user_id=user.id if user else None
+    )
 
     if user:
         user.last_login_at = datetime.utcnow()
@@ -986,13 +1026,15 @@ async def verify_seller_otp(
     user_result = await db.execute(user_q)
     user = user_result.scalar_one_or_none()
 
+    canonical_phone = f"+998{phone_suffix}"
+
     if not user:
-        # User doesn't exist yet — create on successful OTP verification
-        # Recover telegram_id stored during OTP request
+        # User doesn't exist yet — create on successful OTP verification.
+        # Recover telegram_id stored during OTP request.
         stored_tg_id = await redis.get(f"seller_otp_tg:{phone_suffix}")
         tg_id = int(stored_tg_id) if stored_tg_id else None
 
-        # If we have a tg_id, clear it from any other user first
+        # If we have a tg_id, clear it from any other user first.
         if tg_id:
             old_user_q = await db.execute(
                 select(User).where(
@@ -1005,21 +1047,49 @@ async def verify_seller_otp(
                 old_user.telegram_id = None
                 await db.flush()
 
-        user = User(
-            phone=f"+998{phone_suffix}",
-            first_name=f"Seller {phone_suffix[-4:]}",
-            telegram_id=tg_id,
-            role=UserRole.SELLER,
-            approval_status=(
-                UserApprovalStatus.APPROVED
-                if settings.auto_approve_users
-                else UserApprovalStatus.PENDING
-            ),
-            auth_source="seller_otp",
-            last_login_at=datetime.utcnow(),
+        # Free any stale users.phone / sellers.phone before insert so the
+        # unique index doesn't trip.
+        await reserve_phone_for_user(
+            db, incoming_phone=canonical_phone, target_user_id=None
         )
-        db.add(user)
-        await db.flush()
+
+        # Hotfix (Block C decision-pass G3): two concurrent verify requests
+        # for the same OTP can both reach this branch (Redis GET is
+        # non-destructive). The second INSERT then violates the
+        # users.phone UNIQUE index. Catch IntegrityError, roll back the
+        # nested savepoint, and re-fetch the row that won.
+        try:
+            user = User(
+                phone=canonical_phone,
+                first_name=f"Seller {phone_suffix[-4:]}",
+                telegram_id=tg_id,
+                role=UserRole.SELLER,
+                approval_status=(
+                    UserApprovalStatus.APPROVED
+                    if settings.auto_approve_users
+                    else UserApprovalStatus.PENDING
+                ),
+                auth_source="seller_otp",
+                last_login_at=datetime.utcnow(),
+            )
+            db.add(user)
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            user_result = await db.execute(
+                select(User).where(
+                    func.right(User.phone, 9) == phone_suffix,
+                    User.deleted_at.is_(None),
+                )
+            )
+            user = user_result.scalar_one_or_none()
+            if user is None:
+                # Should never happen — UNIQUE violation but no row found?
+                raise BadRequestException(
+                    "Не удалось создать аккаунт. Попробуйте ещё раз."
+                )
+            user.last_login_at = datetime.utcnow()
+            await db.flush()
 
         # Clean up stored telegram_id
         await redis.delete(f"seller_otp_tg:{phone_suffix}")
@@ -1082,12 +1152,19 @@ async def login_buyer_phone(
     Creates or retrieves a user by phone and issues JWT.
     No crawled-data check — any valid phone can log in.
     """
-    phone = request.phone
+    phone = normalize_phone_e164(request.phone)
+    if not phone:
+        raise BadRequestException("Invalid phone number format")
 
-    # Find existing user by phone
+    # Find existing user by canonical phone
     user_q = select(User).where(User.phone == phone, User.deleted_at.is_(None))
     user_result = await db.execute(user_q)
     user = user_result.scalar_one_or_none()
+
+    # Reserve the phone — frees stale rows + hard-stops on active clash.
+    await reserve_phone_for_user(
+        db, incoming_phone=phone, target_user_id=user.id if user else None
+    )
 
     now = datetime.utcnow()
 

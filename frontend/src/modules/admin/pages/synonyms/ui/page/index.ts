@@ -1,0 +1,1 @@
+export { AdminSynonyms } from "./Page";

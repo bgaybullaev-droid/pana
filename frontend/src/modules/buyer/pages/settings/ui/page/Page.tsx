@@ -4,6 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useUnit } from "effector-react";
 import { useAuth } from "@app/providers/useAuth";
 import { useTelegram } from "@app/providers/useTelegram";
+import { updateLanguageFx } from "@shared/state/auth/model";
+import {
+	backendToFrontendLocale,
+	frontendToBackendLanguage,
+} from "@shared/i18n";
 import { formatPhone } from "@shared/lib/formatPhone";
 import {
 	Box,
@@ -295,7 +300,7 @@ function Page() {
 				/>
 				<SettingsRow
 					icon={IconSearch}
-					label={ts("dashboard.found") || "Найденные"}
+					label={ts("dashboard.found") || t("settings.found")}
 					onClick={() => navigate("/seller/found")}
 				/>
 				<SettingsRow
@@ -329,10 +334,30 @@ function Page() {
 							<SegmentedControl
 								data={[
 									{ label: "RU", value: "ru" },
-									{ label: "UZ", value: "uz" },
+									{ label: "UZ", value: "uz-latn" },
+									{ label: "ЎЗ", value: "uz-cyrl" },
 								]}
-								value={i18n.language}
-								onChange={(val) => i18n.changeLanguage(val)}
+								value={(() => {
+									const cur = backendToFrontendLocale(i18n.language);
+									// Treat the ambiguous "uz" as "uz-latn" in the picker
+									// so the Latin segment stays selected after auth-sync.
+									return cur === "uz" ? "uz-latn" : cur;
+								})()}
+								onChange={(val) => {
+									i18n.changeLanguage(val);
+									localStorage.setItem("i18nextLng", val);
+									if (isAuthenticated) {
+										// Best-effort persist to backend; UI does not block
+										// on the network call. updateLanguageFx.doneData
+										// refreshes $user so subsequent reads see the
+										// new value.
+										updateLanguageFx(frontendToBackendLanguage(val)).catch(
+											() => {
+												/* swallow — local change already applied */
+											},
+										);
+									}
+								}}
 								size="xs"
 								radius="xl"
 								styles={{

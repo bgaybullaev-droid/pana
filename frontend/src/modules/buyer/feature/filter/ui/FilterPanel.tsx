@@ -133,7 +133,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({ onApply }) => {
 									},
 								}}
 							>
-								{t("filter.reset", { defaultValue: "Сбросить" })}
+								{t("filter.reset")}
 							</Button>
 							<Button
 								style={{ flex: 1 }}
@@ -148,7 +148,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({ onApply }) => {
 									root: { boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)" },
 								}}
 							>
-								{t("filter.apply", { defaultValue: "Применить" })}
+								{t("filter.apply")}
 							</Button>
 						</Box>
 					</Box>

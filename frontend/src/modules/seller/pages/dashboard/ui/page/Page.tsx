@@ -23,10 +23,13 @@ import {
 	IconEye,
 	IconPhone,
 	IconHeart,
-	IconUser,
 	IconArrowRight,
 	IconBuildingStore,
 	IconSparkles,
+	IconCoin,
+	IconDeviceMobile,
+	IconBrandTelegram,
+	IconGift,
 } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
 import {
@@ -193,19 +196,73 @@ function Page() {
 							</Card>
 						</UnstyledButton>
 
-						<UnstyledButton onClick={() => navigate("/profile")}>
+						{/* Block C V2.0 (C4): My Phones */}
+						<UnstyledButton onClick={() => navigate("/seller/phones")}>
 							<Card radius={radii.md} p="sm" style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">
-										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: surface.page, color: '#475569' }}>
-											<IconUser size={18} />
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: '#cffafe', color: '#0891b2' }}>
+											<IconDeviceMobile size={18} />
 										</Center>
-										<Text fw={600} size="13px" c="dark.8">{t("dashboard.profile", "Profile")}</Text>
+										<Text fw={600} size="13px" c="dark.8">{t("nav.phones", "My Numbers")}</Text>
 									</Group>
 									<IconArrowRight size={16} color="#cbd5e1" />
 								</Group>
 							</Card>
 						</UnstyledButton>
+
+						{/* Block C V2.0 (C1): Tariffs — primary discovery surface */}
+						<UnstyledButton onClick={() => navigate("/seller/tariffs")}>
+							<Card radius={radii.md} p="sm" style={{
+								background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+								border: '1px solid #fcd34d',
+								boxShadow: shadows.sm,
+							}}>
+								<Group wrap="nowrap" justify="space-between">
+									<Group wrap="nowrap" gap="sm">
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: 'rgba(255,255,255,0.6)', color: '#b45309' }}>
+											<IconCoin size={18} />
+										</Center>
+										<Box>
+											<Text fw={700} size="13px" c="#78350f">{t("nav.tariffs", "Tariffs")}</Text>
+											<Text size="10px" c="#92400e" mt={2}>{t("tariffs.heroBanner", "Test period active")}</Text>
+										</Box>
+									</Group>
+									<IconArrowRight size={16} color="#92400e" opacity={0.6} />
+								</Group>
+							</Card>
+						</UnstyledButton>
+
+						{/* Block D D4 — autoposting cabinet entry. */}
+						<UnstyledButton onClick={() => navigate("/seller/autoposting")}>
+							<Card radius={radii.md} p="sm" style={{ background: '#ffffff', border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
+								<Group wrap="nowrap" justify="space-between">
+									<Group wrap="nowrap" gap="sm">
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: '#eff6ff', color: '#1d4ed8' }}>
+											<IconBrandTelegram size={18} />
+										</Center>
+										<Text fw={600} size="13px" c="dark.8">{t("autopost.title", "Autoposting")}</Text>
+									</Group>
+									<IconArrowRight size={16} color="#cbd5e1" />
+								</Group>
+							</Card>
+						</UnstyledButton>
+
+						{/* PR-T — phase-2 referral program entry. */}
+						<UnstyledButton onClick={() => navigate("/seller/referrals")}>
+							<Card radius={radii.md} p="sm" style={{ background: '#ffffff', border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
+								<Group wrap="nowrap" justify="space-between">
+									<Group wrap="nowrap" gap="sm">
+										<Center style={{ width: 32, height: 32, borderRadius: radii.sm, background: '#fef3c7', color: '#b45309' }}>
+											<IconGift size={18} />
+										</Center>
+										<Text fw={600} size="13px" c="dark.8">{t("nav.referrals", "Реферальная программа")}</Text>
+									</Group>
+									<IconArrowRight size={16} color="#cbd5e1" />
+								</Group>
+							</Card>
+						</UnstyledButton>
+
 					</Stack>
 				</Box>
 

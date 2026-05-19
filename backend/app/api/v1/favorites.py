@@ -315,6 +315,18 @@ async def add_favorite(
     # Merge listing metadata into user preferences (set-union)
     await _merge_listing_into_preferences(db, current_user.id, listing)
 
+    # Block D D2 — feed the personalization signal table. Fails soft;
+    # never blocks the favorite-add user flow.
+    from app.services import behavioral_signals as _signals
+
+    await _signals.record_event(
+        db,
+        event_type=_signals.EVENT_FAV_ADD,
+        source=_signals.SOURCE_IN_APP,
+        user_id=current_user.id,
+        listing_id=listing_id,
+    )
+
     await db.commit()
 
     return MessageResponse(message="Added to favorites")
@@ -348,6 +360,19 @@ async def remove_favorite(
         listing.favorites_count = max(0, listing.favorites_count - 1)
 
     await db.delete(favorite)
+
+    # Block D D2 — pair with the fav_add signal so the recommender
+    # sees the full toggle history. Fail-soft.
+    from app.services import behavioral_signals as _signals
+
+    await _signals.record_event(
+        db,
+        event_type=_signals.EVENT_FAV_REMOVE,
+        source=_signals.SOURCE_IN_APP,
+        user_id=current_user.id,
+        listing_id=listing_id,
+    )
+
     await db.commit()
 
     return MessageResponse(message="Removed from favorites")

@@ -4,7 +4,11 @@ import { $isAuthenticated } from '@shared/state/auth/model';
 import { fetchFavoriteIdsFx } from '@modules/buyer/shared/state/model';
 import { onContentLanguageChanged } from '@shared/i18n';
 import { savePreferencesFx } from '@modules/buyer/feature/preferences/model';
-import { fetchFeedFx } from '../effects';
+import {
+  fetchFeedFx,
+  fetchRecommendedFeedFx,
+  fetchSubscriptionsFeedFx,
+} from '../effects';
 import {
   pageOpened,
   loadMore,
@@ -13,9 +17,13 @@ import {
   clearFilters,
   filtersChanged,
   searchQueryChanged,
+  tabChanged,
 } from '../events';
 import { $page, $filters, $hasMore, $rawItems, $total, $error } from '../stores';
 import { buildFeedParams, isParamsMatchingFilters } from '../lib';
+
+const RECOMMENDED_LIMIT = 20;
+const SUBSCRIPTIONS_PER_PAGE = 20;
 
 // Wire .on() handlers
 $filters
@@ -145,6 +153,53 @@ sample({
 sample({
   clock: savePreferencesFx.done,
   source: $filters,
+  fn: (filters) => buildFeedParams(1, filters),
+  target: fetchFeedFx,
+});
+
+// ── F048: tab switching ────────────────────────────────────────────────────
+// When the user switches to the subscriptions tab, fetch /buyer/feed/subscriptions
+// once. Re-fetching every switch keeps the list fresh; the endpoint is cheap
+// (single OR'd query against the user's saved searches).
+sample({
+  clock: tabChanged,
+  filter: (tab) => tab === 'subscriptions',
+  fn: () => ({ page: 1, per_page: SUBSCRIPTIONS_PER_PAGE }),
+  target: fetchSubscriptionsFeedFx,
+});
+
+sample({
+  clock: tabChanged,
+  filter: (tab) => tab === 'recommended',
+  fn: () => ({ limit: RECOMMENDED_LIMIT }),
+  target: fetchRecommendedFeedFx,
+});
+
+// When the user returns to the feed tab we don't reset — the legacy
+// behavior (Effector stores survive across remounts) is preserved.
+
+// Subscriptions/recommended are single-page feeds; $hasMore stays false
+// while either tab is active so the IntersectionObserver-driven loadMore
+// never triggers a paginated fetch.
+sample({
+  clock: tabChanged,
+  filter: (tab) => tab !== 'feed',
+  fn: () => false,
+  target: $hasMore,
+});
+
+// Returning to the feed tab: reset and re-fetch page 1 so $hasMore /
+// pagination state is consistent with what's in $rawItems.
+sample({
+  clock: tabChanged,
+  filter: (tab) => tab === 'feed',
+  target: resetListings,
+});
+
+sample({
+  clock: tabChanged,
+  source: $filters,
+  filter: (_filters, tab) => tab === 'feed',
   fn: (filters) => buildFeedParams(1, filters),
   target: fetchFeedFx,
 });

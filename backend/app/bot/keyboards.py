@@ -12,13 +12,17 @@ from app.bot.i18n import DEFAULT_LANGUAGE, t
 
 
 def get_language_kb() -> InlineKeyboardMarkup:
-    """Language selection keyboard (shown on first launch)."""
+    """Language selection keyboard (shown on first launch).
+
+    Block D V2.0: three locales — Russian, Uzbek Latin, Uzbek Cyrillic.
+    Each row is its own button to give the Cyrillic option visual weight
+    equal to the other two.
+    """
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru"),
-                InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data="lang_uz"),
-            ],
+            [InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru")],
+            [InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data="lang_uz")],
+            [InlineKeyboardButton(text="🇺🇿 Ўзбекча", callback_data="lang_uz_cyrl")],
         ]
     )
 

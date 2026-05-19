@@ -3,6 +3,9 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 httpx==0.25.2
+# Block F V2.0 F3 — SSR templates for SEO routes (consumed via
+# fastapi.templating.Jinja2Templates in F3b).
+jinja2==3.1.3
 
 # Database
 sqlalchemy==2.0.25

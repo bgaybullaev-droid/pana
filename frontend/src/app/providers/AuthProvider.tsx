@@ -12,6 +12,7 @@ import {
 	checkSessionFx,
 } from "@shared/state/auth/model";
 import { PhoneGate } from "@shared/ui/PhoneGate";
+import i18n, { backendToFrontendLocale } from "@shared/i18n";
 // Eagerly import user-state connections so the sample() that wires
 // checkSessionFx.done → fetchUserStatsFx exists BEFORE checkSessionFx
 // fires during page-reload session restore. Without this, the
@@ -116,6 +117,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		return () =>
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 	}, [user]);
+
+	// Block D D1 — sync i18n locale from backend on every $user change.
+	// Backend value ("ru" | "uz" | "uz_cyrl") is the single source of
+	// truth; the local i18n locale follows. Avoid a redundant
+	// changeLanguage() if it already matches (prevents the listing-content
+	// callbacks in i18n/index.ts from firing on every render).
+	useEffect(() => {
+		if (!user?.language) return;
+		const desired = backendToFrontendLocale(user.language);
+		if (i18n.language !== desired) {
+			i18n.changeLanguage(desired);
+		}
+	}, [user?.language]);
 
 	// Logout handler that persists logout state in dev mode
 	const handleLogout = () => {

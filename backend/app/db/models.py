@@ -18,6 +18,7 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -63,13 +64,29 @@ class PropertyType(str, enum.Enum):
 
 
 class ListingStatus(str, enum.Enum):
-    """Listing status enum."""
+    """Listing status enum.
+
+    Block A V2.0 introduces three F1-related states:
+    - ``PENDING_GENERATION`` — captured by parser, AI description not yet
+      generated. Excluded from the B2C feed.
+    - ``GENERATION_FAILED`` — F1 retried up to its max and still failed;
+      shown in B2C with a base template description from structured params.
+    - ``UNCONFIRMED`` — parser couldn't extract one of {deal_type, price,
+      district}; visible to admin only, never shown in B2C, F1 not enqueued.
+    """
 
     ACTIVE = "active"
     PAUSED = "paused"
     SOLD = "sold"
     DELETED = "deleted"
     EXPIRED = "expired"
+    PENDING_GENERATION = "pending_generation"
+    GENERATION_FAILED = "generation_failed"
+    UNCONFIRMED = "unconfirmed"
+    # Block F F1 — seller cabinet two-step publish flow.
+    # Stage 1 commits Listing(status=DRAFT) with photos + params, fires
+    # AI generation; Stage 2 flips to ACTIVE after seller approves text.
+    DRAFT = "draft"
 
 
 class ModerationStatus(str, enum.Enum):
@@ -114,6 +131,9 @@ class NotificationType(str, enum.Enum):
     LISTING_APPROVED = "listing_approved"
     LISTING_REJECTED = "listing_rejected"
     NEW_COMMENT = "new_comment"
+    # Block A V2.0 — A4. Push to a registered seller when a crawled
+    # listing's phone matches theirs and F1 has produced an AI description.
+    CRAWLED_MATCH = "crawled_match"
 
 
 class VerificationMethod(str, enum.Enum):
@@ -179,6 +199,22 @@ class User(Base):
 
     # Auth source (telegram, olx_phone, tg_channel, dev)
     auth_source: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    # Block D D3 — referral tracking. Written only on FIRST registration
+    # when a /start ref_<id> payload was present; never retroactively.
+    referred_by_user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    referral_source: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
+    # PR-T — Phase-2 referral program. Auto-generated lazily by the cabinet
+    # endpoint (``services.referrals.ensure_referral_code``). UNIQUE via a
+    # partial index that ignores NULLs so we never need to backfill.
+    referral_code: Mapped[Optional[str]] = mapped_column(
+        String(12), nullable=True, unique=True, index=False
+    )
 
     # Soft delete
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -271,6 +307,17 @@ class Seller(Base):
     instagram_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     website_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
+    # Block F V2.0 F4 — per-seller text-export overrides. Stored as
+    # plain text and injected into rendered exports via the sandboxed
+    # Jinja2 renderer (``services.text_export``). Signature/CTA give
+    # the seller a place to brand the OLX/Telegram/Instagram bodies;
+    # extra_hashtags appends to the platform-suggested set.
+    export_signature: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    export_cta: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    export_extra_hashtags: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True
+    )
+
     # Verification
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -283,6 +330,24 @@ class Seller(Base):
     listings_count: Mapped[int] = mapped_column(Integer, default=0)
     total_views: Mapped[int] = mapped_column(Integer, default=0)
     total_contacts: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Block D D4 — bot autoposting to seller's own channel.
+    # When ``autopost_verified_at`` is NULL we treat the connection
+    # as broken (bot kicked, channel gone, etc.) and surface a
+    # reconnect prompt in the cabinet. ``autopost_channel_id`` is the
+    # authoritative target — usernames can rotate.
+    autopost_channel_username: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    autopost_channel_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, nullable=True
+    )
+    autopost_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    autopost_verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -488,6 +553,22 @@ class Listing(Base):
     )
     source_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     raw_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # F1 (Block F) AI-generated descriptions per locale. Populated by the
+    # AI generation Celery task after parser import. Never set by parser.
+    ai_description_ru: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_description_uz: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_description_uz_cyrl: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )
+    ai_generation_attempted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    # Block F F1 — snapshot of {type, district, price, area, rooms} at
+    # generation time. Cabinet Stage 2 compares to current params and
+    # offers a "regenerate" banner when key params drifted.
+    last_ai_param_snapshot: Mapped[Optional[dict]] = mapped_column(
+        JSONB, nullable=True
+    )
     signature_hash: Mapped[Optional[str]] = mapped_column(
         String(32),
         nullable=True,
@@ -527,6 +608,15 @@ class Listing(Base):
     is_boosted: Mapped[bool] = mapped_column(Boolean, default=False)
     boost_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_highlighted: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Block phase-2 — promotions + banners. Urgent badge window + notify-
+    # priority window (saved-search delivery looks at this).
+    has_urgent_badge: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
+    urgent_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    notify_priority_until: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
 
     # Optimistic locking
     version: Mapped[int] = mapped_column(Integer, default=1)
@@ -547,6 +637,14 @@ class Listing(Base):
     )
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Block phase-2 — sale snapshot mirror (truth lives in ListingSale).
+    # Populated by PATCH /listings/{id} when status flips to SOLD; nulled
+    # on revert. Kept on the listing row so feed-side filters ("sold for
+    # under X in the last 30 days") avoid a JOIN.
+    sold_price: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    sold_currency: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
+    sold_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     seller: Mapped[Optional["Seller"]] = relationship(
@@ -727,6 +825,61 @@ class Favorite(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "listing_id", name="uq_user_listing_favorite"),
+    )
+
+
+class ListingViewEvent(Base):
+    """Per-user listing-engagement events.
+
+    Personalisation history (Phase 1 of F077). Each authenticated, non-self
+    open / contact / share against a listing produces a row. Anonymous
+    traffic does not write here — the public ``Listing.views_count``
+    counter handles that population separately. Aggregate dashboard
+    reads use the cached counters on Listing; this table is purely the
+    canonical event log.
+    """
+
+    __tablename__ = "listing_view_event"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    # A5 V2.0 — anonymous-viewer dedup. Cookie-based id (24h TTL). Mutually
+    # exclusive with user_id at write-time: anonymous rows have user_id=NULL
+    # and anon_id set; authenticated rows have user_id set and anon_id NULL.
+    anon_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    listing_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    viewed_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    dwell_ms: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+
+    __table_args__ = (
+        Index(
+            "idx_listing_view_event_user_time",
+            "user_id",
+            "viewed_at",
+            postgresql_where=(user_id.is_not(None)),
+        ),
+        Index(
+            "idx_listing_view_event_listing_type_time",
+            "listing_id",
+            "event_type",
+            "viewed_at",
+        ),
+        # Dedup index built via raw SQL in the migration (functional index
+        # on date(viewed_at) plus partial WHERE user_id IS NOT NULL).
     )
 
 
@@ -1075,6 +1228,11 @@ class Notification(Base):
     # NULL for legacy rows created before this column existed.
     source: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
+    # Block A V2.0 — A4: optional auto-expiry. Used by the daily beat job
+    # ``crawled_match.expire_old_notifications`` to flip a 7-day-old
+    # crawled-match Telegram message into a "see Found" footer.
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -1151,6 +1309,387 @@ class ParserSource(Base):
         DateTime,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+
+class SourceMetric(Base):
+    """Daily extraction metric per parser source (Block A V2.0 — A8).
+
+    One row per (source × day). Crawler writes counters at end-of-day or
+    on-the-fly via ``POST /admin/sources/{id}/metrics``. The admin
+    sources dashboard aggregates the last 7 days for each source.
+    """
+
+    __tablename__ = "source_metric"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    source_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("parser_sources.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # Calendar day in Asia/Tashkent. Stored as a date.
+    day: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+
+    listings_found: Mapped[int] = mapped_column(Integer, default=0)
+    listings_extracted: Mapped[int] = mapped_column(Integer, default=0)
+    listings_failed: Mapped[int] = mapped_column(Integer, default=0)
+    dupes_filtered: Mapped[int] = mapped_column(Integer, default=0)
+    # F1-related: how many listings failed AI generation today.
+    ai_failed: Mapped[int] = mapped_column(Integer, default=0)
+    # A4 — how many listings produced a CRAWLED_MATCH push notification today.
+    notified: Mapped[int] = mapped_column(Integer, default=0)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_source_metric_day",
+            "source_id",
+            "day",
+            unique=True,
+        ),
+    )
+
+
+# =============================================================================
+# Block C V2.0 — Multi-phone identity (C4)
+# =============================================================================
+#
+# Contract per decision-pass / PHONE_IDENTITY_MODEL.md:
+# - User.phone stays the auth primary (UNIQUE-indexed since initial schema).
+# - user_phones.phone is globally UNIQUE; one phone, one owner.
+# - exactly one is_primary=true row per user (partial UNIQUE index).
+# - User.phone == user_phones.phone WHERE is_primary=true (app-layer invariant).
+# - Listing.phone MUST be one of seller's verified phones (app-layer check).
+# - delete a phone → resolve listings first via 3-option modal.
+
+
+class UserPhone(Base):
+    """A verified phone attached to a user (Block C V2.0 — C4).
+
+    Primary phone (is_primary=true) mirrors User.phone for auth
+    compatibility. Additional phones (is_primary=false) carry the
+    same E.164 format and unique constraint.
+    """
+
+    __tablename__ = "user_phones"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    phone: Mapped[str] = mapped_column(
+        String(20), nullable=False, unique=True
+    )
+    is_primary: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    # 'tg_otp' | 'sms_otp' | 'legacy' (backfilled from User.phone)
+    verification_method: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )
+    verified_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class PhoneVerifyAttempt(Base):
+    """Phone-verify attempt log (forward-compat for C5 detection).
+
+    C4 writes one row per request_otp + verify_otp call. C5 reads to
+    flag suspicious patterns (one phone tried by many users in a
+    24h window).
+    """
+
+    __tablename__ = "phone_verify_attempt"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    phone: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    succeeded: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), index=True
+    )
+
+
+# =============================================================================
+# Block C V2.0 — Wallet / Transaction / Subscription (C3)
+# =============================================================================
+#
+# Contract per decision-pass / WALLET_LIFECYCLE.md:
+# - All money values are BIGINT in smallest currency unit. UZS=whole, USD=cents.
+# - Lazy wallet creation (one wallet per user; INSERT … ON CONFLICT DO NOTHING).
+# - Single-currency wallets (UZS in MVP); multi-currency deferred.
+# - Idempotency-key UNIQUE on transactions; webhook re-delivery is no-op.
+# - SELECT FOR UPDATE on wallet rows during withdraw/deposit.
+# - AuditLog row written for every state change (same DB transaction).
+# - No production callers during test period — services exist with tests.
+
+
+class TransactionType(str, enum.Enum):
+    """Transaction kind. ``adjustment`` is admin-driven."""
+
+    DEPOSIT = "deposit"
+    WITHDRAWAL = "withdrawal"
+    REFUND = "refund"
+    ADJUSTMENT = "adjustment"
+
+
+class TransactionStatus(str, enum.Enum):
+    """Transaction state machine.
+
+    Allowed transitions per WALLET_LIFECYCLE §9:
+      pending → completed | failed
+      completed → refunded
+      failed, refunded are terminal.
+    """
+
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+
+
+class SubscriptionType(str, enum.Enum):
+    """Subscription kind."""
+
+    CABINET = "cabinet"
+    LISTING_EXTRA = "listing_extra"
+
+
+class SubscriptionStatus(str, enum.Enum):
+    """Subscription state."""
+
+    ACTIVE = "active"
+    PAUSED = "paused"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    GRACE = "grace"  # missed renewal; in grace period before pause
+
+
+class BillingCycle(str, enum.Enum):
+    """Billing cycle for a subscription."""
+
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
+class Wallet(Base):
+    """Per-user wallet (Block C — C3).
+
+    One wallet per user; lazy-created by service layer. UZS-only in MVP.
+    Currency stays as a column for forward-compat; service rejects non-UZS.
+    """
+
+    __tablename__ = "wallets"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    # BIGINT in smallest currency unit (UZS=whole, USD=cents). See
+    # decision-pass / MONEY_STORAGE_DECISION.md.
+    current_balance: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        default=0,
+        comment="Smallest currency unit. UZS: whole UZS. USD: cents.",
+    )
+    currency: Mapped[Currency] = mapped_column(
+        Enum(Currency),
+        nullable=False,
+        default=Currency.UZS,
+    )
+    # Optimistic-lock counter. Incremented on every balance update by the
+    # withdraw/deposit service alongside SELECT FOR UPDATE; provides a
+    # secondary guard against lost-update bugs in code paths that bypass
+    # the lock.
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Transaction(Base):
+    """Money-movement ledger entry (Block C — C3).
+
+    Append-mostly: only ``status``, ``completed_at``, and ``metadata``
+    can mutate after creation. State machine in WALLET_LIFECYCLE §9.
+    """
+
+    __tablename__ = "transactions"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    wallet_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("wallets.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    type: Mapped[TransactionType] = mapped_column(
+        Enum(TransactionType, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+    )
+    amount: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        comment="Smallest currency unit. Always > 0.",
+    )
+    currency: Mapped[Currency] = mapped_column(
+        Enum(Currency), nullable=False
+    )
+    status: Mapped[TransactionStatus] = mapped_column(
+        Enum(
+            TransactionStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=False,
+        default=TransactionStatus.PENDING,
+    )
+    # External reference (Click/Payme transaction id). Optional for
+    # adjustment / internal transactions. Indexed for webhook lookup.
+    external_payment_id: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, index=True
+    )
+    # Optional link to the subscription this transaction is paying for.
+    # Adjustment transactions leave this NULL.
+    subscription_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("subscriptions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # Idempotency: same key → same outcome. Webhook re-delivery is a
+    # no-op via the unique constraint.
+    idempotency_key: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, unique=True, index=True
+    )
+    # JSONB for context: refund_of, discount_id, admin reason, etc.
+    transaction_metadata: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), index=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+
+    __table_args__ = (
+        Index("idx_tx_wallet_status", "wallet_id", "status"),
+    )
+
+
+class Subscription(Base):
+    """Recurring billing entry (Block C — C3).
+
+    Two types in MVP: ``cabinet`` (one per user) and ``listing_extra``
+    (one per paid listing). Polymorphic ``object_id`` typed by ``type``;
+    no FK constraint per decision-pass §3.
+    """
+
+    __tablename__ = "subscriptions"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    type: Mapped[SubscriptionType] = mapped_column(
+        Enum(
+            SubscriptionType,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=False,
+    )
+    # When type=listing_extra, this references listings.id (no FK
+    # constraint to allow Listing soft-deletes without cascade pain).
+    # When type=cabinet, this is NULL.
+    object_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    price: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        comment="Smallest currency unit per billing cycle.",
+    )
+    currency: Mapped[Currency] = mapped_column(
+        Enum(Currency), nullable=False, default=Currency.UZS
+    )
+    billing_cycle: Mapped[BillingCycle] = mapped_column(
+        Enum(BillingCycle, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+        default=BillingCycle.MONTHLY,
+    )
+    status: Mapped[SubscriptionStatus] = mapped_column(
+        Enum(
+            SubscriptionStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=False,
+        default=SubscriptionStatus.ACTIVE,
+    )
+    starts_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    ends_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    next_billing_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        Index("idx_sub_user_type", "user_id", "type"),
     )
 
 
@@ -1437,5 +1976,801 @@ class OLXListing(Base):
             "converted_listing_id",
             unique=True,
             postgresql_where=(converted_listing_id.isnot(None)),
+        ),
+    )
+
+
+# =============================================================================
+# Block D V2.0 (D3) — deep-link payload tables
+# =============================================================================
+
+
+class DeepLinkPayload(Base):
+    """Short-id → JSON payload indirection for Telegram-bot deep links.
+
+    Telegram's ``start_param`` is hard-capped at 64 chars. We can't encode
+    a full filter state inline, so we store the payload server-side and
+    pass the 12-char primary key in the URL. Rows never expire (Block D
+    D3-Q4 — shareable links don't rot).
+
+    ``kind`` discriminator keeps the table reusable for future payload
+    types (e.g. campaign tracking blobs). MVP only emits ``kind='filter'``.
+    """
+
+    __tablename__ = "deep_link_payloads"
+
+    id: Mapped[str] = mapped_column(String(12), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_by_user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    used_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+
+
+class ClaimInvite(Base):
+    """Single-use, expiring B2B onboarding tickets.
+
+    Used for ``/start claim_<id>`` (pre-imported sellers needing to
+    confirm crawled listings) and ``/start agent_<id>`` (sellers
+    identified by Telegram channel rather than phone).
+
+    Authoritative auth check: row presence + ``used_at IS NULL`` +
+    ``expires_at > now()``. The payload value alone is never trusted —
+    see security model in DECISION_MATRIX D3-Q2.
+    """
+
+    __tablename__ = "claim_invites"
+
+    id: Mapped[str] = mapped_column(String(12), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # 'claim' | 'agent'
+    pre_imported_user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    channel_username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    used_by_telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+class DeepLinkEvent(Base):
+    """Append-only audit + analytics log of every deep-link entry.
+
+    One row per ``/start <payload>`` or Mini-App ``startapp=<payload>``
+    arrival, regardless of payload validity. Powers abuse analysis,
+    marketing campaign attribution, and the per-prefix conversion
+    funnel. ``outcome`` captures whether the payload was honored.
+    """
+
+    __tablename__ = "deep_link_events"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    prefix: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    is_new_user: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    outcome: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="open", server_default="open"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False, index=True
+    )
+
+
+# =============================================================================
+# Block D V2.0 (D2) — behavioral signals
+# =============================================================================
+
+
+class BehavioralSignal(Base):
+    """Append-only personalization signal.
+
+    Single source-of-truth table the recommender (Ф-77 / Ф-78) reads
+    from. ``event_type`` is the verb the user performed (``fav_add``,
+    ``fav_remove``, etc.); ``source`` is where it was performed
+    (``push_inline``, ``in_app``, ``bot_search``, ``inline_mode``).
+
+    Retention: 180 days raw. Pruning is an ops cron, not enforced by
+    the model. See migration ``prm_behavioral_signals`` for details.
+
+    Writes funnel through ``services.behavioral_signals.record_event``;
+    no caller writes directly to keep the dedup + fail-soft semantics
+    centralised.
+    """
+
+    __tablename__ = "behavioral_signals"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    # No FK on listing_id: listings can vanish; signals stay readable.
+    listing_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+# =============================================================================
+# Block D V2.0 (D4) — bot channel-post tracking
+# =============================================================================
+
+
+class BotChannelPost(Base):
+    """One row per (listing, channel) the bot has published.
+
+    Stores the Telegram ``message_id`` so we can later edit (price /
+    SOLD overlay) or delete the post. ``last_listing_version``
+    captures the listing version at publish time — when
+    ``Listing.version > last_listing_version`` the cabinet shows a
+    "post stale" badge inviting the seller to click "Update post".
+
+    Lifecycle status values (no DB enum to allow forward-compat):
+        live          — published, in sync (or stale, depending on version)
+        sold_marker   — caption rewritten with "ПРОДАНО/СДАНО" overlay
+        deleted       — message removed from channel; row kept for audit
+
+    CASCADE on listing delete: when the seller hard-deletes a listing,
+    the row goes with it. Retention strategy is therefore the same as
+    the parent listing.
+    """
+
+    __tablename__ = "bot_channel_posts"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    listing_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("listings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    seller_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("sellers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    channel_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    message_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    posted_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    last_edited_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    last_listing_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="live", server_default="live"
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_bot_channel_posts_listing_channel",
+            "listing_id",
+            "channel_id",
+            unique=True,
+        ),
+        Index(
+            "idx_bot_channel_posts_seller_status",
+            "seller_id",
+            "status",
+        ),
+    )
+
+
+# =============================================================================
+# Block F V2.0 (F1 + F5) — AI generation foundation
+# =============================================================================
+
+
+class PromptTemplate(Base):
+    """Versioned LLM prompt stored in DB.
+
+    The AI generation worker reads the active row at task start; admin
+    activates a new version via single-statement atomic swap (the
+    partial unique index ``uq_prompt_templates_active_per_kind``
+    guarantees ≤1 active per ``kind``).
+
+    Retention: indefinite. Old versions retained for rollback.
+    """
+
+    __tablename__ = "prompt_templates"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    kind: Mapped[str] = mapped_column(String(48), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    model_hint: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by_user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+class AIGeneration(Base):
+    """Append-only log of every LLM call (success + failure outcomes).
+
+    Block F F5 — owned by ``services/prompt_registry.record_generation``.
+    No caller writes directly. Retention 90 days, pruned by Celery beat
+    task ``prune_ai_generations`` (PR-F5b).
+    """
+
+    __tablename__ = "ai_generations"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    listing_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("listings.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    prompt_template_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("prompt_templates.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    model: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_text: Mapped[str] = mapped_column(Text, nullable=False)
+    response_text: Mapped[str] = mapped_column(Text, nullable=False)
+    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # USD cost in micros ($0.000001 units). BIGINT avoids float drift.
+    cost_usd_micros: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    # triggered_by values: manual | auto_parser | param_change | manual_retry
+    triggered_by: Mapped[str] = mapped_column(String(32), nullable=False)
+    # outcome values: ok | fallback_template | timeout | rate_limit | invalid_response
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+class AIGenerationFeedback(Base):
+    """Seller-submitted "👎 не нравится" rows for AI text quality.
+
+    Block F F5. Joins to ``ai_generations`` (FK SET NULL so feedback
+    survives 90-day generation pruning). Retained indefinitely; volume
+    is small (~5–10 rows/day peak).
+    """
+
+    __tablename__ = "ai_generation_feedback"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    generation_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("ai_generations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    listing_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("listings.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # category values: grammar | unnatural | factual | too_long | too_short | other
+    category: Mapped[str] = mapped_column(String(32), nullable=False)
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    handled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+# =============================================================================
+# Block F V2.0 F2 — synonym dictionary (rule-based text → param matcher)
+# =============================================================================
+
+
+class SynonymEntry(Base):
+    """One (surface_form → parameter) mapping the synonym matcher loads.
+
+    The matcher is a pure-Python keyword scanner over the seller's
+    Stage-2 free-text editor — see ``services.synonym_matcher``. Curated
+    operationally via the ``/admin/synonyms`` console.
+
+    ``language`` accepts ``"ru" | "uz" | "uz_cyrl"`` (matches the rest
+    of Block F's locale convention) and the wildcard ``"*"`` for
+    surface forms that work across scripts (e.g. brand names).
+    """
+
+    __tablename__ = "synonym_entries"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    parameter_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    parameter_value: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    surface_form: Mapped[str] = mapped_column(String(128), nullable=False)
+    language: Mapped[str] = mapped_column(String(8), nullable=False)
+    polarity: Mapped[str] = mapped_column(
+        String(8), nullable=False, server_default="positive"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+# =============================================================================
+# Block F V2.0 F4 — export templates (Cabinet subscription deliverable)
+# =============================================================================
+
+
+class ExportTemplate(Base):
+    """One per-platform, per-language text-export template.
+
+    The partial unique index ``uq_export_template_active`` enforces ≤1
+    active row per (platform, language); admins flip versions via a
+    single ``UPDATE … SET is_active = (id = :new)`` atomic swap. Body
+    is rendered via ``jinja2.sandbox.SandboxedEnvironment`` with an
+    allowlisted placeholder set — see ``services.text_export``.
+    """
+
+    __tablename__ = "export_templates"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    # "olx" | "telegram_channel" | "instagram"
+    platform: Mapped[str] = mapped_column(String(32), nullable=False)
+    language: Mapped[str] = mapped_column(String(8), nullable=False)
+    template_body: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+# =============================================================================
+# Block phase-2 — deal-status + analytics
+# =============================================================================
+
+
+class ListingSale(Base):
+    """One immutable sale record per sold listing.
+
+    Created when ``Listing.status`` transitions to ``SOLD`` via the
+    seller cabinet's "Mark as sold" modal. The ``UNIQUE(listing_id)``
+    constraint means the PATCH handler upserts in place if a row
+    already exists (seller re-confirming sale price). The redundant
+    mirror columns on ``listings`` (``sold_price`` / ``sold_currency``
+    / ``sold_at``) are kept in sync by the same handler; this table
+    remains the source of truth (carries ``notes`` and historical
+    integrity even if the listing is later soft-deleted).
+
+    Indexed by ``sold_at`` and ``(sold_currency, sold_at)`` so the
+    admin analytics price-index endpoint can range-scan the recent
+    window cheaply and split USD vs UZS without a full sort.
+    """
+
+    __tablename__ = "listing_sales"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    listing_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("listings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    sold_price: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sold_currency: Mapped[str] = mapped_column(String(8), nullable=False)
+    sold_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("listing_id", name="uq_listing_sales_listing_id"),
+        Index("ix_listing_sales_listing_id", "listing_id"),
+        Index("ix_listing_sales_sold_at", "sold_at"),
+        Index("ix_listing_sales_currency_sold_at", "sold_currency", "sold_at"),
+    )
+
+
+# =============================================================================
+# Block phase-2 — promotions + banners
+# =============================================================================
+
+
+class Banner(Base):
+    """Marketing banner shown on the buyer home page or inline.
+
+    Placement values:
+        ``home_top``       — single hero banner above the listing feed.
+        ``home_inline``    — appended between feed cards on the home page.
+        ``listing_inline`` — appears on the listing detail page.
+
+    ``language = '*'`` matches any locale (fall-back row). Specific locales
+    (``ru`` / ``uz`` / ``uz_cyrl``) are preferred — the API tries the exact
+    locale first and falls back to ``*`` only when no row matches.
+
+    ``impressions`` / ``clicks`` are best-effort counters bumped from the
+    public read / click endpoints. The partial index
+    ``ix_banners_active_placement_lang`` keeps the buyer-facing lookup
+    cheap on a denormalised feed.
+    """
+
+    __tablename__ = "banners"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    image_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    target_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    placement: Mapped[str] = mapped_column(String(32), nullable=False)
+    language: Mapped[str] = mapped_column(String(8), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    starts_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    impressions: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    clicks: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+
+# =============================================================================
+# Block phase-2 — CRM + suspicions
+# =============================================================================
+#
+# Two related-but-independent feature areas land together in
+# ``pru_crm_suspicions``:
+#
+# * CRM: ``SellerClient`` + ``SellerClientListing`` give every seller a
+#   lightweight prospect tracker — name / phone / notes + a 6-stage
+#   pipeline (new / contacted / viewing / negotiating / won / lost),
+#   plus a join row that pins specific listings to each prospect for
+#   the in-cabinet "send these three options to Aziz" workflow.
+# * Suspicions: ``AccountSuspicion`` + ``AccountLink`` power the
+#   nightly duplicate-account workflow. The daily Celery job runs
+#   signal functions (``services.suspicions``) that emit one open
+#   ``AccountSuspicion`` per offending pair; admin /admin/suspicions
+#   either ``merged`` (writes an ``AccountLink``) or ``dismissed``
+#   the row. ``AccountLink`` uses a normalised pair (a < b) so the
+#   uniqueness constraint catches duplicates regardless of detection
+#   order.
+
+
+class SellerClient(Base):
+    """One CRM prospect owned by a seller."""
+
+    __tablename__ = "seller_clients"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    seller_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("sellers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Pipeline stage: 'new' | 'contacted' | 'viewing' | 'negotiating'
+    # | 'won' | 'lost'. Kept as VARCHAR (not an enum) so future stages
+    # can be added without an Alembic dance.
+    pipeline_stage: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="new",
+        server_default="new",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_seller_clients_seller_stage", "seller_id", "pipeline_stage"),
+    )
+
+
+class SellerClientListing(Base):
+    """Join row: one (client, listing) attachment."""
+
+    __tablename__ = "seller_client_listings"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    client_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("seller_clients.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    listing_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("listings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "client_id", "listing_id", name="uq_seller_client_listing_pair"
+        ),
+    )
+
+
+class AccountSuspicion(Base):
+    """Open / reviewed admin item flagging a possible duplicate account."""
+
+    __tablename__ = "account_suspicion"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    primary_user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+    # 'phone_collision' | 'similar_names' | …
+    signal_kind: Mapped[str] = mapped_column(String(48), nullable=False)
+    evidence: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    # 'open' | 'reviewed' | 'dismissed' | 'merged'
+    status: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="open",
+        server_default="open",
+    )
+    reviewed_by: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_account_suspicion_status_created",
+            "status",
+            text("created_at DESC"),
+        ),
+        Index("ix_account_suspicion_primary_user", "primary_user_id"),
+    )
+
+
+class AccountLink(Base):
+    """Resolved relationship between two users (merge / cleared)."""
+
+    __tablename__ = "account_link"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    # ``user_id_a < user_id_b`` is enforced by a CHECK constraint so
+    # the (a, b) unique key catches duplicates regardless of the
+    # detection order.
+    user_id_a: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id_b: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # 'duplicate' | 'related' | 'cleared'
+    relation: Mapped[str] = mapped_column(String(32), nullable=False)
+    decided_by: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+    decided_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id_a", "user_id_b", name="uq_account_link_pair"),
+    )
+
+
+# =============================================================================
+# Block phase-2 — referral program
+# =============================================================================
+#
+# Cabinet-side referral program (PR-T). The ``users.referral_code`` column
+# is the share key the seller posts to social; events and rewards land in
+# their own tables so attribution and payout history are queryable
+# independent of the wallet ledger. See ``app/services/referrals.py``.
+
+
+class ReferralEvent(Base):
+    """One row per (referrer, referred, event_type) — attribution ledger.
+
+    Append-only. The UNIQUE constraint on the triple is the idempotency
+    fence: callers can blindly retry ``attribute_signup`` / ``maybe_qualify``
+    and only the first wins. ``event_type`` is a free-text string but in
+    practice one of ``signup`` | ``qualified`` | ``rewarded``.
+    """
+
+    __tablename__ = "referral_events"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    referrer_user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    referred_user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    # JSONB context (source, qualifying-tx id, etc.). ``metadata`` is a
+    # SQLAlchemy reserved name on the Declarative base, hence the rename.
+    event_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "referrer_user_id",
+            "referred_user_id",
+            "event_type",
+            name="uq_referral_event_triple",
+        ),
+        Index(
+            "idx_referral_events_referrer_created",
+            "referrer_user_id",
+            "created_at",
+        ),
+    )
+
+
+class ReferralReward(Base):
+    """Payout row mirrored against ``transactions`` when possible.
+
+    ``wallet_tx_id`` is NULL when the wallet deposit path is unavailable
+    (e.g. the deposit service is gated by a feature flag at the time the
+    referrer qualifies). In that case the reward stands as a promise the
+    admin can settle later — surfaced in the cabinet so the user sees
+    "pending payout" rather than no signal at all.
+    """
+
+    __tablename__ = "referral_rewards"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    referrer_user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    amount_micros: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        comment="UZS micros for parity with wallet primitives.",
+    )
+    reason: Mapped[str] = mapped_column(String(64), nullable=False)
+    wallet_tx_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("transactions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    granted_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index(
+            "idx_referral_rewards_referrer_granted",
+            "referrer_user_id",
+            "granted_at",
         ),
     )

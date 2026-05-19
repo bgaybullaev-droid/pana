@@ -15,15 +15,32 @@ import {
 	Skeleton,
 	Badge,
 	Group,
+	Collapse,
+	UnstyledButton,
+	Modal,
+	NumberInput,
+	Select,
+	Textarea,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconX, IconCameraPlus } from "@tabler/icons-react";
+import {
+	IconX,
+	IconCameraPlus,
+	IconChevronDown,
+	IconChevronUp,
+	IconFileText,
+	IconCircleCheck,
+} from "@tabler/icons-react";
+import { apiClient } from "@shared/api/client";
 import { InnerPage } from "@shared/ui/InnerPage";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useEffectorNotification } from "@shared/hooks/useEffectorNotification";
 import { FormSection } from "@shared/ui/FormSection";
+import { FeedbackLink } from "@modules/seller/feature/ai-feedback";
+import { ExportButtons } from "@modules/seller/feature/text-export";
 import {
 	fetchListingForEdit,
+	fetchListingSourceTextFx,
 	updateListing,
 	updateListingFx,
 	$editingListing,
@@ -32,6 +49,7 @@ import {
 	$editError,
 	resetEditState,
 	type ListingUpdateData,
+	type SourceTextData,
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
@@ -50,6 +68,67 @@ function Page() {
 	const initializedRef = useRef<string | null>(null);
 	const photoSectionRef = useRef<HTMLDivElement>(null);
 	const [imageError, setImageError] = useState(false);
+	const [sourceText, setSourceText] = useState<SourceTextData | null>(null);
+	const [sourceTextExpanded, setSourceTextExpanded] = useState(false);
+
+	// Block phase-2 — "Mark as sold" modal local state. The modal
+	// itself PATCHes through apiClient (not updateListingFx) so the
+	// generic edit-form's success effect chain doesn't fire here; we
+	// own the success toast + redirect.
+	const [sellModalOpen, setSellModalOpen] = useState(false);
+	const [soldPrice, setSoldPrice] = useState<number | "">("");
+	const [soldCurrency, setSoldCurrency] = useState<"USD" | "UZS">("USD");
+	const [soldNotes, setSoldNotes] = useState("");
+	const [soldSubmitting, setSoldSubmitting] = useState(false);
+	const [soldPriceError, setSoldPriceError] = useState<string | null>(null);
+
+	const resetSoldModal = () => {
+		setSoldPrice("");
+		setSoldCurrency("USD");
+		setSoldNotes("");
+		setSoldPriceError(null);
+	};
+
+	const handleConfirmSold = async () => {
+		if (!id) return;
+		if (typeof soldPrice !== "number" || soldPrice <= 0) {
+			setSoldPriceError(t("sellerSale.priceRequired"));
+			return;
+		}
+		setSoldSubmitting(true);
+		try {
+			await apiClient.patch(`/listings/${id}`, {
+				status: "sold",
+				sold_price: soldPrice,
+				sold_currency: soldCurrency,
+				sold_notes: soldNotes.trim() || undefined,
+			});
+			notifications.show({
+				title: t("notifications.success"),
+				message: t("sellerSale.success"),
+				color: "green",
+			});
+			webApp?.HapticFeedback.notificationOccurred("success");
+			setSellModalOpen(false);
+			resetSoldModal();
+			navigate("/seller/listings");
+		} catch (err: unknown) {
+			const detail =
+				(err as { response?: { data?: { detail?: unknown } } })?.response?.data
+					?.detail;
+			const message =
+				typeof detail === "string"
+					? detail
+					: t("notifications.error");
+			notifications.show({
+				title: t("notifications.error"),
+				message,
+				color: "red",
+			});
+		} finally {
+			setSoldSubmitting(false);
+		}
+	};
 
 	const {
 		form,
@@ -69,9 +148,17 @@ function Page() {
 		if (id && initializedRef.current !== id) {
 			initializedRef.current = id;
 			fetchListingForEdit(id);
+			// Block F F1 — fetch raw source text for master-record listings.
+			// Endpoint returns {raw_text: null} for non-crawled listings;
+			// we only render the expander when raw_text is non-empty.
+			fetchListingSourceTextFx(id)
+				.then((data) => setSourceText(data))
+				.catch(() => setSourceText(null));
 		}
 		return () => {
 			resetEditState();
+			setSourceText(null);
+			setSourceTextExpanded(false);
 		};
 	}, [id]);
 
@@ -303,6 +390,171 @@ function Page() {
 		<InnerPage title={t("editListing.title")} noPadding>
 			<Container px="md" pt="md" pb={160}>
 				<LoadingOverlay visible={isUpdating || isUploading} />
+				{/* Block F F5b — AI-text feedback shortcut. Renders once the
+				    listing has loaded so we have a real id to attach. */}
+				{id && editingListing && (
+					<Box my="xs" style={{ textAlign: "right" }}>
+						<FeedbackLink listingId={id} />
+					</Box>
+				)}
+
+				{/* Block F F4b — Cabinet export buttons (paywall-gated). */}
+				{id && editingListing && (
+					<Box my="md" p="sm" style={{ border: "1px solid #e2e8f0", borderRadius: 12 }}>
+						<ExportButtons listingId={id} />
+					</Box>
+				)}
+
+				{/* Block phase-2 — "Mark as sold" trigger. Hidden once the
+				    listing is already SOLD; the modal owns the PATCH and
+				    the toast / redirect. */}
+				{id && editingListing && editingListing.status !== "sold" && (
+					<Box my="md">
+						<Button
+							fullWidth
+							variant="light"
+							color="green"
+							leftSection={<IconCircleCheck size={18} />}
+							onClick={() => {
+								resetSoldModal();
+								setSellModalOpen(true);
+							}}
+						>
+							{t("sellerSale.markAsSold")}
+						</Button>
+					</Box>
+				)}
+
+				<Modal
+					opened={sellModalOpen}
+					onClose={() => {
+						if (!soldSubmitting) setSellModalOpen(false);
+					}}
+					title={t("sellerSale.markAsSold")}
+					centered
+				>
+					<Stack gap="sm">
+						<NumberInput
+							label={t("sellerSale.priceLabel")}
+							value={soldPrice}
+							onChange={(v) => {
+								setSoldPrice(typeof v === "number" ? v : "");
+								if (soldPriceError) setSoldPriceError(null);
+							}}
+							min={1}
+							thousandSeparator=" "
+							hideControls
+							error={soldPriceError ?? undefined}
+							required
+						/>
+						<Select
+							label={t("sellerSale.currencyLabel")}
+							value={soldCurrency}
+							onChange={(v) =>
+								setSoldCurrency((v as "USD" | "UZS") || "USD")
+							}
+							data={[
+								{ value: "USD", label: "USD" },
+								{ value: "UZS", label: "UZS" },
+							]}
+							allowDeselect={false}
+						/>
+						<Textarea
+							placeholder={t("sellerSale.notesPlaceholder")}
+							value={soldNotes}
+							onChange={(e) => setSoldNotes(e.currentTarget.value)}
+							autosize
+							minRows={2}
+							maxRows={5}
+							maxLength={2000}
+						/>
+						<Group justify="flex-end" mt="xs">
+							<Button
+								variant="subtle"
+								onClick={() => setSellModalOpen(false)}
+								disabled={soldSubmitting}
+							>
+								{t("sellerSale.cancel")}
+							</Button>
+							<Button
+								color="green"
+								onClick={handleConfirmSold}
+								loading={soldSubmitting}
+							>
+								{t("sellerSale.confirm")}
+							</Button>
+						</Group>
+					</Stack>
+				</Modal>
+
+				{/* Block F F1 — original source text expander for master-record
+				    listings. Renders only when /listings/{id}/source-text
+				    returned a non-empty raw_text (crawled / aggregated rows). */}
+				{sourceText?.raw_text && (
+					<Box
+						mb="md"
+						style={{
+							border: "1px solid #e2e8f0",
+							borderRadius: radii.md,
+							backgroundColor: "#f8fafc",
+							overflow: "hidden",
+						}}
+					>
+						<UnstyledButton
+							onClick={() => setSourceTextExpanded((v) => !v)}
+							style={{
+								width: "100%",
+								padding: "10px 14px",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+							}}
+						>
+							<Group gap={8}>
+								<IconFileText size={16} color="#64748b" />
+								<Text size="13px" fw={600} c="#475569">
+									{t(
+										"createListing.sourceText.toggle",
+										"Показать исходный текст из источника",
+									)}
+								</Text>
+								{sourceText.source && (
+									<Badge
+										size="xs"
+										variant="light"
+										color="gray"
+										radius="sm"
+										tt="lowercase"
+									>
+										{sourceText.source}
+									</Badge>
+								)}
+							</Group>
+							{sourceTextExpanded ? (
+								<IconChevronUp size={16} color="#94a3b8" />
+							) : (
+								<IconChevronDown size={16} color="#94a3b8" />
+							)}
+						</UnstyledButton>
+						<Collapse in={sourceTextExpanded}>
+							<Box
+								px="md"
+								pb="md"
+								style={{ borderTop: "1px solid #e2e8f0" }}
+							>
+								<Text
+									size="12px"
+									c="#475569"
+									mt={10}
+									style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}
+								>
+									{sourceText.raw_text}
+								</Text>
+							</Box>
+						</Collapse>
+					</Box>
+				)}
+
 				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
 						{/* Section: Photos */}
@@ -421,8 +673,7 @@ function Page() {
 								</Box>
 								{imageError && totalImageCount === 0 && (
 									<Text size="13px" c="red" mt={4}>
-										{t("validation.imagesRequired") ||
-											"Добавьте хотя бы одно фото"}
+										{t("validation.imagesRequired")}
 									</Text>
 								)}
 							</FormSection>
@@ -472,7 +723,6 @@ function Page() {
 								<Text size="xs" c="red.8" fw={500} ta="center">
 									{t("createListing.unfilledFieldsSummary", {
 										count: errorCount,
-										defaultValue: `Осталось заполнить ${errorCount} полей. Прокрутите вверх.`,
 									})}
 								</Text>
 							</Box>

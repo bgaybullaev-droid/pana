@@ -85,6 +85,31 @@ class CacheKeys:
         return f"seller_otp_attempts:{phone}"
 
     @staticmethod
+    def otp(phone: str) -> str:
+        """Key for legacy listing-claim OTP (claims.py).
+
+        Distinct from seller_otp() above which is the login flow.
+        Hotfix: callers in claims.py expected this method but it was
+        never defined — verified by audit. See decision-pass / OTP_STRATEGY.md §3.
+        """
+        return f"otp:{phone}"
+
+    # Block C V2.0 (C4) — add-additional-phone OTP namespace. Strict
+    # separation from login OTP keys: each (user_id, phone-suffix) pair
+    # gets its own bucket so two users cannot clobber each other's code.
+    @staticmethod
+    def add_phone_otp(user_id: str, phone_suffix: str) -> str:
+        return f"add_phone_otp:{user_id}:{phone_suffix}"
+
+    @staticmethod
+    def add_phone_otp_attempts(user_id: str, phone_suffix: str) -> str:
+        return f"add_phone_otp_attempts:{user_id}:{phone_suffix}"
+
+    @staticmethod
+    def add_phone_rate_limit(user_id: str, phone_suffix: str) -> str:
+        return f"rate_limit:add_phone:{user_id}:{phone_suffix}"
+
+    @staticmethod
     def registration_attempts(telegram_id: int) -> str:
         """Key for bot registration rate limiting."""
         return f"bot:reg_attempts:{telegram_id}"

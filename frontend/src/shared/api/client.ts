@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 import { isAdminContext } from "@shared/lib/auth-tokens";
+import i18n from "@shared/i18n";
 
 const API_BASE_URL =
 	import.meta.env.VITE_API_URL || `${import.meta.env.BASE_URL}api/v1`;
@@ -173,7 +174,7 @@ apiClient.interceptors.request.use(
 // =============================================================================
 
 // Strip absolute backend URLs from responses so images load via the Vite proxy
-// (e.g. "http://localhost:8001/uploads/..." → "/proxy/7878/uploads/..." under base)
+// (e.g. "http://localhost:8001/uploads/..." → "/uploads/...")
 function normalizeUrls(data: unknown): unknown {
 	if (typeof data === "string") {
 		return data.replace(
@@ -293,8 +294,7 @@ export function getApiError(error: unknown): ApiError {
 		if (status && status >= 500) {
 			return {
 				code: "SERVER_ERROR",
-				message:
-					"Произошла внутренняя ошибка сервера (Internal Server Error). Пожалуйста, повторите попытку позже.",
+				message: i18n.t("errors.serverError", { ns: "common" }),
 			};
 		}
 

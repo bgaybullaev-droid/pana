@@ -16,6 +16,15 @@ celery_app = Celery(
         "app.workers.tasks.parser",
         "app.workers.tasks.translation",
         "app.workers.tasks.uploads_gc",
+        # Block A V2.0
+        "app.workers.tasks.ai_generation",
+        "app.workers.tasks.crawled_match",
+        # Block D V2.0 — channel autoposting (D4)
+        "app.workers.tasks.autopost",
+        # Block D V2.0 — periodic maintenance (D2 pruning)
+        "app.workers.tasks.maintenance",
+        # Phase-2 — duplicate-account suspicion signals (daily 02:30)
+        "app.workers.tasks.suspicions",
     ],
 )
 
@@ -69,5 +78,62 @@ celery_app.conf.beat_schedule = {
     "cleanup-orphan-uploads": {
         "task": "app.workers.tasks.uploads_gc.cleanup_orphan_uploads",
         "schedule": crontab(minute="30", hour="3"),
+    },
+    # Block A V2.0 — A4: expire 7-day-old crawled-match notifications.
+    # ``expire-stale-crawled-matches`` (03:00) is the canonical entry —
+    # set ``read=True`` on any CRAWLED_MATCH row older than 7 days that
+    # the seller never acted on, so the bot stops re-surfacing them in
+    # /found pulls. Runs at 03:00 to avoid contention with the 04:xx
+    # maintenance band. The legacy ``expire-crawled-match-notifications``
+    # entry is kept for the ``expires_at``-based path (idempotent).
+    "expire-stale-crawled-matches": {
+        "task": "app.workers.tasks.crawled_match.expire_stale_crawled_matches",
+        "schedule": crontab(minute=0, hour=3),  # daily 03:00
+    },
+    "expire-crawled-match-notifications": {
+        "task": "app.workers.tasks.crawled_match.expire_old_notifications",
+        "schedule": crontab(minute=0, hour=4),  # daily 04:00
+    },
+    # Block D D2 — prune behavioral_signals rows older than 180 days.
+    # Runs nightly at 04:30 so it doesn't contend with the 04:00 job.
+    "prune-behavioral-signals": {
+        "task": "app.workers.tasks.maintenance.prune_behavioral_signals",
+        "schedule": crontab(minute=30, hour=4),
+    },
+    # Block F F1 — purge DRAFT listings older than F1_DRAFT_LIFETIME_DAYS.
+    # Runs daily 05:00 so it doesn't contend with the 04:30 prune job.
+    "purge-abandoned-drafts": {
+        "task": "app.workers.tasks.maintenance.purge_abandoned_drafts",
+        "schedule": crontab(minute=0, hour=5),
+    },
+    # Block F F5b — 90-day retention on ai_generations audit log.
+    # Daily 04:45, between the D2 (04:30) and F1 (05:00) jobs.
+    "prune-ai-generations": {
+        "task": "app.workers.tasks.maintenance.prune_ai_generations",
+        "schedule": crontab(minute=45, hour=4),
+    },
+    # Block F F5b — hourly evaluation of bad-feedback rate / p95 duration /
+    # daily cost. Emits exactly one Telegram alert per healthy→tripped
+    # transition via Redis flag (no all-clear spam).
+    "check-quality-thresholds": {
+        "task": "app.workers.tasks.maintenance.check_quality_thresholds",
+        "schedule": crontab(minute=15),
+    },
+    # Block F F3c — sitemap warm-up every 15 min so Googlebot/Yandexbot
+    # always sees a fresh ``<lastmod>``. The SEO router serves
+    # ``Cache-Control: public, max-age=900`` so once per cache window
+    # is the right cadence.
+    "rebuild-sitemap-caches": {
+        "task": "app.workers.tasks.maintenance.rebuild_sitemap_caches",
+        "schedule": crontab(minute="*/15"),
+    },
+    # Phase-2 — duplicate-account detection signals. Daily at 02:30,
+    # well before the 03:00 / 04:xx maintenance band so the queue is
+    # fresh when admins check /admin/suspicions first thing in the
+    # morning. Idempotent: an open suspicion for the same
+    # (primary_user_id, signal_kind) is skipped on re-runs.
+    "run-suspicion-signals": {
+        "task": "app.workers.tasks.suspicions.run_suspicion_signals",
+        "schedule": crontab(minute=30, hour=2),
     },
 }

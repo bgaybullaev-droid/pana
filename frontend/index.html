@@ -6,10 +6,17 @@
     <meta name="theme-color" content="#228be6" />
     <meta name="description" content="Real Estate - Вся недвижимость Узбекистана в одном приложении" />
 
-    <!-- Telegram WebApp Script -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Telegram WebApp Script — loaded async so it never blocks page render -->
+    <script>
+      (function() {
+        var s = document.createElement('script');
+        s.src = 'https://telegram.org/js/telegram-web-app.js';
+        s.async = true;
+        document.head.appendChild(s);
+      })();
+    </script>
 
-    <title>UcharMarket - Вся недвижимость Узбекистана</title>
+    <title>Real Estate</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

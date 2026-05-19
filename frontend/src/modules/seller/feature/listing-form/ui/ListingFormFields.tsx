@@ -5,15 +5,17 @@ import {
 	Text,
 	Switch,
 	TextInput,
+	Select,
 } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import { Suspense, lazy, useMemo } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FormSection } from "@shared/ui/FormSection";
 import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
+import { apiClient } from "@shared/api/client";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
 import {
@@ -110,6 +112,43 @@ export function ListingFormFields({
 			),
 		[form.values.region, form.values.district],
 	);
+
+	// Block C V2.0 (C4) — verified-phones picker. Lists every phone the
+	// seller has confirmed on /seller/phones; selecting one writes it back
+	// to ``form.values.phone`` so the existing wire format (phone string)
+	// is preserved. If the seller has only one phone (primary), the field
+	// is hidden — defaulting silently keeps Stage 1 short. The freeform
+	// PhoneInput remains as a manual fallback.
+	const [verifiedPhones, setVerifiedPhones] = useState<
+		Array<{ id: string; phone: string; is_primary: boolean }>
+	>([]);
+	useEffect(() => {
+		let cancelled = false;
+		apiClient
+			.get<Array<{ id: string; phone: string; is_primary: boolean }>>(
+				"/sellers/me/phones",
+			)
+			.then((res) => {
+				if (cancelled) return;
+				setVerifiedPhones(res.data || []);
+				// Auto-seed the form phone with the primary one if blank — this
+				// matches the previous silent-default behaviour but now explicit.
+				if (!form.values.phone) {
+					const primary =
+						res.data?.find((p) => p.is_primary) ?? res.data?.[0];
+					if (primary) {
+						form.setFieldValue("phone", primary.phone);
+					}
+				}
+			})
+			.catch(() => {
+				/* not a seller yet or offline — silent */
+			});
+		return () => {
+			cancelled = true;
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	// ── Option definitions ──
 
@@ -1127,6 +1166,32 @@ export function ListingFormFields({
 					value={form.values.seller_type}
 					onChange={(val) => set("seller_type", (val as string) || "")}
 				/>
+				{verifiedPhones.length > 1 && (
+					<Select
+						label={t("listingForm.phoneSelect.label", {
+							defaultValue: "Контактный номер",
+						})}
+						placeholder={t("listingForm.phoneSelect.placeholder", {
+							defaultValue: "Выберите номер",
+						})}
+						description={t("phones.contactPhoneHint", {
+							defaultValue: "Можно выбрать любой из ваших подтверждённых номеров",
+						})}
+						data={verifiedPhones.map((p) => ({
+							value: p.phone,
+							label: p.is_primary
+								? `${p.phone} (${t("phones.primaryBadge", { defaultValue: "Основной" })})`
+								: p.phone,
+						}))}
+						value={
+							verifiedPhones.some((p) => p.phone === form.values.phone)
+								? form.values.phone
+								: null
+						}
+						onChange={(val) => set("phone", val || "")}
+						clearable={false}
+					/>
+				)}
 				<PhoneInput
 					label={t("createListing.phoneLabel")}
 					placeholder="+998 XX XXX XX XX"

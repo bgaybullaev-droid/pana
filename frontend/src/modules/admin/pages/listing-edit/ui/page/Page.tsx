@@ -22,6 +22,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import {
 	Box,
 	Button,
@@ -47,6 +48,7 @@ import { updateListingAsAdminFx } from "@modules/admin/shared/state";
 function Page() {
 	const navigate = useNavigate();
 	const { id } = useParams<{ id: string }>();
+	const { t: tAdmin } = useTranslation("admin");
 	const [editingListing, isLoading, editError] = useUnit([
 		$editingListing,
 		$isLoadingEdit,
@@ -176,15 +178,15 @@ function Page() {
 			const data = buildListingData(values);
 			await updateListingAsAdminFx({ listingId: id, data });
 			notifications.show({
-				title: "Saved",
-				message: "Listing updated via admin.",
+				title: tAdmin("listingEdit.savedTitle"),
+				message: tAdmin("listingEdit.savedMessage"),
 				color: "green",
 			});
 			navigate(`/admin/listings/${id}`);
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e);
 			notifications.show({
-				title: "Save failed",
+				title: tAdmin("listingEdit.saveFailed"),
 				message: msg,
 				color: "red",
 			});
@@ -209,12 +211,12 @@ function Page() {
 			<LoadingOverlay visible={isSaving} />
 			<Stack gap="md">
 				<Group justify="space-between">
-					<Title order={2}>Admin — edit listing</Title>
+					<Title order={2}>{tAdmin("listingEdit.title")}</Title>
 					<Button
 						variant="subtle"
 						onClick={() => navigate(`/admin/listings/${id}`)}
 					>
-						Back
+						{tAdmin("common.back")}
 					</Button>
 				</Group>
 
@@ -238,10 +240,10 @@ function Page() {
 								onClick={() => navigate(`/admin/listings/${id}`)}
 								disabled={isSaving}
 							>
-								Cancel
+								{tAdmin("common.cancel")}
 							</Button>
 							<Button type="submit" color="blue" loading={isSaving}>
-								Save changes
+								{tAdmin("listingEdit.saveChanges")}
 							</Button>
 						</Group>
 					</form>

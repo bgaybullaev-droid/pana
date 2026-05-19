@@ -68,6 +68,9 @@ class UserMeResponse(BaseModel):
     approval_status: str  # pending, approved, rejected
     auth_source: Optional[str] = None
     phone: Optional[str] = None
+    # Block D D1: canonical value ("ru" | "uz" | "uz_cyrl"). Frontend
+    # i18n maps "uz_cyrl" → "uz-cyrl" at its boundary.
+    language: str = "ru"
     scope: Optional[str] = None  # "admin" | "buyer" | "seller"
 
 
@@ -86,6 +89,7 @@ class AuthResponse(BaseModel):
     approval_status: str  # pending, approved, rejected
     auth_source: Optional[str] = None
     phone: Optional[str] = None
+    language: str = "ru"
     scope: str  # "admin" | "buyer" | "seller"
     access_token: str
     refresh_token: str

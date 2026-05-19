@@ -23,6 +23,7 @@ import {
 	Text,
 	Title,
 } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import {
 	fetchAuditLog,
 	type AuditLogEntry,
@@ -30,23 +31,6 @@ import {
 } from "@shared/api/adminAudit";
 
 const PER_PAGE = 50;
-
-const ENTITY_TYPE_OPTIONS = [
-	{ value: "", label: "All entities" },
-	{ value: "user", label: "user" },
-	{ value: "listing", label: "listing" },
-	{ value: "claim", label: "claim" },
-	{ value: "seller", label: "seller" },
-];
-
-const ACTION_OPTIONS = [
-	{ value: "", label: "All actions" },
-	{ value: "approve", label: "approve" },
-	{ value: "reject", label: "reject" },
-	{ value: "create", label: "create" },
-	{ value: "update", label: "update" },
-	{ value: "delete", label: "delete" },
-];
 
 function formatDate(iso: string): string {
 	try {
@@ -66,6 +50,7 @@ function compactJson(v: unknown): string {
 }
 
 function Page() {
+	const { t } = useTranslation("admin");
 	const [entries, setEntries] = useState<AuditLogEntry[]>([]);
 	const [total, setTotal] = useState(0);
 	const [totalPages, setTotalPages] = useState(1);
@@ -79,6 +64,23 @@ function Page() {
 	const [committedFilters, setCommittedFilters] = useState<AuditLogQueryParams>(
 		{},
 	);
+
+	const ENTITY_TYPE_OPTIONS = [
+		{ value: "", label: t("auditLog.allEntities") },
+		{ value: "user", label: "user" },
+		{ value: "listing", label: "listing" },
+		{ value: "claim", label: "claim" },
+		{ value: "seller", label: "seller" },
+	];
+
+	const ACTION_OPTIONS = [
+		{ value: "", label: t("auditLog.allActions") },
+		{ value: "approve", label: "approve" },
+		{ value: "reject", label: "reject" },
+		{ value: "create", label: "create" },
+		{ value: "update", label: "update" },
+		{ value: "delete", label: "delete" },
+	];
 
 	useEffect(() => {
 		let cancelled = false;
@@ -131,34 +133,34 @@ function Page() {
 		<Box p="md">
 			<Stack gap="xl">
 				<Box>
-					<Title order={2}>Audit log</Title>
+					<Title order={2}>{t("auditLog.title")}</Title>
 					<Text c="dimmed" size="sm" mt={4}>
-						Reverse-chronological feed of admin + system actions.
-						{total > 0 ? ` · ${total} entries` : null}
+						{t("auditLog.description")}
+						{total > 0 ? t("auditLog.entriesCount", { count: total }) : null}
 					</Text>
 				</Box>
 
 				{/* Filters */}
 				<Group align="end" gap="sm" wrap="wrap">
 					<Select
-						label="Entity type"
+						label={t("auditLog.filterEntityType")}
 						data={ENTITY_TYPE_OPTIONS}
 						value={entityTypeDraft}
 						onChange={(v) => setEntityTypeDraft(v ?? "")}
 						w={180}
 					/>
 					<Select
-						label="Action"
+						label={t("auditLog.filterAction")}
 						data={ACTION_OPTIONS}
 						value={actionDraft}
 						onChange={(v) => setActionDraft(v ?? "")}
 						w={180}
 					/>
 					<Button variant="filled" onClick={handleApplyFilters}>
-						Apply
+						{t("common.apply")}
 					</Button>
 					<Button variant="subtle" onClick={handleResetFilters}>
-						Reset
+						{t("common.reset")}
 					</Button>
 				</Group>
 
@@ -183,7 +185,7 @@ function Page() {
 					<Group gap="xs">
 						<Loader size="xs" />
 						<Text c="dimmed" size="sm">
-							Loading audit entries…
+							{t("auditLog.loading")}
 						</Text>
 					</Group>
 				)}
@@ -191,7 +193,7 @@ function Page() {
 				{/* Table */}
 				{!loading && entries.length === 0 && !error && (
 					<Text c="dimmed" size="sm">
-						No audit entries match the current filters.
+						{t("auditLog.noEntries")}
 					</Text>
 				)}
 				{!loading && entries.length > 0 && (
@@ -199,13 +201,13 @@ function Page() {
 						<Table striped highlightOnHover withTableBorder>
 							<Table.Thead>
 								<Table.Tr>
-									<Table.Th>When</Table.Th>
-									<Table.Th>Actor</Table.Th>
-									<Table.Th>Entity</Table.Th>
-									<Table.Th>Action</Table.Th>
-									<Table.Th>Old</Table.Th>
-									<Table.Th>New</Table.Th>
-									<Table.Th>IP</Table.Th>
+									<Table.Th>{t("auditLog.colWhen")}</Table.Th>
+									<Table.Th>{t("auditLog.colActor")}</Table.Th>
+									<Table.Th>{t("auditLog.colEntity")}</Table.Th>
+									<Table.Th>{t("auditLog.colAction")}</Table.Th>
+									<Table.Th>{t("auditLog.colOld")}</Table.Th>
+									<Table.Th>{t("auditLog.colNew")}</Table.Th>
+									<Table.Th>{t("auditLog.colIp")}</Table.Th>
 								</Table.Tr>
 							</Table.Thead>
 							<Table.Tbody>
@@ -217,7 +219,7 @@ function Page() {
 										<Table.Td>
 											{entry.actor_name ?? (
 												<Text c="dimmed" size="xs">
-													system
+													{t("auditLog.systemActor")}
 												</Text>
 											)}
 										</Table.Td>

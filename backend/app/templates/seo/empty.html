@@ -1,0 +1,9 @@
+{% extends "seo/base.html" %}
+
+{% set robots = "noindex,follow" %}
+
+{% block content %}
+  <h1>{{ meta.title }}</h1>
+  <p style="font-size: 15px; color: #64748b; margin: 16px 0;">{{ labels.empty_body }}</p>
+  <a class="cta" href="{{ deeplink }}" rel="nofollow">{{ labels.open_app }}</a>
+{% endblock %}

@@ -416,7 +416,7 @@ export function Main() {
 					size="sm"
 					onClick={() => navigate(`/admin/listings/${id}/edit`)}
 				>
-					{t("listingDetail.edit", { defaultValue: "Edit" })}
+					{t("listingDetail.edit")}
 				</Button>
 			</Group>
 

@@ -28,6 +28,7 @@ import {
 	verifySellerOTPFx,
 	devLoginFx,
 	updateProfileFx,
+	updateLanguageFx,
 } from "../effects";
 import {
 	$user,
@@ -64,6 +65,7 @@ $user
 	)
 	.on(setUser, (_, user) => user)
 	.on(updateProfileFx.doneData, (_, data) => userMeResponseToUser(data))
+	.on(updateLanguageFx.doneData, (_, data) => userMeResponseToUser(data))
 	// Reset on the event (instant UI update) AND on effect completion (belt
 	// and braces, in case something triggers logoutFx without the event).
 	.reset(logout)

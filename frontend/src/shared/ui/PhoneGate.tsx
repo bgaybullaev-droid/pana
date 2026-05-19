@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useUnit } from "effector-react";
+import { useTranslation } from "react-i18next";
 import { Box, Button, Loader, Stack, Text } from "@mantine/core";
 import { IconBrandTelegram, IconPhone, IconShieldCheck } from "@tabler/icons-react";
 import { useTelegram } from "@app/providers/useTelegram";
@@ -24,6 +25,7 @@ import { getApiError } from "@shared/api/client";
  * No phone → no access. Cancel/decline stays on the gate with a retry button.
  */
 export function PhoneGate() {
+	const { t } = useTranslation("common");
 	const { webApp, initData, user: tgUser } = useTelegram();
 	const [pending, authError] = useUnit([
 		authenticateWithTelegramFx.pending,
@@ -36,9 +38,7 @@ export function PhoneGate() {
 		setLocalError(null);
 
 		if (!webApp || typeof webApp.requestContact !== "function") {
-			setLocalError(
-				"Please update Telegram to the latest version to continue.",
-			);
+			setLocalError(t("auth.phoneShareUpdateClient"));
 			return;
 		}
 
@@ -55,9 +55,7 @@ export function PhoneGate() {
 
 				if (!sent) {
 					setWaitingForContact(false);
-					setLocalError(
-						"Phone sharing is required. Tap the button to try again.",
-					);
+					setLocalError(t("auth.phoneShareRequired"));
 					return;
 				}
 
@@ -114,11 +112,11 @@ export function PhoneGate() {
 				<Stack gap={6} align="center">
 					<Text size="xl" fw={800} ta="center">
 						{tgUser?.first_name
-							? `Welcome, ${tgUser.first_name}`
-							: "Welcome"}
+							? t("auth.phoneShareGreeting", { name: tgUser.first_name })
+							: t("auth.phoneShareTitle")}
 					</Text>
 					<Text size="sm" c="dimmed" ta="center" lh={1.5}>
-						To use this service, you must share your phone number.
+						{t("auth.phoneShareDescription")}
 					</Text>
 				</Stack>
 
@@ -143,7 +141,7 @@ export function PhoneGate() {
 						boxShadow: "0 8px 24px rgba(34,139,230,0.35)",
 					}}
 				>
-					{isLoading ? "Connecting…" : "Share phone number"}
+					{isLoading ? t("auth.phoneShareConnecting") : t("auth.phoneShareAction")}
 				</Button>
 
 				{displayError && (
@@ -162,7 +160,7 @@ export function PhoneGate() {
 				>
 					<IconShieldCheck size={16} color="#868e96" />
 					<Text size="xs" c="dimmed">
-						Your number is handled by Telegram — no SMS codes.
+						{t("auth.phoneSharePrivacy")}
 					</Text>
 				</Box>
 			</Stack>

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,7 @@ from app.core.exceptions import (
 )
 from app.db.database import get_db
 from app.db.models import (
+    Favorite,
     Listing,
     ListingStatus,
     ModerationStatus,
@@ -49,12 +50,19 @@ router = APIRouter()
 
 
 class _SellerMatchContext:
-    """How to match crawled listings for a seller."""
+    """How to match crawled listings for a seller.
+
+    Block C V2.0 (C4): ``phone_suffix`` is now a List[str] containing every
+    verified phone of the user (primary + additional from user_phones).
+    Backward compat — service functions accept either str or list.
+    """
 
     def __init__(
-        self, phone_suffix: str | None = None, channel_name: str | None = None
+        self,
+        phone_suffix: list[str] | None = None,
+        channel_name: str | None = None,
     ):
-        self.phone_suffix = phone_suffix
+        self.phone_suffix = phone_suffix or []
         self.channel_name = channel_name
 
 
@@ -62,30 +70,38 @@ async def _get_seller_match_context(
     user: User, db: AsyncSession
 ) -> _SellerMatchContext:
     """Determine how to match crawled listings based on seller type."""
+    from app.services.seller_crawled_listings import (
+        get_phone_suffixes_for_user,
+    )
+
     query = select(Seller).where(Seller.user_id == user.id)
     result = await db.execute(query)
     seller = result.scalar_one_or_none()
 
-    phone_suffix = None
     channel_name = None
 
     # Check for channel-based matching
     if seller and seller.source_channel:
         channel_name = seller.source_channel
 
-    # Check for phone-based matching
-    phone = (seller.phone if seller else None) or user.phone
-    if phone:
-        suffix = normalize_phone(phone)
-        if suffix and len(suffix) == 9:
-            phone_suffix = suffix
+    # Block C V2.0 (C4) — resolve all verified phones for this user.
+    # Falls back to single-phone behaviour if user_phones is empty
+    # (backfill ensures every legacy user has their primary in there;
+    # this fallback covers freshly-created users in transition windows).
+    phone_suffixes = await get_phone_suffixes_for_user(db, user.id)
+    if not phone_suffixes:
+        phone = (seller.phone if seller else None) or user.phone
+        if phone:
+            suffix = normalize_phone(phone)
+            if suffix and len(suffix) == 9:
+                phone_suffixes = [suffix]
 
-    if not phone_suffix and not channel_name:
+    if not phone_suffixes and not channel_name:
         raise BadRequestException(
             "No phone or channel linked for crawled listing matching"
         )
 
-    return _SellerMatchContext(phone_suffix=phone_suffix, channel_name=channel_name)
+    return _SellerMatchContext(phone_suffix=phone_suffixes, channel_name=channel_name)
 
 
 @router.post("/register", response_model=SellerResponse, status_code=201)
@@ -537,3 +553,128 @@ async def get_seller_public_listings(
         page=page,
         per_page=per_page,
     )
+
+
+# =============================================================================
+# Seller dashboard — see spec-kit/partial/EXECUTION_PLAN.md Step 7
+# =============================================================================
+
+
+@router.get("/me/dashboard")
+async def get_seller_dashboard(
+    seller: Seller = Depends(get_current_seller),
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregate counters for the seller's portfolio.
+
+    Reads from the cached counters on Listing (denormalised); they are
+    populated atomically alongside the event log in
+    ``listing_view_event``. Numbers in this response match the sum of
+    the per-card chips on ``/me/listings``.
+    """
+    totals = await db.execute(
+        select(
+            func.coalesce(func.sum(Listing.views_count), 0).label("total_views"),
+            func.coalesce(func.sum(Listing.contacts_count), 0).label(
+                "total_contacts"
+            ),
+            func.coalesce(func.sum(Listing.favorites_count), 0).label(
+                "total_favorites"
+            ),
+            func.count(Listing.id).label("total_listings"),
+        ).where(
+            Listing.seller_id == seller.id,
+            Listing.deleted_at.is_(None),
+        )
+    )
+    agg = totals.one()
+
+    # C2 / seller-dashboard-counters — chips on the seller's listings
+    # page need two extra aggregates restricted to *active* listings:
+    #   * ``total_active_listings`` powers the "Active: N / ∞" chip.
+    #   * ``favorites_total`` is the cached-counter sum across active
+    #     listings only (per-card chips already render the per-listing
+    #     value; this gives the portfolio total).
+    active_totals = await db.execute(
+        select(
+            func.count(Listing.id).label("total_active_listings"),
+            func.coalesce(func.sum(Listing.favorites_count), 0).label(
+                "favorites_total"
+            ),
+        ).where(
+            Listing.seller_id == seller.id,
+            Listing.status == ListingStatus.ACTIVE,
+            Listing.deleted_at.is_(None),
+        )
+    )
+    active_agg = active_totals.one()
+
+    # Cross-check favorites via the canonical Favorite table; falls back
+    # to the cached counter if it ever drifts.
+    fav_real = (
+        await db.execute(
+            select(func.count())
+            .select_from(Favorite)
+            .join(Listing, Favorite.listing_id == Listing.id)
+            .where(Listing.seller_id == seller.id, Listing.deleted_at.is_(None))
+        )
+    ).scalar_one()
+
+    top_rows = (
+        await db.execute(
+            select(Listing.id, Listing.title, Listing.views_count)
+            .where(
+                Listing.seller_id == seller.id,
+                Listing.deleted_at.is_(None),
+            )
+            .order_by(Listing.views_count.desc().nullslast())
+            .limit(3)
+        )
+    ).all()
+
+    # A5 V2.0 — last-7-day rolling window from the event log. Counts both
+    # auth (user_id) and anon (anon_id) rows that the dedup index admits.
+    seven_d = await db.execute(
+        text(
+            """
+            SELECT
+              COALESCE(SUM(CASE WHEN e.event_type = 'view' THEN 1 ELSE 0 END), 0) AS views_7d,
+              COALESCE(SUM(CASE WHEN e.event_type = 'contact' THEN 1 ELSE 0 END), 0) AS contacts_7d
+            FROM listing_view_event e
+            JOIN listings l ON l.id = e.listing_id
+            WHERE l.seller_id = :sid
+              AND l.deleted_at IS NULL
+              AND e.viewed_at >= now() - interval '7 days'
+            """
+        ),
+        {"sid": seller.id},
+    )
+    seven_row = seven_d.one()
+
+    # Block C V2.0 (C2) — billable count is the live "ACTIVE +
+    # GENERATION_FAILED" count per the buyer-feed gate. Distinct from
+    # total_listings which counts everything not soft-deleted.
+    from app.services.listing_quota import get_billable_listing_count
+    total_billable_listings = await get_billable_listing_count(seller.id, db)
+
+    return {
+        "total_listings": int(agg.total_listings or 0),
+        "total_active_listings": int(active_agg.total_active_listings or 0),
+        "total_billable_listings": total_billable_listings,
+        "free_listings_per_seller": settings.free_listings_per_seller,
+        "test_period_active": settings.test_period_active,
+        "total_views": int(agg.total_views or 0),
+        "total_contacts": int(agg.total_contacts or 0),
+        "total_favorites": int(fav_real or agg.total_favorites or 0),
+        "favorites_total": int(active_agg.favorites_total or 0),
+        "total_views_7d": int(seven_row.views_7d or 0),
+        "total_contacts_7d": int(seven_row.contacts_7d or 0),
+        "top_listings": [
+            {
+                "id": str(row.id),
+                "title": row.title,
+                "views_count": row.views_count or 0,
+            }
+            for row in top_rows
+        ],
+    }

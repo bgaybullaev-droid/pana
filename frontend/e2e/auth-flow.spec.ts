@@ -52,7 +52,7 @@ test.describe('Authentication Flow', () => {
     // Set a token
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('access_token', 'test-token');
+      localStorage.setItem('auth_token', 'test-token');
     });
 
     // Logout
@@ -61,10 +61,12 @@ test.describe('Authentication Flow', () => {
     expect(authenticated).toBe(false);
   });
 
-  test('should handle expired token gracefully', async ({ page }) => {
-    // Set an expired token
-    await page.evaluate(() => {
-      localStorage.setItem('access_token', 'expired-token');
+  test('should handle expired token gracefully', async ({ context, page }) => {
+    // Set an expired token via addInitScript so it's in place by the
+    // time the first navigation happens (page.evaluate on about:blank
+    // raises SecurityError).
+    await context.addInitScript(() => {
+      localStorage.setItem('auth_token', 'expired-token');
     });
 
     // Mock /auth/me to return 401

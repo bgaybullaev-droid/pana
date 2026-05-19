@@ -2,10 +2,14 @@ import { test, expect } from '@playwright/test';
 import { mockApi, createMockListing } from './helpers/api';
 
 test.describe('Admin Moderation', () => {
-  test.beforeEach(async ({ page }) => {
-    // Mock admin auth
-    await page.evaluate(() => {
-      localStorage.setItem('admin_access_token', 'admin-test-token');
+  test.beforeEach(async ({ context, page }) => {
+    // Mock admin auth — `addInitScript` runs on every new document
+    // (including the initial about:blank), so `localStorage` is
+    // populated before any test code calls `page.goto()`. Calling
+    // `page.evaluate(localStorage.setItem(...))` before navigation
+    // fails with `SecurityError: Access is denied for this document`.
+    await context.addInitScript(() => {
+      localStorage.setItem('admin_auth_token', 'admin-test-token');
     });
     await mockApi(page, '/api/v1/auth/me', {
       id: 'admin-1', first_name: 'Admin', role: 'admin', approval_status: 'approved',
@@ -13,8 +17,8 @@ test.describe('Admin Moderation', () => {
   });
 
   test('should display admin login page', async ({ page }) => {
-    await page.evaluate(() => localStorage.clear());
     await page.goto('/admin/login');
+    await page.evaluate(() => localStorage.clear());
     await expect(page.locator('body')).toBeVisible();
   });
 

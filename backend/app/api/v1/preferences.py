@@ -1,6 +1,6 @@
 """User preferences API endpoints."""
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -12,6 +12,23 @@ from app.db.database import get_db
 from app.db.models import NotificationPreferences, User, UserPreferences
 
 router = APIRouter()
+
+
+class LanguageUpdateRequest(BaseModel):
+    """Request body for ``PATCH /me/language``.
+
+    Constrained to the three UI locales the frontend ships
+    (Russian, Latin-script Uzbek, Cyrillic-script Uzbek). Anything
+    else fails Pydantic validation and returns 422.
+    """
+
+    language: Literal["ru", "uz", "uz_cyrl"]
+
+
+class LanguageUpdateResponse(BaseModel):
+    """Response for ``PATCH /me/language`` — echoes the persisted value."""
+
+    language: str
 
 
 class UserPreferencesResponse(BaseModel):
@@ -120,3 +137,19 @@ async def update_user_preferences(
     await db.refresh(prefs)
 
     return _to_response(prefs)
+
+
+@router.patch("/language", response_model=LanguageUpdateResponse)
+async def update_user_language(
+    data: LanguageUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the current user's preferred UI language.
+
+    The column lives on ``User.language`` (see ``app/db/models.py``);
+    it drives notification copy locale + the frontend i18n bootstrap.
+    """
+    current_user.language = data.language
+    await db.commit()
+    return LanguageUpdateResponse(language=current_user.language)

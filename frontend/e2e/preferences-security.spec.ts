@@ -54,14 +54,14 @@ test.describe('Preferences & Security', () => {
   test('should clear all data on logout', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('access_token', 'test');
+      localStorage.setItem('auth_token', 'test');
       localStorage.setItem('refresh_token', 'test');
       sessionStorage.setItem('scroll_pos', '100');
     });
 
     await logout(page);
 
-    const token = await page.evaluate(() => localStorage.getItem('access_token'));
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'));
     expect(token).toBeNull();
   });
 
@@ -69,12 +69,15 @@ test.describe('Preferences & Security', () => {
     await page.goto('/');
     const url = page.url();
     expect(url).not.toContain('token');
-    expect(url).not.toContain('access_token');
+    expect(url).not.toContain('auth_token');
   });
 
-  test('should handle 401 by clearing session', async ({ page }) => {
-    await page.evaluate(() => {
-      localStorage.setItem('access_token', 'expired-token');
+  test('should handle 401 by clearing session', async ({ context, page }) => {
+    // Seed the expired token via addInitScript so it's in place by the
+    // first real navigation. page.evaluate(localStorage…) on about:blank
+    // raises SecurityError.
+    await context.addInitScript(() => {
+      localStorage.setItem('auth_token', 'expired-token');
     });
     await mockApi(page, '/api/v1/auth/me', { detail: 'Unauthorized' }, 401);
 

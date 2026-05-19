@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /ru/
+Allow: /uz/
+Allow: /uz-latn/
+Allow: /sitemap
+Allow: /sitemap.xml
+Disallow: /api/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /uploads/
+
+Sitemap: {{ public_host }}/sitemap.xml
