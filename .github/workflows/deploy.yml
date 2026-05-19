@@ -7,6 +7,7 @@ on:
     paths:
       - 'frontend/**'
       - 'backend/**'
+      - 'db/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -46,6 +47,9 @@ jobs:
               --exclude='celerybeat-schedule' \
               --exclude='*.pyc' \
               _repo/backend/ backend/
+
+            # Sync db (SQL dumps / schema snapshots)
+            rsync -av --delete _repo/db/ db/
 
             # Rebuild and restart all services
             docker compose up -d --build

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
 	Box,
 	Container,
@@ -41,22 +41,15 @@ function Page() {
 		$isLoadingTariffs,
 		$tariffsError,
 	]);
-	const [
-		detailsOpened,
-		{ toggle: toggleDetails },
-	] = useDisclosure(false);
-	const [
-		modalOpened,
-		{ open: openModal, close: closeModal },
-	] = useDisclosure(false);
+	const [detailsOpened, { toggle: toggleDetails }] = useDisclosure(false);
+	const [modalOpened, { open: openModal, close: closeModal }] =
+		useDisclosure(false);
 
 	useEffect(() => {
 		if (!tariffs && !isLoading) {
 			void fetchTariffsStatusFx();
 		}
 	}, [tariffs, isLoading]);
-
-	const showProgress = tariffs && tariffs.test_period_active;
 
 	const listingProgress =
 		tariffs && tariffs.trigger_listings > 0
@@ -84,12 +77,7 @@ function Page() {
 							}}
 						>
 							<Stack gap={8} align="center">
-								<ThemeIcon
-									size={36}
-									radius="xl"
-									variant="light"
-									color="red"
-								>
+								<ThemeIcon size={36} radius="xl" variant="light" color="red">
 									<IconInfoCircle size={20} />
 								</ThemeIcon>
 								<Text size="sm" fw={600} c="#991b1b" ta="center">
@@ -139,11 +127,7 @@ function Page() {
 										<Text fw={700} size="md" c="#78350f" mb={4}>
 											{t("tariffs.heroBanner")}
 										</Text>
-										<Text
-											size="sm"
-											c="#92400e"
-											style={{ lineHeight: 1.4 }}
-										>
+										<Text size="sm" c="#92400e" style={{ lineHeight: 1.4 }}>
 											{t("tariffs.heroSubtitle")}
 										</Text>
 									</Box>
@@ -168,18 +152,13 @@ function Page() {
 									<Collapse in={detailsOpened}>
 										<Stack gap={8} mt={12}>
 											<Box>
-												<Group
-													justify="space-between"
-													mb={4}
-												>
+												<Group justify="space-between" mb={4}>
 													<Text size="xs" c="#78350f" fw={500}>
 														{t("tariffs.progress.listings", {
 															current: formatNumber(
 																tariffs.current_listings_total,
 															),
-															target: formatNumber(
-																tariffs.trigger_listings,
-															),
+															target: formatNumber(tariffs.trigger_listings),
 														})}
 													</Text>
 													<Text size="xs" c="#78350f" fw={600}>
@@ -193,10 +172,7 @@ function Page() {
 												/>
 											</Box>
 											<Box>
-												<Group
-													justify="space-between"
-													mb={4}
-												>
+												<Group justify="space-between" mb={4}>
 													<Text size="xs" c="#78350f" fw={500}>
 														{t("tariffs.progress.days", {
 															current: tariffs.days_elapsed,
@@ -229,12 +205,7 @@ function Page() {
 								}}
 							>
 								<Group gap={10} mb={12} wrap="nowrap">
-									<ThemeIcon
-										size={32}
-										radius="xl"
-										variant="light"
-										color="blue"
-									>
+									<ThemeIcon size={32} radius="xl" variant="light" color="blue">
 										<IconHome size={18} />
 									</ThemeIcon>
 									<Text fw={700} size="md" c="dark.9">
@@ -254,9 +225,7 @@ function Page() {
 										<IconCheck size={16} color="#10b981" />
 										<Text size="sm" c="dark.7" fw={500}>
 											{t("tariffs.placement.line2", {
-												price: formatNumber(
-													tariffs.extra_listing_price_uzs,
-												),
+												price: formatNumber(tariffs.extra_listing_price_uzs),
 											})}
 										</Text>
 									</Group>
@@ -285,12 +254,7 @@ function Page() {
 								}}
 							>
 								<Group gap={10} mb={12} wrap="nowrap">
-									<ThemeIcon
-										size={32}
-										radius="xl"
-										variant="light"
-										color="cyan"
-									>
+									<ThemeIcon size={32} radius="xl" variant="light" color="cyan">
 										<IconCrown size={18} />
 									</ThemeIcon>
 									<Box style={{ flex: 1 }}>
@@ -333,11 +297,7 @@ function Page() {
 									</Group>
 								</Stack>
 								<Group justify="flex-end" mt={16}>
-									<Button
-										variant="filled"
-										color="cyan"
-										onClick={openModal}
-									>
+									<Button variant="filled" color="cyan" onClick={openModal}>
 										{t("tariffs.subscribeButton")}
 									</Button>
 								</Group>

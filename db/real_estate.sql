@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict dSAuGZZ65BVlhjyVUpKvlf25f9dPwLV2SyeAEvP6jyfN0HKIYTYcShhaEZI7IU1
+\restrict 3A4NO7gZ4756qsE4bpTHmwfJdaKLdXPo1jhLjUu7jP4JVjJcCbATnX76VxgpFdG
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
 
--- Started on 2026-05-02 15:42:14
+-- Started on 2026-05-19 12:04:42
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -22,7 +22,20 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 922 (class 1247 OID 418773)
+-- TOC entry 1016 (class 1247 OID 468594)
+-- Name: billingcycle; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.billingcycle AS ENUM (
+    'monthly',
+    'yearly'
+);
+
+
+ALTER TYPE public.billingcycle OWNER TO postgres;
+
+--
+-- TOC entry 947 (class 1247 OID 418773)
 -- Name: claimstatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -37,7 +50,7 @@ CREATE TYPE public.claimstatus AS ENUM (
 ALTER TYPE public.claimstatus OWNER TO postgres;
 
 --
--- TOC entry 901 (class 1247 OID 418676)
+-- TOC entry 926 (class 1247 OID 418676)
 -- Name: currency; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -50,7 +63,7 @@ CREATE TYPE public.currency AS ENUM (
 ALTER TYPE public.currency OWNER TO postgres;
 
 --
--- TOC entry 907 (class 1247 OID 418690)
+-- TOC entry 932 (class 1247 OID 418690)
 -- Name: listingstatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -59,14 +72,19 @@ CREATE TYPE public.listingstatus AS ENUM (
     'PAUSED',
     'SOLD',
     'DELETED',
-    'EXPIRED'
+    'EXPIRED',
+    'PENDING_GENERATION',
+    'GENERATION_FAILED',
+    'UNCONFIRMED',
+    'draft',
+    'DRAFT'
 );
 
 
 ALTER TYPE public.listingstatus OWNER TO postgres;
 
 --
--- TOC entry 895 (class 1247 OID 418660)
+-- TOC entry 920 (class 1247 OID 418660)
 -- Name: listingtype; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -79,7 +97,7 @@ CREATE TYPE public.listingtype AS ENUM (
 ALTER TYPE public.listingtype OWNER TO postgres;
 
 --
--- TOC entry 910 (class 1247 OID 418702)
+-- TOC entry 935 (class 1247 OID 418702)
 -- Name: moderationstatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -93,7 +111,7 @@ CREATE TYPE public.moderationstatus AS ENUM (
 ALTER TYPE public.moderationstatus OWNER TO postgres;
 
 --
--- TOC entry 940 (class 1247 OID 418889)
+-- TOC entry 965 (class 1247 OID 418889)
 -- Name: notificationtype; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -104,14 +122,15 @@ CREATE TYPE public.notificationtype AS ENUM (
     'favorite_update',
     'listing_approved',
     'listing_rejected',
-    'new_comment'
+    'new_comment',
+    'crawled_match'
 );
 
 
 ALTER TYPE public.notificationtype OWNER TO postgres;
 
 --
--- TOC entry 898 (class 1247 OID 418666)
+-- TOC entry 923 (class 1247 OID 418666)
 -- Name: propertytype; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -126,7 +145,7 @@ CREATE TYPE public.propertytype AS ENUM (
 ALTER TYPE public.propertytype OWNER TO postgres;
 
 --
--- TOC entry 904 (class 1247 OID 418682)
+-- TOC entry 929 (class 1247 OID 418682)
 -- Name: sourcetype; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -140,7 +159,66 @@ CREATE TYPE public.sourcetype AS ENUM (
 ALTER TYPE public.sourcetype OWNER TO postgres;
 
 --
--- TOC entry 931 (class 1247 OID 418819)
+-- TOC entry 1013 (class 1247 OID 468582)
+-- Name: subscriptionstatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.subscriptionstatus AS ENUM (
+    'active',
+    'paused',
+    'cancelled',
+    'expired',
+    'grace'
+);
+
+
+ALTER TYPE public.subscriptionstatus OWNER TO postgres;
+
+--
+-- TOC entry 1010 (class 1247 OID 468576)
+-- Name: subscriptiontype; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.subscriptiontype AS ENUM (
+    'cabinet',
+    'listing_extra'
+);
+
+
+ALTER TYPE public.subscriptiontype OWNER TO postgres;
+
+--
+-- TOC entry 1007 (class 1247 OID 468566)
+-- Name: transactionstatus; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.transactionstatus AS ENUM (
+    'pending',
+    'completed',
+    'failed',
+    'refunded'
+);
+
+
+ALTER TYPE public.transactionstatus OWNER TO postgres;
+
+--
+-- TOC entry 1004 (class 1247 OID 468557)
+-- Name: transactiontype; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.transactiontype AS ENUM (
+    'deposit',
+    'withdrawal',
+    'refund',
+    'adjustment'
+);
+
+
+ALTER TYPE public.transactiontype OWNER TO postgres;
+
+--
+-- TOC entry 956 (class 1247 OID 418819)
 -- Name: userapprovalstatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -154,7 +232,7 @@ CREATE TYPE public.userapprovalstatus AS ENUM (
 ALTER TYPE public.userapprovalstatus OWNER TO postgres;
 
 --
--- TOC entry 871 (class 1247 OID 418560)
+-- TOC entry 896 (class 1247 OID 418560)
 -- Name: userrole; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -168,7 +246,7 @@ CREATE TYPE public.userrole AS ENUM (
 ALTER TYPE public.userrole OWNER TO postgres;
 
 --
--- TOC entry 889 (class 1247 OID 418635)
+-- TOC entry 914 (class 1247 OID 418635)
 -- Name: verificationmethod; Type: TYPE; Schema: public; Owner: postgres
 --
 
@@ -184,6 +262,142 @@ ALTER TYPE public.verificationmethod OWNER TO postgres;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- TOC entry 257 (class 1259 OID 476435)
+-- Name: account_link; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.account_link (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id_a uuid NOT NULL,
+    user_id_b uuid NOT NULL,
+    relation character varying(32) NOT NULL,
+    decided_by uuid,
+    decided_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ck_account_link_normalised_pair CHECK ((user_id_a < user_id_b))
+);
+
+
+ALTER TABLE public.account_link OWNER TO postgres;
+
+--
+-- TOC entry 256 (class 1259 OID 476413)
+-- Name: account_suspicion; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.account_suspicion (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    primary_user_id uuid NOT NULL,
+    signal_kind character varying(48) NOT NULL,
+    evidence jsonb NOT NULL,
+    status character varying(16) DEFAULT 'open'::character varying NOT NULL,
+    reviewed_by uuid,
+    reviewed_at timestamp without time zone,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.account_suspicion OWNER TO postgres;
+
+--
+-- TOC entry 251 (class 1259 OID 476329)
+-- Name: ai_generation_feedback; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_generation_feedback (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    generation_id uuid,
+    listing_id uuid,
+    user_id uuid NOT NULL,
+    category character varying(32) NOT NULL,
+    comment text,
+    handled boolean DEFAULT false NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.ai_generation_feedback OWNER TO postgres;
+
+--
+-- TOC entry 5643 (class 0 OID 0)
+-- Dependencies: 251
+-- Name: TABLE ai_generation_feedback; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_generation_feedback IS 'Block F F5 — seller-submitted feedback on AI text. Retained indefinitely.';
+
+
+--
+-- TOC entry 5644 (class 0 OID 0)
+-- Dependencies: 251
+-- Name: COLUMN ai_generation_feedback.category; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_generation_feedback.category IS 'grammar | unnatural | factual | too_long | too_short | other';
+
+
+--
+-- TOC entry 250 (class 1259 OID 476308)
+-- Name: ai_generations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_generations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    listing_id uuid,
+    prompt_template_id uuid,
+    model character varying(64) NOT NULL,
+    prompt_text text NOT NULL,
+    response_text text NOT NULL,
+    duration_ms integer NOT NULL,
+    input_tokens integer,
+    output_tokens integer,
+    cost_usd_micros bigint,
+    triggered_by character varying(32) NOT NULL,
+    outcome character varying(32) NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.ai_generations OWNER TO postgres;
+
+--
+-- TOC entry 5645 (class 0 OID 0)
+-- Dependencies: 250
+-- Name: TABLE ai_generations; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_generations IS 'Block F F5 — every LLM call (success + failure). Retention 90 days via prune_ai_generations cron.';
+
+
+--
+-- TOC entry 5646 (class 0 OID 0)
+-- Dependencies: 250
+-- Name: COLUMN ai_generations.cost_usd_micros; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_generations.cost_usd_micros IS 'USD cost in micros ($0.000001 units) to avoid float.';
+
+
+--
+-- TOC entry 5647 (class 0 OID 0)
+-- Dependencies: 250
+-- Name: COLUMN ai_generations.triggered_by; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_generations.triggered_by IS 'manual | auto_parser | param_change | manual_retry';
+
+
+--
+-- TOC entry 5648 (class 0 OID 0)
+-- Dependencies: 250
+-- Name: COLUMN ai_generations.outcome; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_generations.outcome IS 'ok | fallback_template | timeout | rate_limit | invalid_response';
+
 
 --
 -- TOC entry 217 (class 1259 OID 418543)
@@ -219,6 +433,114 @@ CREATE TABLE public.audit_log (
 ALTER TABLE public.audit_log OWNER TO postgres;
 
 --
+-- TOC entry 260 (class 1259 OID 476502)
+-- Name: banners; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.banners (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title character varying(200) NOT NULL,
+    image_url character varying(500) NOT NULL,
+    target_url character varying(500) NOT NULL,
+    placement character varying(32) NOT NULL,
+    language character varying(8) NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    starts_at timestamp without time zone DEFAULT now() NOT NULL,
+    ends_at timestamp without time zone,
+    impressions bigint DEFAULT 0 NOT NULL,
+    clicks bigint DEFAULT 0 NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.banners OWNER TO postgres;
+
+--
+-- TOC entry 247 (class 1259 OID 476122)
+-- Name: behavioral_signals; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.behavioral_signals (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    listing_id uuid,
+    event_type character varying(32) NOT NULL,
+    source character varying(32) NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.behavioral_signals OWNER TO postgres;
+
+--
+-- TOC entry 5649 (class 0 OID 0)
+-- Dependencies: 247
+-- Name: TABLE behavioral_signals; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.behavioral_signals IS 'Block D D2 — append-only personalization signal feed. Retain 180 days raw; recommender consumes weekly aggregates.';
+
+
+--
+-- TOC entry 248 (class 1259 OID 476138)
+-- Name: bot_channel_posts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_channel_posts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    listing_id uuid NOT NULL,
+    seller_id uuid NOT NULL,
+    channel_id bigint NOT NULL,
+    message_id bigint NOT NULL,
+    posted_at timestamp without time zone DEFAULT now() NOT NULL,
+    last_edited_at timestamp without time zone,
+    last_listing_version integer NOT NULL,
+    status character varying(16) DEFAULT 'live'::character varying NOT NULL
+);
+
+
+ALTER TABLE public.bot_channel_posts OWNER TO postgres;
+
+--
+-- TOC entry 5650 (class 0 OID 0)
+-- Dependencies: 248
+-- Name: TABLE bot_channel_posts; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_channel_posts IS 'Block D D4 — one row per (listing, channel) we have published. CASCADE on listing delete. Retention = listing lifetime.';
+
+
+--
+-- TOC entry 245 (class 1259 OID 476090)
+-- Name: claim_invites; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.claim_invites (
+    id character varying(12) NOT NULL,
+    kind character varying(16) NOT NULL,
+    pre_imported_user_id uuid,
+    channel_username character varying(64),
+    expires_at timestamp without time zone NOT NULL,
+    used_at timestamp without time zone,
+    used_by_telegram_id bigint,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_claim_invites_kind CHECK (((kind)::text = ANY ((ARRAY['claim'::character varying, 'agent'::character varying])::text[]))),
+    CONSTRAINT chk_claim_invites_target CHECK (((((kind)::text = 'claim'::text) AND (pre_imported_user_id IS NOT NULL)) OR (((kind)::text = 'agent'::text) AND (channel_username IS NOT NULL))))
+);
+
+
+ALTER TABLE public.claim_invites OWNER TO postgres;
+
+--
+-- TOC entry 5651 (class 0 OID 0)
+-- Dependencies: 245
+-- Name: TABLE claim_invites; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.claim_invites IS 'Block D D3 — single-use, expiring B2B onboarding tickets. Row presence + unused state is the auth check; the URL payload alone is never trusted.';
+
+
+--
 -- TOC entry 231 (class 1259 OID 418867)
 -- Name: comment_likes; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -252,6 +574,76 @@ CREATE TABLE public.comments (
 
 
 ALTER TABLE public.comments OWNER TO postgres;
+
+--
+-- TOC entry 246 (class 1259 OID 476106)
+-- Name: deep_link_events; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.deep_link_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    prefix character varying(16) NOT NULL,
+    payload character varying(64) NOT NULL,
+    user_id uuid,
+    is_new_user boolean DEFAULT false NOT NULL,
+    outcome character varying(24) DEFAULT 'open'::character varying NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.deep_link_events OWNER TO postgres;
+
+--
+-- TOC entry 5652 (class 0 OID 0)
+-- Dependencies: 246
+-- Name: COLUMN deep_link_events.outcome; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.deep_link_events.outcome IS 'open | resolved | rejected_unknown | rejected_expired | rejected_consumed | rejected_mismatch';
+
+
+--
+-- TOC entry 244 (class 1259 OID 476074)
+-- Name: deep_link_payloads; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.deep_link_payloads (
+    id character varying(12) NOT NULL,
+    kind character varying(16) NOT NULL,
+    payload jsonb NOT NULL,
+    created_by_user_id uuid,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    used_count integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.deep_link_payloads OWNER TO postgres;
+
+--
+-- TOC entry 5653 (class 0 OID 0)
+-- Dependencies: 244
+-- Name: TABLE deep_link_payloads; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.deep_link_payloads IS 'Block D D3 — short-id indirection table for deep-link payloads. MVP kind="filter". Rows never expire (D3-Q4).';
+
+
+--
+-- TOC entry 253 (class 1259 OID 476366)
+-- Name: export_templates; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.export_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    platform character varying(32) NOT NULL,
+    language character varying(8) NOT NULL,
+    template_body text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.export_templates OWNER TO postgres;
 
 --
 -- TOC entry 227 (class 1259 OID 418754)
@@ -330,6 +722,42 @@ CREATE TABLE public.listing_images (
 
 
 ALTER TABLE public.listing_images OWNER TO postgres;
+
+--
+-- TOC entry 261 (class 1259 OID 476516)
+-- Name: listing_sales; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.listing_sales (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    listing_id uuid NOT NULL,
+    sold_price bigint NOT NULL,
+    sold_currency character varying(8) NOT NULL,
+    sold_at timestamp without time zone DEFAULT now() NOT NULL,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.listing_sales OWNER TO postgres;
+
+--
+-- TOC entry 237 (class 1259 OID 468498)
+-- Name: listing_view_event; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.listing_view_event (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    listing_id uuid NOT NULL,
+    event_type character varying(16) NOT NULL,
+    viewed_at timestamp without time zone DEFAULT now() NOT NULL,
+    dwell_ms bigint,
+    anon_id character varying(64)
+);
+
+
+ALTER TABLE public.listing_view_event OWNER TO postgres;
 
 --
 -- TOC entry 225 (class 1259 OID 418709)
@@ -443,6 +871,17 @@ CREATE TABLE public.listings (
     floor_plan_url character varying(500),
     jk_id uuid,
     slug character varying(255),
+    ai_description_ru text,
+    ai_description_uz text,
+    ai_description_uz_cyrl text,
+    ai_generation_attempted_at timestamp without time zone,
+    last_ai_param_snapshot jsonb,
+    has_urgent_badge boolean DEFAULT false NOT NULL,
+    urgent_until timestamp without time zone,
+    notify_priority_until timestamp without time zone,
+    sold_price bigint,
+    sold_currency character varying(8),
+    sold_at timestamp without time zone,
     CONSTRAINT ck_listings_balcony_enum CHECK (((balcony IS NULL) OR ((balcony)::text = ANY ((ARRAY['none'::character varying, 'balcony'::character varying, 'loggia'::character varying, 'terrace'::character varying])::text[])))),
     CONSTRAINT ck_listings_building_class_enum CHECK (((building_class IS NULL) OR ((building_class)::text = ANY ((ARRAY['standalone'::character varying, 'embedded'::character varying, 'business_center'::character varying, 'mall'::character varying])::text[])))),
     CONSTRAINT ck_listings_ceiling_height_range CHECK (((ceiling_height IS NULL) OR ((ceiling_height > (0)::double precision) AND (ceiling_height <= (30)::double precision)))),
@@ -464,6 +903,15 @@ CREATE TABLE public.listings (
 
 
 ALTER TABLE public.listings OWNER TO postgres;
+
+--
+-- TOC entry 5654 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: COLUMN listings.last_ai_param_snapshot; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.listings.last_ai_param_snapshot IS 'Block F F1 — snapshot of structured params at AI generation time. Cabinet Stage 2 compares against current params to detect drift.';
+
 
 --
 -- TOC entry 221 (class 1259 OID 418591)
@@ -514,7 +962,8 @@ CREATE TABLE public.notifications (
     actor_id uuid,
     read boolean DEFAULT false NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
-    source character varying(32)
+    source character varying(32),
+    expires_at timestamp without time zone
 );
 
 
@@ -619,6 +1068,103 @@ CREATE TABLE public.parser_sources (
 ALTER TABLE public.parser_sources OWNER TO postgres;
 
 --
+-- TOC entry 243 (class 1259 OID 468682)
+-- Name: phone_verify_attempt; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.phone_verify_attempt (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    phone character varying(20) NOT NULL,
+    succeeded boolean DEFAULT false NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.phone_verify_attempt OWNER TO postgres;
+
+--
+-- TOC entry 249 (class 1259 OID 476291)
+-- Name: prompt_templates; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.prompt_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    kind character varying(48) NOT NULL,
+    version integer NOT NULL,
+    body text NOT NULL,
+    model_hint character varying(64),
+    is_active boolean DEFAULT false NOT NULL,
+    notes text,
+    created_by_user_id uuid,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.prompt_templates OWNER TO postgres;
+
+--
+-- TOC entry 5655 (class 0 OID 0)
+-- Dependencies: 249
+-- Name: TABLE prompt_templates; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.prompt_templates IS 'Block F F5 — versioned LLM prompts. Worker reads is_active=true row. Partial unique index ensures ≤1 active per kind.';
+
+
+--
+-- TOC entry 258 (class 1259 OID 476461)
+-- Name: referral_events; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.referral_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    referrer_user_id uuid NOT NULL,
+    referred_user_id uuid NOT NULL,
+    event_type character varying(32) NOT NULL,
+    event_metadata jsonb,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.referral_events OWNER TO postgres;
+
+--
+-- TOC entry 5656 (class 0 OID 0)
+-- Dependencies: 258
+-- Name: TABLE referral_events; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.referral_events IS 'Phase-2 referral program — append-only attribution ledger. event_type in (signup, qualified, rewarded).';
+
+
+--
+-- TOC entry 259 (class 1259 OID 476483)
+-- Name: referral_rewards; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.referral_rewards (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    referrer_user_id uuid NOT NULL,
+    amount_micros bigint NOT NULL,
+    reason character varying(64) NOT NULL,
+    wallet_tx_id uuid,
+    granted_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.referral_rewards OWNER TO postgres;
+
+--
+-- TOC entry 5657 (class 0 OID 0)
+-- Dependencies: 259
+-- Name: TABLE referral_rewards; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.referral_rewards IS 'Phase-2 referral program — payouts to referrers. wallet_tx_id NULL when wallet.deposit was unavailable; admins can backfill once wallet plumbing is in place.';
+
+
+--
 -- TOC entry 223 (class 1259 OID 418620)
 -- Name: saved_searches; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -638,6 +1184,40 @@ CREATE TABLE public.saved_searches (
 
 
 ALTER TABLE public.saved_searches OWNER TO postgres;
+
+--
+-- TOC entry 255 (class 1259 OID 476394)
+-- Name: seller_client_listings; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.seller_client_listings (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    client_id uuid NOT NULL,
+    listing_id uuid NOT NULL,
+    added_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.seller_client_listings OWNER TO postgres;
+
+--
+-- TOC entry 254 (class 1259 OID 476377)
+-- Name: seller_clients; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.seller_clients (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    seller_id uuid NOT NULL,
+    name character varying(200) NOT NULL,
+    phone character varying(30),
+    notes text,
+    pipeline_stage character varying(32) DEFAULT 'new'::character varying NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.seller_clients OWNER TO postgres;
 
 --
 -- TOC entry 224 (class 1259 OID 418641)
@@ -667,11 +1247,92 @@ CREATE TABLE public.sellers (
     source_channel character varying(200),
     is_developer_verified boolean DEFAULT false NOT NULL,
     trust_score integer DEFAULT 0 NOT NULL,
+    autopost_channel_username character varying(64),
+    autopost_channel_id bigint,
+    autopost_enabled boolean DEFAULT false NOT NULL,
+    autopost_verified_at timestamp without time zone,
+    export_signature text,
+    export_cta text,
+    export_extra_hashtags character varying(500),
     CONSTRAINT ck_sellers_trust_score_nonneg CHECK ((trust_score >= 0))
 );
 
 
 ALTER TABLE public.sellers OWNER TO postgres;
+
+--
+-- TOC entry 238 (class 1259 OID 468534)
+-- Name: source_metric; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.source_metric (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source_id uuid NOT NULL,
+    day timestamp without time zone NOT NULL,
+    listings_found integer DEFAULT 0 NOT NULL,
+    listings_extracted integer DEFAULT 0 NOT NULL,
+    listings_failed integer DEFAULT 0 NOT NULL,
+    dupes_filtered integer DEFAULT 0 NOT NULL,
+    ai_failed integer DEFAULT 0 NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    notified integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.source_metric OWNER TO postgres;
+
+--
+-- TOC entry 240 (class 1259 OID 468619)
+-- Name: subscriptions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.subscriptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    type public.subscriptiontype NOT NULL,
+    object_id uuid,
+    price bigint NOT NULL,
+    currency public.currency DEFAULT 'UZS'::public.currency NOT NULL,
+    billing_cycle public.billingcycle DEFAULT 'monthly'::public.billingcycle NOT NULL,
+    status public.subscriptionstatus DEFAULT 'active'::public.subscriptionstatus NOT NULL,
+    starts_at timestamp without time zone NOT NULL,
+    ends_at timestamp without time zone,
+    next_billing_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT subscriptions_price_check CHECK ((price >= 0))
+);
+
+
+ALTER TABLE public.subscriptions OWNER TO postgres;
+
+--
+-- TOC entry 5658 (class 0 OID 0)
+-- Dependencies: 240
+-- Name: COLUMN subscriptions.price; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.subscriptions.price IS 'Smallest currency unit per billing cycle.';
+
+
+--
+-- TOC entry 252 (class 1259 OID 476355)
+-- Name: synonym_entries; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.synonym_entries (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    parameter_key character varying(64) NOT NULL,
+    parameter_value character varying(64),
+    surface_form character varying(128) NOT NULL,
+    language character varying(8) NOT NULL,
+    polarity character varying(8) DEFAULT 'positive'::character varying NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.synonym_entries OWNER TO postgres;
 
 --
 -- TOC entry 233 (class 1259 OID 418929)
@@ -721,6 +1382,39 @@ CREATE TABLE public.telegram_listings (
 ALTER TABLE public.telegram_listings OWNER TO postgres;
 
 --
+-- TOC entry 241 (class 1259 OID 468638)
+-- Name: transactions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.transactions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    wallet_id uuid NOT NULL,
+    type public.transactiontype NOT NULL,
+    amount bigint NOT NULL,
+    currency public.currency NOT NULL,
+    status public.transactionstatus DEFAULT 'pending'::public.transactionstatus NOT NULL,
+    external_payment_id character varying(128),
+    subscription_id uuid,
+    idempotency_key character varying(64),
+    transaction_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    completed_at timestamp without time zone,
+    CONSTRAINT transactions_amount_check CHECK ((amount > 0))
+);
+
+
+ALTER TABLE public.transactions OWNER TO postgres;
+
+--
+-- TOC entry 5659 (class 0 OID 0)
+-- Dependencies: 241
+-- Name: COLUMN transactions.amount; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.transactions.amount IS 'Smallest currency unit. Always > 0. CHECK enforces.';
+
+
+--
 -- TOC entry 226 (class 1259 OID 418736)
 -- Name: user_follows_seller; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -734,6 +1428,25 @@ CREATE TABLE public.user_follows_seller (
 
 
 ALTER TABLE public.user_follows_seller OWNER TO postgres;
+
+--
+-- TOC entry 242 (class 1259 OID 468665)
+-- Name: user_phones; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_phones (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    phone character varying(20) NOT NULL,
+    is_primary boolean DEFAULT false NOT NULL,
+    verification_method character varying(16) NOT NULL,
+    verified_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.user_phones OWNER TO postgres;
 
 --
 -- TOC entry 235 (class 1259 OID 426799)
@@ -790,6 +1503,9 @@ CREATE TABLE public.users (
     last_login_at timestamp without time zone,
     last_login_provider character varying(20),
     auth_source character varying(20),
+    referred_by_user_id uuid,
+    referral_source character varying(64),
+    referral_code character varying(12),
     CONSTRAINT at_least_one_identifier CHECK (((telegram_id IS NOT NULL) OR (phone IS NOT NULL) OR (email IS NOT NULL) OR (username IS NOT NULL)))
 );
 
@@ -797,18 +1513,86 @@ CREATE TABLE public.users (
 ALTER TABLE public.users OWNER TO postgres;
 
 --
--- TOC entry 5239 (class 0 OID 418543)
+-- TOC entry 239 (class 1259 OID 468599)
+-- Name: wallets; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.wallets (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    current_balance bigint DEFAULT 0 NOT NULL,
+    currency public.currency DEFAULT 'UZS'::public.currency NOT NULL,
+    version integer DEFAULT 0 NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT wallets_current_balance_check CHECK ((current_balance >= 0))
+);
+
+
+ALTER TABLE public.wallets OWNER TO postgres;
+
+--
+-- TOC entry 5660 (class 0 OID 0)
+-- Dependencies: 239
+-- Name: COLUMN wallets.current_balance; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.wallets.current_balance IS 'Smallest currency unit. UZS: whole UZS. USD: cents.';
+
+
+--
+-- TOC entry 5633 (class 0 OID 476435)
+-- Dependencies: 257
+-- Data for Name: account_link; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.account_link (id, user_id_a, user_id_b, relation, decided_by, decided_at, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5632 (class 0 OID 476413)
+-- Dependencies: 256
+-- Data for Name: account_suspicion; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.account_suspicion (id, primary_user_id, signal_kind, evidence, status, reviewed_by, reviewed_at, notes, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5627 (class 0 OID 476329)
+-- Dependencies: 251
+-- Data for Name: ai_generation_feedback; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.ai_generation_feedback (id, generation_id, listing_id, user_id, category, comment, handled, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5626 (class 0 OID 476308)
+-- Dependencies: 250
+-- Data for Name: ai_generations; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.ai_generations (id, listing_id, prompt_template_id, model, prompt_text, response_text, duration_ms, input_tokens, output_tokens, cost_usd_micros, triggered_by, outcome, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5593 (class 0 OID 418543)
 -- Dependencies: 217
 -- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.alembic_version (version_num) FROM stdin;
-prd_crawled_claim_reject
+11640c79759c
 \.
 
 
 --
--- TOC entry 5242 (class 0 OID 418578)
+-- TOC entry 5596 (class 0 OID 418578)
 -- Dependencies: 220
 -- Data for Name: audit_log; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -824,11 +1608,55 @@ edac9714-5b8d-4f4f-b373-9a8b0533a3bc	\N	olx_listing	e1860366-cc96-42f3-86a7-4b5c
 67751331-8c54-440a-bfd9-d91d3562d355	\N	olx_listing	3d4ecf13-edc4-48cb-a162-4795c52cbe8a	claim_olx	\N	{"converted_listing_id": "fa44c47f-c324-4ad8-b8be-c031da08c539"}	\N	\N	2026-03-01 02:19:09.979853
 d072deaa-b42f-4bed-a8c8-3aef2f8f5704	\N	olx_listing	82bb65be-df44-4dfb-901d-3e2e45907ccb	claim_olx	\N	{"converted_listing_id": "cbfc2965-cd42-412c-b38f-b4b3805881dd"}	\N	\N	2026-03-01 02:19:10.037716
 63de0ece-4a18-4d1e-8e89-11c2431e111a	51a926be-c7eb-443b-bedb-a44eb9ebc122	telegram_listing	b1c8b8ad-a1ad-4936-ba34-ac3b550c37d4	claim_telegram	\N	{"converted_listing_id": "d55bc1dc-257e-4de9-8734-25b8b7e219a0"}	\N	\N	2026-04-24 19:24:36.968096
+62599e24-fb0d-49f6-b53e-002ac90a0e85	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	wallet	03805ddb-f35e-4e59-ae27-5bee79022712	admin_adjust	{"balance": 0}	{"amount": 50000, "reason": "test", "balance": 50000, "transaction_id": "ff98881b-67cb-4d29-bb49-45940e11558f"}	\N	\N	2026-05-08 10:09:43.794824
+2b9a0f37-d950-4f2d-ac95-0fe6839a2083	\N	transaction	ab262bf8-5fb5-4da1-94d3-4395e9777565	create	null	{"type": "withdrawal", "amount": 20000, "status": "completed", "purpose": "subscription:cabinet"}	\N	\N	2026-05-08 10:09:43.859073
+f675c101-1cfb-49db-933d-434fa75fff4f	\N	wallet	03805ddb-f35e-4e59-ae27-5bee79022712	balance_change	{"balance": 50000}	{"balance": 30000, "transaction_id": "ab262bf8-5fb5-4da1-94d3-4395e9777565"}	\N	\N	2026-05-08 10:09:43.859073
 \.
 
 
 --
--- TOC entry 5253 (class 0 OID 418867)
+-- TOC entry 5636 (class 0 OID 476502)
+-- Dependencies: 260
+-- Data for Name: banners; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.banners (id, title, image_url, target_url, placement, language, is_active, starts_at, ends_at, impressions, clicks, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5623 (class 0 OID 476122)
+-- Dependencies: 247
+-- Data for Name: behavioral_signals; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.behavioral_signals (id, user_id, listing_id, event_type, source, created_at) FROM stdin;
+53967190-93b3-4ffe-be1d-1728c8e020f9	51a926be-c7eb-443b-bedb-a44eb9ebc122	e773c130-e891-4b72-b72f-eb8fdd73ce15	fav_add	in_app	2026-05-14 12:23:09.247207
+\.
+
+
+--
+-- TOC entry 5624 (class 0 OID 476138)
+-- Dependencies: 248
+-- Data for Name: bot_channel_posts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_channel_posts (id, listing_id, seller_id, channel_id, message_id, posted_at, last_edited_at, last_listing_version, status) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5621 (class 0 OID 476090)
+-- Dependencies: 245
+-- Data for Name: claim_invites; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.claim_invites (id, kind, pre_imported_user_id, channel_username, expires_at, used_at, used_by_telegram_id, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5607 (class 0 OID 418867)
 -- Dependencies: 231
 -- Data for Name: comment_likes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -838,7 +1666,7 @@ COPY public.comment_likes (id, comment_id, user_id, created_at) FROM stdin;
 
 
 --
--- TOC entry 5252 (class 0 OID 418837)
+-- TOC entry 5606 (class 0 OID 418837)
 -- Dependencies: 230
 -- Data for Name: comments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -848,17 +1676,57 @@ COPY public.comments (id, listing_id, user_id, parent_id, text, likes_count, rep
 
 
 --
--- TOC entry 5249 (class 0 OID 418754)
+-- TOC entry 5622 (class 0 OID 476106)
+-- Dependencies: 246
+-- Data for Name: deep_link_events; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.deep_link_events (id, prefix, payload, user_id, is_new_user, outcome, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5620 (class 0 OID 476074)
+-- Dependencies: 244
+-- Data for Name: deep_link_payloads; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.deep_link_payloads (id, kind, payload, created_by_user_id, created_at, used_count) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5629 (class 0 OID 476366)
+-- Dependencies: 253
+-- Data for Name: export_templates; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.export_templates (id, platform, language, template_body, is_active, updated_at) FROM stdin;
+3f97de4b-899a-44c1-b515-58f4dcacab74	olx	ru	{{ title }}\n\n{{ description }}\n\nЦена: {{ price_formatted }}\nРайон: {{ district }}\n\n{{ cta }}\n{{ signature }}	t	2026-05-14 12:18:35.710938
+bf27d1b3-bf0c-45c2-a25c-25a4fbc41f9b	olx	uz	{{ title }}\n\n{{ description }}\n\nNarxi: {{ price_formatted }}\nTuman: {{ district }}\n\n{{ cta }}\n{{ signature }}	t	2026-05-14 12:18:35.710938
+d6d60e55-ec4d-4633-9b5c-db5529ce8b7e	olx	uz_cyrl	{{ title }}\n\n{{ description }}\n\nНархи: {{ price_formatted }}\nТуман: {{ district }}\n\n{{ cta }}\n{{ signature }}	t	2026-05-14 12:18:35.710938
+89650eb2-8da9-492b-98d4-9e6c7572213a	telegram_channel	ru	🏠 {{ title }}\n\n{{ description }}\n\n💰 {{ price_formatted }}\n📍 {{ district }}\n\n🔗 {{ listing_url }}\n\n{{ cta }} {{ extra_hashtags }}	t	2026-05-14 12:18:35.710938
+61b0133c-5394-4881-a37f-0a51577f6332	telegram_channel	uz	🏠 {{ title }}\n\n{{ description }}\n\n💰 {{ price_formatted }}\n📍 {{ district }}\n\n🔗 {{ listing_url }}\n\n{{ cta }} {{ extra_hashtags }}	t	2026-05-14 12:18:35.710938
+263d34ee-9825-4d2f-a937-c37822669b66	telegram_channel	uz_cyrl	🏠 {{ title }}\n\n{{ description }}\n\n💰 {{ price_formatted }}\n📍 {{ district }}\n\n🔗 {{ listing_url }}\n\n{{ cta }} {{ extra_hashtags }}	t	2026-05-14 12:18:35.710938
+2ba2d97d-9ead-437c-8927-11acc2cdad9c	instagram	ru	{{ title }}\n\n{{ description }}\n\n📍 {{ district }}  ·  💰 {{ price_formatted }}\n\n{{ cta }}\n\n#недвижимость #квартира #продажа #ucharmarket {{ extra_hashtags }}	t	2026-05-14 12:18:35.710938
+263da264-cc95-4677-b9ca-5fd02369707e	instagram	uz	{{ title }}\n\n{{ description }}\n\n📍 {{ district }}  ·  💰 {{ price_formatted }}\n\n{{ cta }}\n\n#kochmas_mulk #kvartira #ucharmarket {{ extra_hashtags }}	t	2026-05-14 12:18:35.710938
+f3701bc7-97a7-4005-be58-de9fcd20ce7e	instagram	uz_cyrl	{{ title }}\n\n{{ description }}\n\n📍 {{ district }}  ·  💰 {{ price_formatted }}\n\n{{ cta }}\n\n#кучмас_мулк #квартира #ucharmarket {{ extra_hashtags }}	t	2026-05-14 12:18:35.710938
+\.
+
+
+--
+-- TOC entry 5603 (class 0 OID 418754)
 -- Dependencies: 227
 -- Data for Name: favorites; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.favorites (id, user_id, listing_id, created_at) FROM stdin;
+06c22b80-1240-49e5-8694-4c34cbb40f57	51a926be-c7eb-443b-bedb-a44eb9ebc122	e773c130-e891-4b72-b72f-eb8fdd73ce15	2026-05-14 12:23:09.247207
 \.
 
 
 --
--- TOC entry 5258 (class 0 OID 451372)
+-- TOC entry 5612 (class 0 OID 451372)
 -- Dependencies: 236
 -- Data for Name: housing_complexes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -868,7 +1736,7 @@ COPY public.housing_complexes (id, name, developer_id, region, district, created
 
 
 --
--- TOC entry 5250 (class 0 OID 418781)
+-- TOC entry 5604 (class 0 OID 418781)
 -- Dependencies: 228
 -- Data for Name: listing_claims; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -878,7 +1746,7 @@ COPY public.listing_claims (id, listing_id, seller_id, status, verification_meth
 
 
 --
--- TOC entry 5251 (class 0 OID 418805)
+-- TOC entry 5605 (class 0 OID 418805)
 -- Dependencies: 229
 -- Data for Name: listing_images; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -929,127 +1797,154 @@ e8f2b285-1763-4aa2-ba2a-5dfda80bb360	d55bc1dc-257e-4de9-8734-25b8b7e219a0	http:/
 
 
 --
--- TOC entry 5247 (class 0 OID 418709)
--- Dependencies: 225
--- Data for Name: listings; Type: TABLE DATA; Schema: public; Owner: postgres
+-- TOC entry 5637 (class 0 OID 476516)
+-- Dependencies: 261
+-- Data for Name: listing_sales; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.listings (id, seller_id, type, property_type, rooms, area, floor, total_floors, district, address, latitude, longitude, price, currency, title, description, phone, source_type, source_url, raw_text, signature_hash, master_record_id, status, moderation_status, moderation_notes, views_count, contacts_count, favorites_count, is_boosted, boost_until, is_highlighted, version, deleted_at, created_at, updated_at, expires_at, claimed_at, moderated_by, moderated_at, comments_count, region, original_language, title_ru, title_uz, description_ru, description_uz, address_ru, address_uz, translation_status, translated_at, building_type, condition, land_purpose, seller_type, living_area, kitchen_area, land_area, house_type, house_condition, location_type, water_supply, electricity, heating, gas_supply, sewage, is_furnished, is_negotiable, amenities, nearby_amenities, rent_period, deposit, utilities_incl, min_rent_months, allowed_students, allowed_pets, rent_payment, mortgage_ok, installment_ok, halol_ok, deed_type, urgent_flag, city, microdistrict, jk_name, landmark, metro_station, seller_telegram, commercial_type, price_per_sqm, ceiling_height, entrance, parking_comm, building_class, market_type, wall_material, furniture, garage, basement, buildings_exist, fence, land_shape, balcony, listing_subtype, floor_plan_url, jk_id, slug) FROM stdin;
-e773c130-e891-4b72-b72f-eb8fdd73ce15	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	82	9	16	sergeli	Сергелийский район, Сергели-9	41.2415	69.218	68500	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-17 10:45:44.032444	2026-04-17 10:45:44.032444	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Сергелийский район, Сергели-9	\N	pending	\N	new	euro	\N	owner	60	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv,kitchen_furniture}	{supermarket,park,school,playground,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Sergeli	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	loggia	\N	\N	\N	\N
-ae4dd112-a67c-4179-bf6a-5b910b57bd6f	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	1	80	2	4	olmazor	Охакчи улица, Куёш махалля, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	41.3368729426303	69.21850204467775	32333	USD	\N	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	3	0	0	f	\N	f	1	2026-04-11 09:17:02.150829	2026-04-10 11:26:29.11924	2026-04-11 14:17:03.397804	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Охакчи улица, Куёш махалля, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	\N	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-bcb4e336-d85c-4caf-ab66-481bbca538dc	\N	SELL	APARTMENT	20	222	22	33	mirzo_ulugbek	sdfsdf	41.352	69.335	23422	USD	fsadfsd	asdfasdfasd	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	PENDING	\N	4	0	0	f	\N	f	1	2026-01-16 10:12:21.19994	2026-01-16 09:50:08.09386	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	en	fsadfsd	fsadfsd	asdfasdfasd	asdfasdfasd	sdfsdf	sdfsdf	completed	2026-03-02 12:39:56.334494	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-ed2fe0d4-e339-44ce-ad4b-01d86ba665f8	\N	SELL	APARTMENT	\N	\N	\N	\N	yunusobod	\N	41.37	69.279	100000	USD	Test Listing with Images	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	PENDING	\N	0	0	0	f	\N	f	1	2026-01-16 09:48:49.694909	2026-01-16 09:28:29.639733	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	en	Тестовое объявление с изображениями	Test Listing with Images	\N	\N	\N	\N	completed	\N	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-f6622498-dda8-4e0c-8714-eec0ac8eca1a	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	60	1	12	chilonzor	1, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100117, Oʻzbekiston	41.27107161509502	69.17688053155395	25000	USD	\N	\N	+998	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:25:02.092409	2026-04-07 14:55:08.16573	2026-04-07 17:25:03.454975	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	1, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100117, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-3376f652-036c-4762-a03b-10f28da673cd	\N	SELL	APARTMENT	1	41	1	5	mirzo_ulugbek	fgfdsgsdfgsd	41.352	69.335	32000	USD	3123sdcvv adfsg sdfgsdf g	fgsdfgsd	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	34	0	0	f	\N	f	1	2026-01-16 09:48:46.20311	2026-01-16 05:49:51.321264	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	uz	fgsdfgsd	3123sdcvv adfsg sdfgsdf g	fgsdfgsd	fgsdfgsd	fgfdsgsdfgsd	fgfdsgsdfgsd	completed	2026-03-02 12:40:02.91398	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-6ffaa411-0cda-4c60-966c-3b2f429a714f	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	LAND	\N	\N	\N	\N	qibray	Кибрайский район, массив Янгиюль	41.405	69.402	45000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 23:28:16.928715	2026-04-16 23:28:16.928715	\N	\N	\N	\N	0	toshkent_viloyati	ru	\N	\N	\N	\N	Кибрайский район, массив Янгиюль	\N	pending	\N	\N	\N	construction	owner	\N	\N	1000	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Qibray	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-d55bc1dc-257e-4de9-8734-25b8b7e219a0	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	2	80	4	12	Shohmedtash	Narobodzhon Juraev (NRJ) Aybek, Shohmedtash	\N	\N	310000	USD	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	+998903172052	CLAIMED	https://t.me/testReiltor/20	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-24 19:24:36.968096	2026-04-27 12:03:05.887308	\N	\N	\N	\N	0	\N	ru	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	\N	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	\N	Narobodzhon Juraev (NRJ) Aybek, Shohmedtash	\N	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-35555df4-5997-49c3-9a03-ef5496565c5b	\N	SELL	APARTMENT	20	345	33	100	yakkasaroy	sdfgsdfg	41.291	69.266	34534	USD	zxcvzxcvzxc	sdfgsdfg	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	0	0	0	f	\N	f	1	2026-01-16 09:43:23.432803	2026-01-16 06:41:52.918202	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	uz	sdfgsdfg	zxcvzxcvzxc	sdfgsdfg	sdfgsdfg	sdfgsdfg	sdfgsdfg	completed	2026-03-02 12:42:04.02078	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-6171afe9-c67d-401d-ae7e-d665f34d10bd	\N	SELL	APARTMENT	\N	\N	\N	\N	yunusobod	\N	41.37	69.279	100000	USD	Test Listing with Images 2	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	PENDING	\N	5	0	0	f	\N	f	1	2026-01-16 09:48:55.367242	2026-01-16 09:28:41.845371	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	en	Тестовое объявление с изображениями 2	Test Listing with Images 2	\N	\N	\N	\N	completed	\N	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-c774fe94-c571-409f-9a02-57303088caf5	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	60	2	9	chilonzor	41/1, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	41.27252560604199	69.18271198944004	25300	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:24:59.63702	2026-04-07 14:58:57.769886	2026-04-07 17:25:00.98297	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	41/1, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-5a8ccf18-2364-46ea-9862-13efd037b46a	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	3	80	5	9	yunusobod	Рихсили улица, Yunusobod-8, Юнусабад, Юнусабадский район, Toshkent, 100000, Oʻzbekiston	41.36999410562635	69.27901268005373	99999	USD	\N	Тестовое описание для проверки сохранения полей	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	10	0	0	f	\N	f	1	2026-04-11 09:16:49.226995	2026-04-10 12:08:03.579899	2026-04-11 14:16:50.455825	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	Тестовое описание для проверки сохранения полей	\N	Рихсили улица, Yunusobod-8, Юнусабад, Юнусабадский район, Toshkent, 100000, Oʻzbekiston	\N	pending	\N	new	euro	\N	owner	60	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,balcony,ac}	{park,school,supermarket}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-884f59ac-6cc9-45d7-a9a1-d3b2b6d6aa0e	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	60	5	9	yunusobod	Юнусабадский район, Кашгар махалля	41.31118	69.2791	55000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 11:51:00.466322	2026-04-16 11:56:06.282488	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Юнусабадский район, Кашгар махалля	\N	pending	\N	new	euro	\N	owner	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-fc16bc9a-e125-410f-972b-007e8de5a9ca	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	0	150	2	5	olmazor	242, Farobiy ko'chasi, Махалля Аллон, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	41.33960575812003	69.21998262405397	32423	USD	\N	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	4	0	0	f	\N	f	1	2026-04-22 12:35:42.364419	2026-04-11 14:17:40.091142	2026-04-22 17:35:44.510062	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	242, Farobiy ko'chasi, Махалля Аллон, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	pending	\N	new	euro	\N	owner	20	7	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet}	{hospital,park}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-d4811938-49bd-47f5-b585-2d37151f6511	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	HOUSE	6	280	\N	2	yashnobod	Яшнабадский район, Паркентская ул.	41.301	69.334	255000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-17 10:42:43.595114	2026-04-17 10:42:43.595114	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Яшнабадский район, Паркентская ул.	\N	pending	\N	\N	\N	\N	owner	220	\N	500	\N	\N	\N	\N	\N	\N	\N	\N	t	t	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,school,hospital}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	full	t	t	\N	\N	\N	\N	\N	\N	\N	\N
-3ca6e880-787e-4434-8fe1-b5d5397c8a5e	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	60	4	12	chilonzor	33a cтр, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	41.26659937840574	69.18314784692699	25300	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:24:56.623796	2026-04-07 15:05:31.339049	2026-04-07 17:24:57.983419	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	33a cтр, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-04c283f7-080d-4fa6-8939-4a58d63e3ac6	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	60	1	9	chilonzor	41, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	41.27145566038644	69.1803959029638	65000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:24:52.693606	2026-04-07 15:31:26.616561	2026-04-07 17:24:54.050005	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	41, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-d961ca5b-ec3c-4aba-a186-2914d1851593	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	85	7	16	chilonzor	Чиланзарский район, Чиланзар-12	41.2865	69.2045	78000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 12:20:22.605916	2026-04-16 12:20:22.605916	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Чиланзарский район, Чиланзар-12	\N	pending	\N	new	euro	\N	owner	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine}	{supermarket,park,school}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-67ed19e8-4de2-4187-8537-d78ea66d29ac	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	4	120	3	12	mirobod	Мирабадский район, ул. Нукусская 45	41.3025	69.2713	145000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:07:16.312502	2026-04-16 13:07:16.312502	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Мирабадский район, ул. Нукусская 45	\N	pending	\N	secondary	designer	\N	owner	90	15	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,restaurant,hospital,school}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-614c0752-a40f-48d0-9c75-3ee21cf3ca6a	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	65	5	12	yunusobod	\N	41.35	69.28	72000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:52:44.082141	2026-04-16 13:52:44.082141	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	\N	\N	pending	\N	\N	euro	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Tashkent	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-489ddc65-dc4f-4ead-9cbd-15203f354134	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	75	6	9	chilonzor	Чиланзарский район, Чиланзар-7	41.282	69.211	72000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 16:44:49.499257	2026-04-16 18:28:32.622253	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Чиланзарский район, Чиланзар-7	\N	pending	\N	secondary	euro	\N	owner	55	10	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge}	{supermarket,park,school,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Chilonzor	\N	\N	\N	\N	\N	\N	\N	secondary	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-76c20da9-55ec-4af0-9aa1-3654ccce7436	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	95	8	14	sergeli	Сергелийский район, Янги Сергели	41.2435	69.2218	68000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:54:43.125441	2026-04-16 13:54:43.125441	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Сергелийский район, Янги Сергели	\N	pending	\N	new	euro	\N	owner	70	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,fridge}	{supermarket,school,playground}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-c9e55bcb-5bdf-4a04-b3cc-8da682c91025	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	HOUSE	5	220	\N	2	yakkasaroy	Яккасарайский район, ул. Шота Руставели	41.2958	69.2684	320000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:56:50.845853	2026-04-16 13:56:50.845853	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Яккасарайский район, ул. Шота Руставели	\N	pending	\N	\N	\N	\N	owner	180	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,restaurant,hospital,school}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-6a93826c-f7be-4a2f-a12b-ad1733888267	8ed64475-094d-4edb-82a0-823fc538ee13	RENT	APARTMENT	2	55	4	9	olmazor	Алмазарский район, Олмазор-5	41.3312	69.2195	400	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 14:33:32.2414	2026-04-16 14:33:32.2414	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Алмазарский район, Олмазор-5	\N	pending	\N	secondary	cosmetic	\N	owner	40	10	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge}	{supermarket,school,bus_stop}	long_term	\N	\N	6	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-4b1bcb2a-97d0-4df8-a539-da131e1fcede	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	48	2	5	uchtepa	Учтепинский район, Учтепа-3	41.3185	69.234	38000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 16:47:24.697527	2026-04-16 16:47:24.697527	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Учтепинский район, Учтепа-3	\N	pending	\N	secondary	cosmetic	\N	owner	32	8	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	{internet,fridge}	{supermarket,school,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-0caa24e0-7413-405a-ab2f-c92dd29df5d0	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	4	110	5	10	shayxontohur	Шайхантахурский район, Лабзак	41.335	69.262	95000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 17:00:42.736291	2026-04-16 17:00:42.736291	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Шайхантахурский район, Лабзак	\N	pending	\N	new	turnkey	\N	owner	85	14	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,hospital,school,restaurant}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-fd26feb2-178b-409b-b87f-6a92fb27e65c	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	1	35	3	5	bektemir	Бектемирский район, Бектемир-4	41.289	69.335	28000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 17:02:17.513817	2026-04-16 18:40:08.05668	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Бектемирский район, Бектемир-4	\N	pending	\N	secondary	medium	\N	owner	20	7	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	{internet}	{supermarket,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	t	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-c95ad41e-9c86-40af-9970-5125cf127839	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	92	10	16	mirzo_ulugbek	Мирзо-Улугбекский район, Ипак Йули	41.312	69.315	89000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 18:43:29.005848	2026-04-16 18:43:29.005848	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Мирзо-Улугбекский район, Ипак Йули	\N	pending	\N	new	euro	\N	owner	68	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv,kitchen_furniture}	{supermarket,park,school,restaurant,parking}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-51469913-f1c1-4c7c-aede-347cd3d33ac7	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	80	7	16	mirzo_ulugbek	\N	41.33	69.27	95000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 14:14:01.260822	2026-04-16 18:40:13.61883	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	\N	\N	pending	\N	\N	euro	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Tashkent	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-4e6af6d3-c0b7-4104-a87f-dc1ab3ea632b	8ed64475-094d-4edb-82a0-823fc538ee13	RENT	APARTMENT	2	65	6	9	yashnobod	Яшнабадский район, Катта Яшнабад	41.294	69.321	550	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	1	0	0	f	\N	f	1	\N	2026-04-16 18:51:19.847605	2026-04-16 23:18:43.112563	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Яшнабадский район, Катта Яшнабад	\N	pending	\N	new	euro	\N	owner	45	10	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,school}	long_term	\N	\N	3	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-ed64a15c-d727-4730-bc58-0f2158f3ba4c	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	58	7	12	olmazor	Алмазарский район, Олмазор-8	41.3425	69.224	52000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 21:54:46.241779	2026-04-16 21:54:46.241779	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Алмазарский район, Олмазор-8	\N	pending	\N	new	euro	\N	owner	40	9	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	t	{internet,conditioner}	{supermarket,school,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Olmazor	\N	\N	\N	\N	\N	\N	\N	new	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-bdc63f8b-71b6-4124-861f-d9481129eeae	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	COMMERCIAL	\N	150	1	5	yunusobod	Юнусабадский район, проспект Амира Темура	41.338	69.2895	180000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	1	0	0	f	\N	f	1	\N	2026-04-16 23:03:13.704926	2026-04-16 23:19:03.453048	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Юнусабадский район, проспект Амира Темура	\N	pending	\N	\N	euro	\N	owner	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	office	\N	3.2	street	t	\N	\N	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-75993cfc-a23a-493b-98c1-7da8d643510a	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	62	5	10	sergeli	Сергелийский район, Янги Сергели-4	41.238	69.215	54000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 23:48:34.904378	2026-04-16 23:48:34.904378	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Сергелийский район, Янги Сергели-4	\N	pending	\N	new	euro	\N	owner	44	11	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge}	{supermarket,school,playground,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Sergeli	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+COPY public.listing_sales (id, listing_id, sold_price, sold_currency, sold_at, notes, created_at) FROM stdin;
 \.
 
 
 --
--- TOC entry 5243 (class 0 OID 418591)
+-- TOC entry 5613 (class 0 OID 468498)
+-- Dependencies: 237
+-- Data for Name: listing_view_event; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.listing_view_event (id, user_id, listing_id, event_type, viewed_at, dwell_ms, anon_id) FROM stdin;
+ca76e84e-90b0-44ae-8e05-a687fe7e5609	51a926be-c7eb-443b-bedb-a44eb9ebc122	75993cfc-a23a-493b-98c1-7da8d643510a	contact	2026-05-04 15:37:44.322894	\N	\N
+6d669e6a-27fb-4e19-ab7e-201c0fa28c1f	51a926be-c7eb-443b-bedb-a44eb9ebc122	75993cfc-a23a-493b-98c1-7da8d643510a	view	2026-05-04 15:37:29.801122	31651	\N
+b98036f9-518b-419c-8560-4c7302c1bdfe	51a926be-c7eb-443b-bedb-a44eb9ebc122	e773c130-e891-4b72-b72f-eb8fdd73ce15	contact	2026-05-04 15:42:12.864157	\N	\N
+124a40f4-7798-48c7-a007-e1838cc9671c	51a926be-c7eb-443b-bedb-a44eb9ebc122	e773c130-e891-4b72-b72f-eb8fdd73ce15	view	2026-05-04 15:38:16.278951	96377	\N
+\.
+
+
+--
+-- TOC entry 5601 (class 0 OID 418709)
+-- Dependencies: 225
+-- Data for Name: listings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.listings (id, seller_id, type, property_type, rooms, area, floor, total_floors, district, address, latitude, longitude, price, currency, title, description, phone, source_type, source_url, raw_text, signature_hash, master_record_id, status, moderation_status, moderation_notes, views_count, contacts_count, favorites_count, is_boosted, boost_until, is_highlighted, version, deleted_at, created_at, updated_at, expires_at, claimed_at, moderated_by, moderated_at, comments_count, region, original_language, title_ru, title_uz, description_ru, description_uz, address_ru, address_uz, translation_status, translated_at, building_type, condition, land_purpose, seller_type, living_area, kitchen_area, land_area, house_type, house_condition, location_type, water_supply, electricity, heating, gas_supply, sewage, is_furnished, is_negotiable, amenities, nearby_amenities, rent_period, deposit, utilities_incl, min_rent_months, allowed_students, allowed_pets, rent_payment, mortgage_ok, installment_ok, halol_ok, deed_type, urgent_flag, city, microdistrict, jk_name, landmark, metro_station, seller_telegram, commercial_type, price_per_sqm, ceiling_height, entrance, parking_comm, building_class, market_type, wall_material, furniture, garage, basement, buildings_exist, fence, land_shape, balcony, listing_subtype, floor_plan_url, jk_id, slug, ai_description_ru, ai_description_uz, ai_description_uz_cyrl, ai_generation_attempted_at, last_ai_param_snapshot, has_urgent_badge, urgent_until, notify_priority_until, sold_price, sold_currency, sold_at) FROM stdin;
+e773c130-e891-4b72-b72f-eb8fdd73ce15	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	82	9	16	sergeli	Сергелийский район, Сергели-9	41.2415	69.218	68500	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	4	1	1	f	\N	f	1	\N	2026-04-17 10:45:44.032444	2026-05-14 12:23:09.247207	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Сергелийский район, Сергели-9	\N	pending	\N	new	euro	\N	owner	60	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv,kitchen_furniture}	{supermarket,park,school,playground,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Sergeli	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	loggia	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+ae4dd112-a67c-4179-bf6a-5b910b57bd6f	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	1	80	2	4	olmazor	Охакчи улица, Куёш махалля, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	41.3368729426303	69.21850204467775	32333	USD	\N	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	3	0	0	f	\N	f	1	2026-04-11 09:17:02.150829	2026-04-10 11:26:29.11924	2026-04-11 14:17:03.397804	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Охакчи улица, Куёш махалля, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	\N	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+bcb4e336-d85c-4caf-ab66-481bbca538dc	\N	SELL	APARTMENT	20	222	22	33	mirzo_ulugbek	sdfsdf	41.352	69.335	23422	USD	fsadfsd	asdfasdfasd	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	PENDING	\N	4	0	0	f	\N	f	1	2026-01-16 10:12:21.19994	2026-01-16 09:50:08.09386	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	en	fsadfsd	fsadfsd	asdfasdfasd	asdfasdfasd	sdfsdf	sdfsdf	completed	2026-03-02 12:39:56.334494	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+ed2fe0d4-e339-44ce-ad4b-01d86ba665f8	\N	SELL	APARTMENT	\N	\N	\N	\N	yunusobod	\N	41.37	69.279	100000	USD	Test Listing with Images	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	PENDING	\N	0	0	0	f	\N	f	1	2026-01-16 09:48:49.694909	2026-01-16 09:28:29.639733	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	en	Тестовое объявление с изображениями	Test Listing with Images	\N	\N	\N	\N	completed	\N	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+f6622498-dda8-4e0c-8714-eec0ac8eca1a	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	60	1	12	chilonzor	1, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100117, Oʻzbekiston	41.27107161509502	69.17688053155395	25000	USD	\N	\N	+998	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:25:02.092409	2026-04-07 14:55:08.16573	2026-04-07 17:25:03.454975	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	1, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100117, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+3376f652-036c-4762-a03b-10f28da673cd	\N	SELL	APARTMENT	1	41	1	5	mirzo_ulugbek	fgfdsgsdfgsd	41.352	69.335	32000	USD	3123sdcvv adfsg sdfgsdf g	fgsdfgsd	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	34	0	0	f	\N	f	1	2026-01-16 09:48:46.20311	2026-01-16 05:49:51.321264	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	uz	fgsdfgsd	3123sdcvv adfsg sdfgsdf g	fgsdfgsd	fgsdfgsd	fgfdsgsdfgsd	fgfdsgsdfgsd	completed	2026-03-02 12:40:02.91398	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+6ffaa411-0cda-4c60-966c-3b2f429a714f	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	LAND	\N	\N	\N	\N	qibray	Кибрайский район, массив Янгиюль	41.405	69.402	45000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 23:28:16.928715	2026-04-16 23:28:16.928715	\N	\N	\N	\N	0	toshkent_viloyati	ru	\N	\N	\N	\N	Кибрайский район, массив Янгиюль	\N	pending	\N	\N	\N	construction	owner	\N	\N	1000	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Qibray	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+d55bc1dc-257e-4de9-8734-25b8b7e219a0	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	2	80	4	12	Shohmedtash	Narobodzhon Juraev (NRJ) Aybek, Shohmedtash	\N	\N	310000	USD	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	+998903172052	CLAIMED	https://t.me/testReiltor/20	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-24 19:24:36.968096	2026-04-27 12:03:05.887308	\N	\N	\N	\N	0	\N	ru	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	\N	Практически новая, техника Bosch/Samsung, сантехника Grohe, посудомойка, камен Onix, лучший блок, красивый вид на улицу Нукус, два балкона	\N	Narobodzhon Juraev (NRJ) Aybek, Shohmedtash	\N	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+35555df4-5997-49c3-9a03-ef5496565c5b	\N	SELL	APARTMENT	20	345	33	100	yakkasaroy	sdfgsdfg	41.291	69.266	34534	USD	zxcvzxcvzxc	sdfgsdfg	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	0	0	0	f	\N	f	1	2026-01-16 09:43:23.432803	2026-01-16 06:41:52.918202	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	uz	sdfgsdfg	zxcvzxcvzxc	sdfgsdfg	sdfgsdfg	sdfgsdfg	sdfgsdfg	completed	2026-03-02 12:42:04.02078	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+6171afe9-c67d-401d-ae7e-d665f34d10bd	\N	SELL	APARTMENT	\N	\N	\N	\N	yunusobod	\N	41.37	69.279	100000	USD	Test Listing with Images 2	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	PENDING	\N	5	0	0	f	\N	f	1	2026-01-16 09:48:55.367242	2026-01-16 09:28:41.845371	2026-03-16 13:48:12.675129	\N	\N	\N	\N	0	toshkent_shahri	en	Тестовое объявление с изображениями 2	Test Listing with Images 2	\N	\N	\N	\N	completed	\N	secondary	cosmetic	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+c774fe94-c571-409f-9a02-57303088caf5	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	60	2	9	chilonzor	41/1, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	41.27252560604199	69.18271198944004	25300	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:24:59.63702	2026-04-07 14:58:57.769886	2026-04-07 17:25:00.98297	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	41/1, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+5a8ccf18-2364-46ea-9862-13efd037b46a	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	3	80	5	9	yunusobod	Рихсили улица, Yunusobod-8, Юнусабад, Юнусабадский район, Toshkent, 100000, Oʻzbekiston	41.36999410562635	69.27901268005373	99999	USD	\N	Тестовое описание для проверки сохранения полей	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	10	0	0	f	\N	f	1	2026-04-11 09:16:49.226995	2026-04-10 12:08:03.579899	2026-04-11 14:16:50.455825	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	Тестовое описание для проверки сохранения полей	\N	Рихсили улица, Yunusobod-8, Юнусабад, Юнусабадский район, Toshkent, 100000, Oʻzbekiston	\N	pending	\N	new	euro	\N	owner	60	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,balcony,ac}	{park,school,supermarket}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+884f59ac-6cc9-45d7-a9a1-d3b2b6d6aa0e	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	60	5	9	yunusobod	Юнусабадский район, Кашгар махалля	41.31118	69.2791	55000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 11:51:00.466322	2026-04-16 11:56:06.282488	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Юнусабадский район, Кашгар махалля	\N	pending	\N	new	euro	\N	owner	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+fc16bc9a-e125-410f-972b-007e8de5a9ca	e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	SELL	APARTMENT	0	150	2	5	olmazor	242, Farobiy ko'chasi, Махалля Аллон, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	41.33960575812003	69.21998262405397	32423	USD	\N	\N	+998903172052	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	4	0	0	f	\N	f	1	2026-04-22 12:35:42.364419	2026-04-11 14:17:40.091142	2026-04-22 17:35:44.510062	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	242, Farobiy ko'chasi, Махалля Аллон, Старый Город, Olmazor Tumani, Toshkent, 100000, Oʻzbekiston	pending	\N	new	euro	\N	owner	20	7	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet}	{hospital,park}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+d4811938-49bd-47f5-b585-2d37151f6511	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	HOUSE	6	280	\N	2	yashnobod	Яшнабадский район, Паркентская ул.	41.301	69.334	255000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-17 10:42:43.595114	2026-04-17 10:42:43.595114	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Яшнабадский район, Паркентская ул.	\N	pending	\N	\N	\N	\N	owner	220	\N	500	\N	\N	\N	\N	\N	\N	\N	\N	t	t	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,school,hospital}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	full	t	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+3ca6e880-787e-4434-8fe1-b5d5397c8a5e	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	60	4	12	chilonzor	33a cтр, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	41.26659937840574	69.18314784692699	25300	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:24:56.623796	2026-04-07 15:05:31.339049	2026-04-07 17:24:57.983419	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	33a cтр, Chilonzor-20, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+04c283f7-080d-4fa6-8939-4a58d63e3ac6	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	60	1	9	chilonzor	41, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	41.27145566038644	69.1803959029638	65000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	DELETED	APPROVED	\N	1	0	0	f	\N	f	1	2026-04-07 12:24:52.693606	2026-04-07 15:31:26.616561	2026-04-07 17:24:54.050005	\N	\N	\N	\N	0	toshkent_shahri	uz	\N	\N	\N	\N	\N	41, Chilonzor-19, Чиланзар, Чиланзарский район, Toshkent, 100000, Oʻzbekiston	pending	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+d961ca5b-ec3c-4aba-a186-2914d1851593	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	85	7	16	chilonzor	Чиланзарский район, Чиланзар-12	41.2865	69.2045	78000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 12:20:22.605916	2026-04-16 12:20:22.605916	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Чиланзарский район, Чиланзар-12	\N	pending	\N	new	euro	\N	owner	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine}	{supermarket,park,school}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+67ed19e8-4de2-4187-8537-d78ea66d29ac	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	4	120	3	12	mirobod	Мирабадский район, ул. Нукусская 45	41.3025	69.2713	145000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:07:16.312502	2026-04-16 13:07:16.312502	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Мирабадский район, ул. Нукусская 45	\N	pending	\N	secondary	designer	\N	owner	90	15	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,restaurant,hospital,school}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+614c0752-a40f-48d0-9c75-3ee21cf3ca6a	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	65	5	12	yunusobod	\N	41.35	69.28	72000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:52:44.082141	2026-04-16 13:52:44.082141	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	\N	\N	pending	\N	\N	euro	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Tashkent	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+489ddc65-dc4f-4ead-9cbd-15203f354134	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	75	6	9	chilonzor	Чиланзарский район, Чиланзар-7	41.282	69.211	72000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 16:44:49.499257	2026-04-16 18:28:32.622253	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Чиланзарский район, Чиланзар-7	\N	pending	\N	secondary	euro	\N	owner	55	10	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge}	{supermarket,park,school,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Chilonzor	\N	\N	\N	\N	\N	\N	\N	secondary	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+76c20da9-55ec-4af0-9aa1-3654ccce7436	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	95	8	14	sergeli	Сергелийский район, Янги Сергели	41.2435	69.2218	68000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:54:43.125441	2026-04-16 13:54:43.125441	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Сергелийский район, Янги Сергели	\N	pending	\N	new	euro	\N	owner	70	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,fridge}	{supermarket,school,playground}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+c9e55bcb-5bdf-4a04-b3cc-8da682c91025	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	HOUSE	5	220	\N	2	yakkasaroy	Яккасарайский район, ул. Шота Руставели	41.2958	69.2684	320000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 13:56:50.845853	2026-04-16 13:56:50.845853	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Яккасарайский район, ул. Шота Руставели	\N	pending	\N	\N	\N	\N	owner	180	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,restaurant,hospital,school}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+6a93826c-f7be-4a2f-a12b-ad1733888267	8ed64475-094d-4edb-82a0-823fc538ee13	RENT	APARTMENT	2	55	4	9	olmazor	Алмазарский район, Олмазор-5	41.3312	69.2195	400	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 14:33:32.2414	2026-04-16 14:33:32.2414	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Алмазарский район, Олмазор-5	\N	pending	\N	secondary	cosmetic	\N	owner	40	10	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge}	{supermarket,school,bus_stop}	long_term	\N	\N	6	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+4b1bcb2a-97d0-4df8-a539-da131e1fcede	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	48	2	5	uchtepa	Учтепинский район, Учтепа-3	41.3185	69.234	38000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 16:47:24.697527	2026-04-16 16:47:24.697527	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Учтепинский район, Учтепа-3	\N	pending	\N	secondary	cosmetic	\N	owner	32	8	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	{internet,fridge}	{supermarket,school,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+0caa24e0-7413-405a-ab2f-c92dd29df5d0	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	4	110	5	10	shayxontohur	Шайхантахурский район, Лабзак	41.335	69.262	95000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 17:00:42.736291	2026-04-16 17:00:42.736291	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Шайхантахурский район, Лабзак	\N	pending	\N	new	turnkey	\N	owner	85	14	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,hospital,school,restaurant}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+fd26feb2-178b-409b-b87f-6a92fb27e65c	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	1	35	3	5	bektemir	Бектемирский район, Бектемир-4	41.289	69.335	28000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 17:02:17.513817	2026-04-16 18:40:08.05668	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Бектемирский район, Бектемир-4	\N	pending	\N	secondary	medium	\N	owner	20	7	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	{internet}	{supermarket,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	t	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	secondary	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+c95ad41e-9c86-40af-9970-5125cf127839	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	92	10	16	mirzo_ulugbek	Мирзо-Улугбекский район, Ипак Йули	41.312	69.315	89000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 18:43:29.005848	2026-04-16 18:43:29.005848	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Мирзо-Улугбекский район, Ипак Йули	\N	pending	\N	new	euro	\N	owner	68	12	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv,kitchen_furniture}	{supermarket,park,school,restaurant,parking}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+51469913-f1c1-4c7c-aede-347cd3d33ac7	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	3	80	7	16	mirzo_ulugbek	\N	41.33	69.27	95000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	0	0	f	\N	f	1	\N	2026-04-16 14:14:01.260822	2026-04-16 18:40:13.61883	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	\N	\N	pending	\N	\N	euro	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Tashkent	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+4e6af6d3-c0b7-4104-a87f-dc1ab3ea632b	8ed64475-094d-4edb-82a0-823fc538ee13	RENT	APARTMENT	2	65	6	9	yashnobod	Яшнабадский район, Катта Яшнабад	41.294	69.321	550	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	1	0	0	f	\N	f	1	\N	2026-04-16 18:51:19.847605	2026-04-16 23:18:43.112563	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Яшнабадский район, Катта Яшнабад	\N	pending	\N	new	euro	\N	owner	45	10	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge,tv}	{supermarket,park,school}	long_term	\N	\N	3	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+ed64a15c-d727-4730-bc58-0f2158f3ba4c	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	58	7	12	olmazor	Алмазарский район, Олмазор-8	41.3425	69.224	52000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	0	0	0	f	\N	f	1	\N	2026-04-16 21:54:46.241779	2026-04-16 21:54:46.241779	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Алмазарский район, Олмазор-8	\N	pending	\N	new	euro	\N	owner	40	9	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	t	{internet,conditioner}	{supermarket,school,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Olmazor	\N	\N	\N	\N	\N	\N	\N	new	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+bdc63f8b-71b6-4124-861f-d9481129eeae	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	COMMERCIAL	\N	150	1	5	yunusobod	Юнусабадский район, проспект Амира Темура	41.338	69.2895	180000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	1	0	0	f	\N	f	1	\N	2026-04-16 23:03:13.704926	2026-04-16 23:19:03.453048	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Юнусабадский район, проспект Амира Темура	\N	pending	\N	\N	euro	\N	owner	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	\N	\N	office	\N	3.2	street	t	\N	\N	\N	none	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+75993cfc-a23a-493b-98c1-7da8d643510a	8ed64475-094d-4edb-82a0-823fc538ee13	SELL	APARTMENT	2	62	5	10	sergeli	Сергелийский район, Янги Сергели-4	41.238	69.215	54000	USD	\N	\N	+998777121018	MANUAL	\N	\N	\N	\N	ACTIVE	APPROVED	\N	2	1	0	f	\N	f	1	\N	2026-04-16 23:48:34.904378	2026-05-08 10:27:03.161064	\N	\N	\N	\N	0	toshkent_shahri	ru	\N	\N	\N	\N	Сергелийский район, Янги Сергели-4	\N	pending	\N	new	euro	\N	owner	44	11	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	f	{internet,conditioner,washing_machine,fridge}	{supermarket,school,playground,bus_stop}	\N	\N	\N	\N	\N	\N	\N	f	f	f	\N	f	Ташкент	\N	\N	\N	Sergeli	\N	\N	\N	\N	\N	\N	\N	new	\N	full	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N
+\.
+
+
+--
+-- TOC entry 5597 (class 0 OID 418591)
 -- Dependencies: 221
 -- Data for Name: notification_preferences; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.notification_preferences (id, user_id, enabled, time_start, time_end, timezone, daily_limit, districts, property_types, listing_types, price_min, price_max, rooms, created_at, updated_at, disabled_types, time_windows, source_saved_searches, source_seller_follows, source_ai_recs, paused) FROM stdin;
 87b7b54c-43d5-4f22-9beb-d3da00b94c07	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	t	09:00:00	21:00:00	Asia/Tashkent	10	{}	{}	{}	\N	\N	{}	2026-03-11 14:49:33.720723	2026-03-11 14:49:42.697276	{}	{morning,afternoon,evening}	t	t	t	f
+21d2bbaf-c9d5-45b0-b6ec-6f27dd3aaeef	51a926be-c7eb-443b-bedb-a44eb9ebc122	t	09:00:00	21:00:00	Asia/Tashkent	25	{bektemir,chilonzor,mirzo_ulugbek,mirobod,olmazor,uchtepa,shayxontohur,sergeli,yashnobod,yakkasaroy,yangihayot,yunusobod}	{apartment,house,commercial,land}	{sell,rent}	\N	490000	{5,5,1,2,3,4,5}	2026-04-04 16:00:32.486925	2026-05-08 10:45:56.002524	{}	{morning,afternoon,evening}	t	t	t	f
 22431b31-f537-4673-a499-1f6823d50174	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	t	09:00:00	21:00:00	Asia/Tashkent	10	{}	{}	{}	\N	\N	{}	2026-03-30 10:49:51.931376	2026-03-30 10:49:51.931376	{}	{morning,afternoon,evening}	t	t	t	f
-21d2bbaf-c9d5-45b0-b6ec-6f27dd3aaeef	51a926be-c7eb-443b-bedb-a44eb9ebc122	t	09:00:00	21:00:00	Asia/Tashkent	25	{bektemir,chilonzor,mirzo_ulugbek,mirobod,olmazor,uchtepa,shayxontohur,sergeli,yashnobod,yakkasaroy,yangihayot,yunusobod}	{apartment,house,commercial,land}	{sell,rent}	\N	490000	{5,5,1,2,3,4,5}	2026-04-04 16:00:32.486925	2026-04-16 23:27:43.892377	{}	{morning,afternoon,evening}	t	t	t	f
 \.
 
 
 --
--- TOC entry 5254 (class 0 OID 418897)
+-- TOC entry 5608 (class 0 OID 418897)
 -- Dependencies: 232
 -- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.notifications (id, user_id, type, title, message, listing_id, comment_id, actor_id, read, created_at, source) FROM stdin;
-14ebbfb2-64c5-4a71-9de7-8c112016913a	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., Shohmedtash — 310,000.0 $	b1c8b8ad-a1ad-4936-ba34-ac3b550c37d4	\N	\N	f	2026-04-23 17:35:27.743255	preferences
-b25ebab1-05e5-488d-8547-9121596b2163	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, 2 xona, Shohmedtash — 310,000.0 $	b1c8b8ad-a1ad-4936-ba34-ac3b550c37d4	\N	\N	f	2026-04-23 17:35:27.743255	preferences
-56abf44c-e332-4269-93d8-b440d0ae05cc	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., test_district — 75,000 $	50b928dd-941d-4e73-aabd-2e07d1256f48	\N	\N	f	2026-03-11 14:50:18.257229	\N
-b9ecd4e4-78f5-4e15-bf58-0bad656af820	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., test_district_2 — 60,000 $	2d091402-2074-4c5a-bee4-2c9a192d3329	\N	\N	f	2026-03-11 14:50:20.26716	\N
-574f6d53-8055-4173-a2d7-eb1867978d4c	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 65,000 $	04c283f7-080d-4fa6-8939-4a58d63e3ac6	\N	\N	f	2026-04-07 15:31:26.890745	\N
-69bf66a2-6b4a-4d6b-a2d9-416a27e5e980	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 1 комн., olmazor — 32,333 $	ae4dd112-a67c-4179-bf6a-5b910b57bd6f	\N	\N	f	2026-04-10 11:26:29.87763	\N
-d5c97950-5ced-427e-b704-611759c2d15f	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, 1 xona, olmazor — 32,333 $	ae4dd112-a67c-4179-bf6a-5b910b57bd6f	\N	\N	f	2026-04-10 11:26:29.87763	\N
-474bf653-b585-4099-a914-ebf213cd8acd	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., yunusobod — 75,000 $	5a8ccf18-2364-46ea-9862-13efd037b46a	\N	\N	f	2026-04-10 12:08:03.903205	\N
-9349f261-c1ff-4d06-b053-83e0564f5d02	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, 3 xona, yunusobod — 75,000 $	5a8ccf18-2364-46ea-9862-13efd037b46a	\N	\N	f	2026-04-10 12:08:03.903205	\N
-480d648d-dc6c-4aae-920a-662a125bc965	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, olmazor — 32,423 $	fc16bc9a-e125-410f-972b-007e8de5a9ca	\N	\N	f	2026-04-11 14:17:40.574145	\N
-c6005e69-30a7-4e8d-a889-8f35a118ec14	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, olmazor — 32,423 $	fc16bc9a-e125-410f-972b-007e8de5a9ca	\N	\N	f	2026-04-11 14:17:40.574145	\N
-0f3fb44f-1299-4b90-a17a-384bc2f167cd	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., yunusobod — 55,000 $	884f59ac-6cc9-45d7-a9a1-d3b2b6d6aa0e	\N	\N	f	2026-04-16 11:51:01.402155	\N
-57f63090-3948-4255-9dcc-e5160e6b0abe	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 78,000 $	d961ca5b-ec3c-4aba-a186-2914d1851593	\N	\N	f	2026-04-16 12:32:42.221666	\N
-b215f0fd-fa2e-44f0-aa39-2282f34fb398	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 4 комн., mirobod — 145,000 $	67ed19e8-4de2-4187-8537-d78ea66d29ac	\N	\N	f	2026-04-16 13:07:18.008416	\N
-69658fa0-9daf-4b61-a1b8-7fbe81cd5024	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., yunusobod — 72,000 $	614c0752-a40f-48d0-9c75-3ee21cf3ca6a	\N	\N	f	2026-04-16 13:52:45.782021	\N
-f778689e-2555-4d26-a5f1-aa7d062daa86	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., sergeli — 68,000 $	76c20da9-55ec-4af0-9aa1-3654ccce7436	\N	\N	f	2026-04-16 13:54:43.566989	\N
-717a3d9d-2238-4615-9f2f-f48a760fd3dc	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Дом, 5 комн., yakkasaroy — 320,000 $	c9e55bcb-5bdf-4a04-b3cc-8da682c91025	\N	\N	f	2026-04-16 13:56:52.353644	\N
-e8b3b91e-4b11-4893-acd2-6aa46e01e193	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., mirzo_ulugbek — 95,000 $	51469913-f1c1-4c7c-aede-347cd3d33ac7	\N	\N	f	2026-04-16 14:14:01.652955	\N
-e625452a-2ccf-4eee-90fb-e1df04d96ba4	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Аренда: Квартира, 2 комн., olmazor — 400 $	6a93826c-f7be-4a2f-a12b-ad1733888267	\N	\N	f	2026-04-16 14:33:32.55	\N
-08277fb0-49e4-49a2-9525-27ef1be8e02f	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 72,000 $	489ddc65-dc4f-4ead-9cbd-15203f354134	\N	\N	f	2026-04-16 16:44:49.832702	\N
-a83cdb5d-d459-4ec4-9031-3980a8b97011	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 65,000 $	04c283f7-080d-4fa6-8939-4a58d63e3ac6	\N	\N	t	2026-04-07 15:31:26.890745	\N
-0c214b22-7289-4455-b79c-ccd58040fb4d	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., uchtepa — 38,000 $	4b1bcb2a-97d0-4df8-a539-da131e1fcede	\N	\N	f	2026-04-16 16:47:25.113912	\N
-912a73fc-f9d2-469d-ada0-ee6511fa18c9	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 4 комн., shayxontohur — 95,000 $	0caa24e0-7413-405a-ab2f-c92dd29df5d0	\N	\N	f	2026-04-16 17:00:43.014521	\N
-76bffbc3-57f5-4263-8ee2-b460287d1c0e	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 1 комн., bektemir — 28,000 $	fd26feb2-178b-409b-b87f-6a92fb27e65c	\N	\N	f	2026-04-16 17:02:17.790636	\N
-0fe86725-d2fe-4b71-980a-5a5ac1ac40cc	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 78,000 $	d961ca5b-ec3c-4aba-a186-2914d1851593	\N	\N	t	2026-04-16 12:32:42.221666	\N
-31f876f5-894a-4a12-90a7-7b288074c3b0	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 4 комн., mirobod — 145,000 $	67ed19e8-4de2-4187-8537-d78ea66d29ac	\N	\N	t	2026-04-16 13:07:16.770978	\N
-f964d5b7-b664-426f-9c27-1d0878389547	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 2 комн., yunusobod — 72,000 $	614c0752-a40f-48d0-9c75-3ee21cf3ca6a	\N	\N	t	2026-04-16 13:52:44.554244	\N
-1189e7ba-49cc-489b-b779-1b8514c42db1	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., mirzo_ulugbek — 89,000 $	c95ad41e-9c86-40af-9970-5125cf127839	\N	\N	f	2026-04-16 18:43:29.379552	\N
-e74073c8-6dc9-4d56-ba70-9bee7a8930b3	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Аренда: Квартира, 2 комн., yashnobod — 550 $	4e6af6d3-c0b7-4104-a87f-dc1ab3ea632b	\N	\N	f	2026-04-16 18:51:20.13848	\N
-71a35ec1-80fe-46c6-aba8-a6a0318e8449	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Коммерческая, yunusobod — 180,000 $	bdc63f8b-71b6-4124-861f-d9481129eeae	\N	\N	f	2026-04-16 23:03:15.920378	\N
-7d825f97-c3aa-4f51-b3dc-cdd153cf45c4	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Земельный участок, qibray — 45,000 $	6ffaa411-0cda-4c60-966c-3b2f429a714f	\N	\N	f	2026-04-16 23:28:17.19999	\N
-cc09dbb4-f20d-49b6-bdcc-ea068aea228d	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., sergeli — 54,000 $	75993cfc-a23a-493b-98c1-7da8d643510a	\N	\N	f	2026-04-16 23:48:35.220129	\N
-0d8c2620-8d7b-4a2f-8b5a-8cdb15923e29	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., olmazor — 52,000 $	ed64a15c-d727-4730-bc58-0f2158f3ba4c	\N	\N	f	2026-04-16 21:54:48.076027	\N
-e0ef9414-f38b-471b-9d00-faad29105d70	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Yangi e'lon	Sotish: Kvartira, 2 xona, olmazor — 52,000 $	ed64a15c-d727-4730-bc58-0f2158f3ba4c	\N	\N	t	2026-04-16 21:54:48.076027	\N
-0cd2e876-87e1-4b7e-89a8-a888687058d2	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Tijorat, yunusobod — 180,000 $	bdc63f8b-71b6-4124-861f-d9481129eeae	\N	\N	t	2026-04-16 23:03:14.60862	\N
-61f2421e-3f22-4ffd-a81c-506821363ca6	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Yer uchastkasi, qibray — 45,000 $	6ffaa411-0cda-4c60-966c-3b2f429a714f	\N	\N	t	2026-04-16 23:28:17.060289	\N
-83540b89-a82e-443f-8d91-cb604e49a551	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 2 xona, sergeli — 54,000 $	75993cfc-a23a-493b-98c1-7da8d643510a	\N	\N	t	2026-04-16 23:48:35.113889	\N
-09ade69f-4f5f-445e-b816-0b39abffde2b	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Yangi e'lon	Sotish: Kvartira, 2 xona, sergeli — 54,000 $	75993cfc-a23a-493b-98c1-7da8d643510a	\N	\N	t	2026-04-16 23:48:35.220129	\N
-06554a67-d0ef-4623-a907-979944714763	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 3 комн., sergeli — 68,000 $	76c20da9-55ec-4af0-9aa1-3654ccce7436	\N	\N	t	2026-04-16 13:54:43.439655	\N
-45b48d2c-07cd-4336-9582-bf7d90cb7663	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Дом, 5 комн., yakkasaroy — 320,000 $	c9e55bcb-5bdf-4a04-b3cc-8da682c91025	\N	\N	t	2026-04-16 13:56:51.115496	\N
-e1a611dc-9a86-4191-b930-dae7228215c8	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 3 комн., mirzo_ulugbek — 95,000 $	51469913-f1c1-4c7c-aede-347cd3d33ac7	\N	\N	t	2026-04-16 14:14:01.38931	\N
-127e2857-e635-481b-b8ad-015d9356ef1b	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Аренда Квартира, 2 комн., olmazor — 400 $	6a93826c-f7be-4a2f-a12b-ad1733888267	\N	\N	t	2026-04-16 14:33:32.410112	\N
-751c6c1c-dbdb-420f-8093-a6ac542cf9ae	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 3 комн., chilonzor — 72,000 $	489ddc65-dc4f-4ead-9cbd-15203f354134	\N	\N	t	2026-04-16 16:44:49.65815	\N
-cfaeec12-3f85-4283-9780-fccbd64a7856	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 2 xona, uchtepa — 38,000 $	4b1bcb2a-97d0-4df8-a539-da131e1fcede	\N	\N	t	2026-04-16 16:47:24.958749	\N
-8bf2d28d-f1d2-493d-9759-9b24554a0367	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 4 xona, shayxontohur — 95,000 $	0caa24e0-7413-405a-ab2f-c92dd29df5d0	\N	\N	t	2026-04-16 17:00:42.891453	\N
-2288b769-8bd9-4c38-b49c-b74b99b36a00	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 1 xona, bektemir — 28,000 $	fd26feb2-178b-409b-b87f-6a92fb27e65c	\N	\N	t	2026-04-16 17:02:17.664814	\N
-de78a9f1-ab16-4beb-a16e-e8a4abc754e1	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 3 xona, mirzo_ulugbek — 89,000 $	c95ad41e-9c86-40af-9970-5125cf127839	\N	\N	t	2026-04-16 18:43:29.22592	\N
-66c40ac9-557e-4a84-83cc-17a09c246f99	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Ijara Kvartira, 2 xona, yashnobod — 550 $	4e6af6d3-c0b7-4104-a87f-dc1ab3ea632b	\N	\N	t	2026-04-16 18:51:19.999751	\N
-c103568b-4dd0-4756-b108-664a7ff8e6fd	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Дом, 6 комн., yashnobod — 255,000 $	d4811938-49bd-47f5-b585-2d37151f6511	\N	\N	f	2026-04-17 10:42:45.446053	preferences
-de121679-d530-4261-8942-0f73b142e51e	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., sergeli — 68,500 $	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	\N	f	2026-04-17 10:45:44.318727	preferences
-718b473b-d7d1-4a7f-8104-a5b686ef9768	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 2 xona, olmazor — 52,000 $	ed64a15c-d727-4730-bc58-0f2158f3ba4c	\N	\N	t	2026-04-16 21:54:46.720974	\N
-ba22fe29-6d52-484d-8784-dbec839f9ec1	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Uy, 6 xona, yashnobod — 255,000 $	d4811938-49bd-47f5-b585-2d37151f6511	\N	\N	t	2026-04-17 10:42:44.105959	saved_search
-a9e6cf72-2482-42bd-b3cc-456a95127233	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 3 xona, sergeli — 68,500 $	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	\N	t	2026-04-17 10:45:44.194434	saved_search
-0f4e2872-00ed-41b6-95c3-b2d1617a5b51	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Yangi e'lon	Sotish: Kvartira, 3 xona, sergeli — 68,500 $	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	\N	t	2026-04-17 10:45:44.318727	preferences
+COPY public.notifications (id, user_id, type, title, message, listing_id, comment_id, actor_id, read, created_at, source, expires_at) FROM stdin;
+14ebbfb2-64c5-4a71-9de7-8c112016913a	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., Shohmedtash — 310,000.0 $	b1c8b8ad-a1ad-4936-ba34-ac3b550c37d4	\N	\N	f	2026-04-23 17:35:27.743255	preferences	\N
+b25ebab1-05e5-488d-8547-9121596b2163	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, 2 xona, Shohmedtash — 310,000.0 $	b1c8b8ad-a1ad-4936-ba34-ac3b550c37d4	\N	\N	t	2026-04-23 17:35:27.743255	preferences	\N
+6b5afa66-401d-4528-906f-ac7636279ab8	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	favorite_update	Sevimlilarga qo'shildi	Seller 2052 e'loningizni sevimlilarga qo'shdi	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	51a926be-c7eb-443b-bedb-a44eb9ebc122	t	2026-05-04 15:40:49.352898	\N	\N
+d5c97950-5ced-427e-b704-611759c2d15f	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, 1 xona, olmazor — 32,333 $	ae4dd112-a67c-4179-bf6a-5b910b57bd6f	\N	\N	t	2026-04-10 11:26:29.87763	\N	\N
+9349f261-c1ff-4d06-b053-83e0564f5d02	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, 3 xona, yunusobod — 75,000 $	5a8ccf18-2364-46ea-9862-13efd037b46a	\N	\N	t	2026-04-10 12:08:03.903205	\N	\N
+56abf44c-e332-4269-93d8-b440d0ae05cc	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., test_district — 75,000 $	50b928dd-941d-4e73-aabd-2e07d1256f48	\N	\N	f	2026-03-11 14:50:18.257229	\N	\N
+c6005e69-30a7-4e8d-a889-8f35a118ec14	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	new_listing	Yangi e'lon	Sotish: Kvartira, olmazor — 32,423 $	fc16bc9a-e125-410f-972b-007e8de5a9ca	\N	\N	t	2026-04-11 14:17:40.574145	\N	\N
+9c817949-151d-4cf3-9e55-575e0cbee75a	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	favorite_update	Sevimlilarga qo'shildi	Seller 2052 e'loningizni sevimlilarga qo'shdi	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	51a926be-c7eb-443b-bedb-a44eb9ebc122	f	2026-05-14 12:23:09.247207	\N	\N
+b9ecd4e4-78f5-4e15-bf58-0bad656af820	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., test_district_2 — 60,000 $	2d091402-2074-4c5a-bee4-2c9a192d3329	\N	\N	f	2026-03-11 14:50:20.26716	\N	\N
+574f6d53-8055-4173-a2d7-eb1867978d4c	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 65,000 $	04c283f7-080d-4fa6-8939-4a58d63e3ac6	\N	\N	f	2026-04-07 15:31:26.890745	\N	\N
+69bf66a2-6b4a-4d6b-a2d9-416a27e5e980	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 1 комн., olmazor — 32,333 $	ae4dd112-a67c-4179-bf6a-5b910b57bd6f	\N	\N	f	2026-04-10 11:26:29.87763	\N	\N
+474bf653-b585-4099-a914-ebf213cd8acd	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., yunusobod — 75,000 $	5a8ccf18-2364-46ea-9862-13efd037b46a	\N	\N	f	2026-04-10 12:08:03.903205	\N	\N
+480d648d-dc6c-4aae-920a-662a125bc965	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, olmazor — 32,423 $	fc16bc9a-e125-410f-972b-007e8de5a9ca	\N	\N	f	2026-04-11 14:17:40.574145	\N	\N
+0f3fb44f-1299-4b90-a17a-384bc2f167cd	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., yunusobod — 55,000 $	884f59ac-6cc9-45d7-a9a1-d3b2b6d6aa0e	\N	\N	f	2026-04-16 11:51:01.402155	\N	\N
+57f63090-3948-4255-9dcc-e5160e6b0abe	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 78,000 $	d961ca5b-ec3c-4aba-a186-2914d1851593	\N	\N	f	2026-04-16 12:32:42.221666	\N	\N
+b215f0fd-fa2e-44f0-aa39-2282f34fb398	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 4 комн., mirobod — 145,000 $	67ed19e8-4de2-4187-8537-d78ea66d29ac	\N	\N	f	2026-04-16 13:07:18.008416	\N	\N
+69658fa0-9daf-4b61-a1b8-7fbe81cd5024	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., yunusobod — 72,000 $	614c0752-a40f-48d0-9c75-3ee21cf3ca6a	\N	\N	f	2026-04-16 13:52:45.782021	\N	\N
+f778689e-2555-4d26-a5f1-aa7d062daa86	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., sergeli — 68,000 $	76c20da9-55ec-4af0-9aa1-3654ccce7436	\N	\N	f	2026-04-16 13:54:43.566989	\N	\N
+717a3d9d-2238-4615-9f2f-f48a760fd3dc	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Дом, 5 комн., yakkasaroy — 320,000 $	c9e55bcb-5bdf-4a04-b3cc-8da682c91025	\N	\N	f	2026-04-16 13:56:52.353644	\N	\N
+e8b3b91e-4b11-4893-acd2-6aa46e01e193	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., mirzo_ulugbek — 95,000 $	51469913-f1c1-4c7c-aede-347cd3d33ac7	\N	\N	f	2026-04-16 14:14:01.652955	\N	\N
+e625452a-2ccf-4eee-90fb-e1df04d96ba4	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Аренда: Квартира, 2 комн., olmazor — 400 $	6a93826c-f7be-4a2f-a12b-ad1733888267	\N	\N	f	2026-04-16 14:33:32.55	\N	\N
+08277fb0-49e4-49a2-9525-27ef1be8e02f	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 72,000 $	489ddc65-dc4f-4ead-9cbd-15203f354134	\N	\N	f	2026-04-16 16:44:49.832702	\N	\N
+a83cdb5d-d459-4ec4-9031-3980a8b97011	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 65,000 $	04c283f7-080d-4fa6-8939-4a58d63e3ac6	\N	\N	t	2026-04-07 15:31:26.890745	\N	\N
+0c214b22-7289-4455-b79c-ccd58040fb4d	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., uchtepa — 38,000 $	4b1bcb2a-97d0-4df8-a539-da131e1fcede	\N	\N	f	2026-04-16 16:47:25.113912	\N	\N
+912a73fc-f9d2-469d-ada0-ee6511fa18c9	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 4 комн., shayxontohur — 95,000 $	0caa24e0-7413-405a-ab2f-c92dd29df5d0	\N	\N	f	2026-04-16 17:00:43.014521	\N	\N
+76bffbc3-57f5-4263-8ee2-b460287d1c0e	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 1 комн., bektemir — 28,000 $	fd26feb2-178b-409b-b87f-6a92fb27e65c	\N	\N	f	2026-04-16 17:02:17.790636	\N	\N
+0fe86725-d2fe-4b71-980a-5a5ac1ac40cc	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое объявление	Продажа: Квартира, 3 комн., chilonzor — 78,000 $	d961ca5b-ec3c-4aba-a186-2914d1851593	\N	\N	t	2026-04-16 12:32:42.221666	\N	\N
+31f876f5-894a-4a12-90a7-7b288074c3b0	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 4 комн., mirobod — 145,000 $	67ed19e8-4de2-4187-8537-d78ea66d29ac	\N	\N	t	2026-04-16 13:07:16.770978	\N	\N
+f964d5b7-b664-426f-9c27-1d0878389547	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 2 комн., yunusobod — 72,000 $	614c0752-a40f-48d0-9c75-3ee21cf3ca6a	\N	\N	t	2026-04-16 13:52:44.554244	\N	\N
+1189e7ba-49cc-489b-b779-1b8514c42db1	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., mirzo_ulugbek — 89,000 $	c95ad41e-9c86-40af-9970-5125cf127839	\N	\N	f	2026-04-16 18:43:29.379552	\N	\N
+ca6276e6-8af8-4d79-b41b-09a5a996d70f	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	favorite_update	Sevimlilarga qo'shildi	Seller 2052 e'loningizni sevimlilarga qo'shdi	75993cfc-a23a-493b-98c1-7da8d643510a	\N	51a926be-c7eb-443b-bedb-a44eb9ebc122	t	2026-05-04 15:40:50.604115	\N	\N
+e74073c8-6dc9-4d56-ba70-9bee7a8930b3	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Аренда: Квартира, 2 комн., yashnobod — 550 $	4e6af6d3-c0b7-4104-a87f-dc1ab3ea632b	\N	\N	f	2026-04-16 18:51:20.13848	\N	\N
+71a35ec1-80fe-46c6-aba8-a6a0318e8449	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Коммерческая, yunusobod — 180,000 $	bdc63f8b-71b6-4124-861f-d9481129eeae	\N	\N	f	2026-04-16 23:03:15.920378	\N	\N
+7d825f97-c3aa-4f51-b3dc-cdd153cf45c4	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Земельный участок, qibray — 45,000 $	6ffaa411-0cda-4c60-966c-3b2f429a714f	\N	\N	f	2026-04-16 23:28:17.19999	\N	\N
+cc09dbb4-f20d-49b6-bdcc-ea068aea228d	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., sergeli — 54,000 $	75993cfc-a23a-493b-98c1-7da8d643510a	\N	\N	f	2026-04-16 23:48:35.220129	\N	\N
+0d8c2620-8d7b-4a2f-8b5a-8cdb15923e29	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 2 комн., olmazor — 52,000 $	ed64a15c-d727-4730-bc58-0f2158f3ba4c	\N	\N	f	2026-04-16 21:54:48.076027	\N	\N
+e0ef9414-f38b-471b-9d00-faad29105d70	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Yangi e'lon	Sotish: Kvartira, 2 xona, olmazor — 52,000 $	ed64a15c-d727-4730-bc58-0f2158f3ba4c	\N	\N	t	2026-04-16 21:54:48.076027	\N	\N
+0cd2e876-87e1-4b7e-89a8-a888687058d2	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Tijorat, yunusobod — 180,000 $	bdc63f8b-71b6-4124-861f-d9481129eeae	\N	\N	t	2026-04-16 23:03:14.60862	\N	\N
+61f2421e-3f22-4ffd-a81c-506821363ca6	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Yer uchastkasi, qibray — 45,000 $	6ffaa411-0cda-4c60-966c-3b2f429a714f	\N	\N	t	2026-04-16 23:28:17.060289	\N	\N
+83540b89-a82e-443f-8d91-cb604e49a551	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 2 xona, sergeli — 54,000 $	75993cfc-a23a-493b-98c1-7da8d643510a	\N	\N	t	2026-04-16 23:48:35.113889	\N	\N
+09ade69f-4f5f-445e-b816-0b39abffde2b	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Yangi e'lon	Sotish: Kvartira, 2 xona, sergeli — 54,000 $	75993cfc-a23a-493b-98c1-7da8d643510a	\N	\N	t	2026-04-16 23:48:35.220129	\N	\N
+06554a67-d0ef-4623-a907-979944714763	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 3 комн., sergeli — 68,000 $	76c20da9-55ec-4af0-9aa1-3654ccce7436	\N	\N	t	2026-04-16 13:54:43.439655	\N	\N
+45b48d2c-07cd-4336-9582-bf7d90cb7663	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Дом, 5 комн., yakkasaroy — 320,000 $	c9e55bcb-5bdf-4a04-b3cc-8da682c91025	\N	\N	t	2026-04-16 13:56:51.115496	\N	\N
+e1a611dc-9a86-4191-b930-dae7228215c8	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 3 комн., mirzo_ulugbek — 95,000 $	51469913-f1c1-4c7c-aede-347cd3d33ac7	\N	\N	t	2026-04-16 14:14:01.38931	\N	\N
+127e2857-e635-481b-b8ad-015d9356ef1b	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Аренда Квартира, 2 комн., olmazor — 400 $	6a93826c-f7be-4a2f-a12b-ad1733888267	\N	\N	t	2026-04-16 14:33:32.410112	\N	\N
+751c6c1c-dbdb-420f-8093-a6ac542cf9ae	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Новое по вашему поиску	Новое по «Без названия»: Продажа Квартира, 3 комн., chilonzor — 72,000 $	489ddc65-dc4f-4ead-9cbd-15203f354134	\N	\N	t	2026-04-16 16:44:49.65815	\N	\N
+cfaeec12-3f85-4283-9780-fccbd64a7856	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 2 xona, uchtepa — 38,000 $	4b1bcb2a-97d0-4df8-a539-da131e1fcede	\N	\N	t	2026-04-16 16:47:24.958749	\N	\N
+8bf2d28d-f1d2-493d-9759-9b24554a0367	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 4 xona, shayxontohur — 95,000 $	0caa24e0-7413-405a-ab2f-c92dd29df5d0	\N	\N	t	2026-04-16 17:00:42.891453	\N	\N
+2288b769-8bd9-4c38-b49c-b74b99b36a00	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 1 xona, bektemir — 28,000 $	fd26feb2-178b-409b-b87f-6a92fb27e65c	\N	\N	t	2026-04-16 17:02:17.664814	\N	\N
+de78a9f1-ab16-4beb-a16e-e8a4abc754e1	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 3 xona, mirzo_ulugbek — 89,000 $	c95ad41e-9c86-40af-9970-5125cf127839	\N	\N	t	2026-04-16 18:43:29.22592	\N	\N
+66c40ac9-557e-4a84-83cc-17a09c246f99	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Ijara Kvartira, 2 xona, yashnobod — 550 $	4e6af6d3-c0b7-4104-a87f-dc1ab3ea632b	\N	\N	t	2026-04-16 18:51:19.999751	\N	\N
+c103568b-4dd0-4756-b108-664a7ff8e6fd	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Дом, 6 комн., yashnobod — 255,000 $	d4811938-49bd-47f5-b585-2d37151f6511	\N	\N	f	2026-04-17 10:42:45.446053	preferences	\N
+de121679-d530-4261-8942-0f73b142e51e	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	new_listing	Новое объявление	Продажа: Квартира, 3 комн., sergeli — 68,500 $	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	\N	f	2026-04-17 10:45:44.318727	preferences	\N
+718b473b-d7d1-4a7f-8104-a5b686ef9768	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 2 xona, olmazor — 52,000 $	ed64a15c-d727-4730-bc58-0f2158f3ba4c	\N	\N	t	2026-04-16 21:54:46.720974	\N	\N
+ba22fe29-6d52-484d-8784-dbec839f9ec1	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Uy, 6 xona, yashnobod — 255,000 $	d4811938-49bd-47f5-b585-2d37151f6511	\N	\N	t	2026-04-17 10:42:44.105959	saved_search	\N
+a9e6cf72-2482-42bd-b3cc-456a95127233	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Qidiruvingizga yangi e'lon	«Без названия»ga mos: Sotish Kvartira, 3 xona, sergeli — 68,500 $	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	\N	t	2026-04-17 10:45:44.194434	saved_search	\N
+0f4e2872-00ed-41b6-95c3-b2d1617a5b51	51a926be-c7eb-443b-bedb-a44eb9ebc122	new_listing	Yangi e'lon	Sotish: Kvartira, 3 xona, sergeli — 68,500 $	e773c130-e891-4b72-b72f-eb8fdd73ce15	\N	\N	t	2026-04-17 10:45:44.318727	preferences	\N
 \.
 
 
 --
--- TOC entry 5256 (class 0 OID 418942)
+-- TOC entry 5610 (class 0 OID 418942)
 -- Dependencies: 234
 -- Data for Name: olx_listings; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -1407,7 +2302,7 @@ c6677ad7-9523-4e8b-9549-aed635bc26f5	ID3VRUe	https://www.olx.uz/d/obyavlenie/vre
 
 
 --
--- TOC entry 5244 (class 0 OID 418607)
+-- TOC entry 5598 (class 0 OID 418607)
 -- Dependencies: 222
 -- Data for Name: parser_errors; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -1417,42 +2312,205 @@ COPY public.parser_errors (id, source_id, error_type, error_message, raw_data, c
 
 
 --
--- TOC entry 5240 (class 0 OID 418548)
+-- TOC entry 5594 (class 0 OID 418548)
 -- Dependencies: 218
 -- Data for Name: parser_sources; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.parser_sources (id, type, identifier, name, is_active, priority, parse_interval_minutes, config, total_parsed, total_errors, consecutive_errors, last_parsed_at, created_at, updated_at) FROM stdin;
+8e5580d0-11e2-4bfa-b030-32961e46ecfc	telegram_channel	baburieltor	BaburieLtor (Tashkent sale)	t	low	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+9c7b9999-7718-4721-850a-557abc294200	telegram_channel	realtor_alii	Realtor Alii (Sergeli, mixed UZ/RU)	t	high	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+c29c1802-8120-4f0a-81c1-b97ef17165b7	telegram_channel	Kvartira_doma_Tashkent	Kvartira Doma Tashkent (center)	t	medium	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+0d5abe3b-26f6-493e-9782-16b52bc9fdbe	telegram_channel	Nedvijimosss	Nedvijimosss (Mirzo Ulugbek)	t	low	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+4e5f53ac-a857-451f-8a7e-2470a7f4b23b	telegram_channel	realtor_yunusov	Realtor Yunusov (center, structured)	t	high	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+faa8b2c5-9aab-44b3-b13a-40e4593b1f8e	telegram_channel	grandestate2019	Grandestate2019 (premium center)	t	high	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+c48c148c-a244-4a58-846d-cf310e6dca1e	telegram_channel	RealestTash	RealestTash (Tashkent)	t	medium	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+b29cb305-30ba-4011-a62e-e19e668ce942	telegram_channel	vitrinanedvizhimosti	Vitrina Nedvizhimosti (rentals)	t	medium	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+f6309a01-53de-4cd3-9f28-25c648080f13	telegram_channel	arentash	AreNTash (rentals)	t	high	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+7f53ac89-03a1-493b-9976-4bac11a93f75	telegram_channel	UyCharxiy9	UyCharxiy9 (Kokand/Fergana, largest)	t	high	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+2d9f880c-d37a-4596-940b-5f289ea60b72	telegram_channel	Imkonuyjoysavdoo	Imkon Uyjoy Savdoo (Fergana)	t	low	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+94498891-c6f6-49cb-9902-7c414fbef98f	telegram_channel	ANDIJON_UYJOY	Andijon Uyjoy (Andijan)	t	medium	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+06de0d86-0c03-40b6-819d-813694a7af1a	telegram_channel	NAMANGAN_UYJOY_BOZORI	Namangan Uyjoy Bozori	t	low	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+12ac4c68-8144-49c1-930c-636a1d03ccff	telegram_channel	testReiltor	Test Realtor	t	low	60	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
+e7574531-93e2-451c-800b-976ad7ec83bf	website	olx.uz	OLX.uz	t	high	30	{}	0	0	0	\N	2026-05-06 17:25:29.40363	2026-05-06 17:25:29.40363
 \.
 
 
 --
--- TOC entry 5245 (class 0 OID 418620)
+-- TOC entry 5619 (class 0 OID 468682)
+-- Dependencies: 243
+-- Data for Name: phone_verify_attempt; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.phone_verify_attempt (id, user_id, phone, succeeded, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5625 (class 0 OID 476291)
+-- Dependencies: 249
+-- Data for Name: prompt_templates; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.prompt_templates (id, kind, version, body, model_hint, is_active, notes, created_by_user_id, created_at) FROM stdin;
+59fdfa83-bef7-4904-bfe1-ce046a3d9dc7	listing_description	1	You are a real-estate copywriter for UcharMarket (Tashkent, Uzbekistan).\nWrite a clean, professional 2–4 sentence listing description for a buyer feed.\nRules:\n- Tone: factual, calm, professional. No exclamation marks. No CAPS.\n- No phone numbers, no agent name, no calls-to-action.\n- Do not invent facts. If a parameter is missing, omit it instead of guessing.\n- 350 characters max per locale.\n- Output STRICT JSON: {"ru":"…","uz":"…","uz_cyrl":"…"}.\n  ru = Russian (Cyrillic). uz = Uzbek Latin. uz_cyrl = Uzbek Cyrillic.\n  No markdown, no surrounding prose, just JSON.\n\nStructured parameters:\n{params_block}\n\nOriginal source text from realtor (use as context, do NOT copy verbatim):\n{raw_text}\n	gpt-4o-mini	t	Block F PR-F5a — initial seed matching the historical inline prompt verbatim.	\N	2026-05-13 16:36:40.21366
+\.
+
+
+--
+-- TOC entry 5634 (class 0 OID 476461)
+-- Dependencies: 258
+-- Data for Name: referral_events; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.referral_events (id, referrer_user_id, referred_user_id, event_type, event_metadata, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5635 (class 0 OID 476483)
+-- Dependencies: 259
+-- Data for Name: referral_rewards; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.referral_rewards (id, referrer_user_id, amount_micros, reason, wallet_tx_id, granted_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5599 (class 0 OID 418620)
 -- Dependencies: 223
 -- Data for Name: saved_searches; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.saved_searches (id, user_id, name, filters, notify_enabled, created_at, updated_at, last_seen_at, query, sort) FROM stdin;
-294533c8-3085-42ba-91b8-fef45f10f9fb	51a926be-c7eb-443b-bedb-a44eb9ebc122		{"region": "toshkent_shahri", "price_max": null, "price_min": null}	t	2026-04-16 00:39:41.120009	2026-04-17 10:41:58.077657	2026-04-17 10:41:57.26994	\N	recommended
 \.
 
 
 --
--- TOC entry 5246 (class 0 OID 418641)
+-- TOC entry 5631 (class 0 OID 476394)
+-- Dependencies: 255
+-- Data for Name: seller_client_listings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.seller_client_listings (id, client_id, listing_id, added_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5630 (class 0 OID 476377)
+-- Dependencies: 254
+-- Data for Name: seller_clients; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.seller_clients (id, seller_id, name, phone, notes, pipeline_stage, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5600 (class 0 OID 418641)
 -- Dependencies: 224
 -- Data for Name: sellers; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.sellers (id, user_id, company_name, description, logo_url, phone, email, phone_public, telegram_username, instagram_url, website_url, is_verified, verified_at, verification_method, listings_count, total_views, total_contacts, created_at, updated_at, source_channel, is_developer_verified, trust_score) FROM stdin;
-e3109612-ed59-4fb4-aa14-8ac94b06260f	72f496a8-f04a-4950-99be-6f2def32a958	\N	\N	\N	+998345345344	\N	t	\N	\N	\N	f	\N	\N	0	0	0	2026-02-23 14:47:41.79207	2026-02-23 14:47:41.79207	\N	f	0
-9e4894c1-85b3-44ba-8ed2-a905c2684419	aee3bb4c-0070-41c4-a0de-19ea92112de9	asdasd	\N	\N	+998903172053	\N	t	\N	\N	\N	f	\N	\N	0	0	0	2026-02-18 12:06:30.615283	2026-03-03 12:16:38.793989	\N	f	0
-8ed64475-094d-4edb-82a0-823fc538ee13	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	\N	\N	\N	+998777121018	\N	t	NoneUsers32	\N	\N	f	\N	\N	20	0	0	2026-03-29 17:59:09.332085	2026-04-17 10:45:44.032444	\N	f	0
-e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	51a926be-c7eb-443b-bedb-a44eb9ebc122	Seller 2052	\N	\N	+998903172052	\N	t	\N	\N	\N	f	\N	\N	1	0	0	2026-04-03 12:02:33.337564	2026-04-24 19:24:36.968096	\N	f	0
+COPY public.sellers (id, user_id, company_name, description, logo_url, phone, email, phone_public, telegram_username, instagram_url, website_url, is_verified, verified_at, verification_method, listings_count, total_views, total_contacts, created_at, updated_at, source_channel, is_developer_verified, trust_score, autopost_channel_username, autopost_channel_id, autopost_enabled, autopost_verified_at, export_signature, export_cta, export_extra_hashtags) FROM stdin;
+e3109612-ed59-4fb4-aa14-8ac94b06260f	72f496a8-f04a-4950-99be-6f2def32a958	\N	\N	\N	+998345345344	\N	t	\N	\N	\N	f	\N	\N	0	0	0	2026-02-23 14:47:41.79207	2026-02-23 14:47:41.79207	\N	f	0	\N	\N	f	\N	\N	\N	\N
+9e4894c1-85b3-44ba-8ed2-a905c2684419	aee3bb4c-0070-41c4-a0de-19ea92112de9	asdasd	\N	\N	+998903172053	\N	t	\N	\N	\N	f	\N	\N	0	0	0	2026-02-18 12:06:30.615283	2026-03-03 12:16:38.793989	\N	f	0	\N	\N	f	\N	\N	\N	\N
+8ed64475-094d-4edb-82a0-823fc538ee13	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	\N	\N	\N	+998777121018	\N	t	NoneUsers32	\N	\N	f	\N	\N	20	0	0	2026-03-29 17:59:09.332085	2026-04-17 10:45:44.032444	\N	f	0	\N	\N	f	\N	\N	\N	\N
+e30d08a7-4053-48e5-b7c4-257ee0e0fd6b	51a926be-c7eb-443b-bedb-a44eb9ebc122	Seller 2052	\N	\N	+998903172052	\N	t	\N	\N	\N	f	\N	\N	1	0	0	2026-04-03 12:02:33.337564	2026-04-24 19:24:36.968096	\N	f	0	\N	\N	f	\N	\N	\N	\N
 \.
 
 
 --
--- TOC entry 5255 (class 0 OID 418929)
+-- TOC entry 5614 (class 0 OID 468534)
+-- Dependencies: 238
+-- Data for Name: source_metric; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.source_metric (id, source_id, day, listings_found, listings_extracted, listings_failed, dupes_filtered, ai_failed, created_at, updated_at, notified) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5616 (class 0 OID 468619)
+-- Dependencies: 240
+-- Data for Name: subscriptions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.subscriptions (id, user_id, type, object_id, price, currency, billing_cycle, status, starts_at, ends_at, next_billing_at, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5628 (class 0 OID 476355)
+-- Dependencies: 252
+-- Data for Name: synonym_entries; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.synonym_entries (id, parameter_key, parameter_value, surface_form, language, polarity, created_at) FROM stdin;
+b7433aa8-f1d7-42bf-b929-f54c57f79373	air_conditioner	\N	кондиционер	ru	positive	2026-05-14 12:18:37.46323
+50286c7a-32b9-4d63-b713-2a8de8be8e9e	air_conditioner	\N	кондей	ru	positive	2026-05-14 12:18:37.46323
+7bea006d-badd-458a-85aa-4e458689f451	air_conditioner	\N	сплит-система	ru	positive	2026-05-14 12:18:37.46323
+85d8889e-91d0-4f5e-9d72-0f0fa2474dbe	air_conditioner	\N	konditsioner	uz	positive	2026-05-14 12:18:37.46323
+c00a9298-4dd5-4db8-94a4-5f8e0162ed02	air_conditioner	\N	kondisioner	uz	positive	2026-05-14 12:18:37.46323
+492dc87d-eaba-41c0-8331-4ec158db1fe1	air_conditioner	\N	кондиционер	uz_cyrl	positive	2026-05-14 12:18:37.46323
+d19bbe03-6013-4e16-b070-d91fd61dcfb8	balcony	\N	балкон	ru	positive	2026-05-14 12:18:37.46323
+b8d5df48-36df-4ed2-b50b-fb53c591bf6a	balcony	\N	лоджия	ru	positive	2026-05-14 12:18:37.46323
+85fb2e67-18f9-4eb2-8369-d582b891260e	balcony	\N	balkon	uz	positive	2026-05-14 12:18:37.46323
+ee073a36-1bbf-447d-b342-bdcd0891210e	balcony	\N	балкон	uz_cyrl	positive	2026-05-14 12:18:37.46323
+1a81b4c9-57ee-4815-b01e-af33a8b2c5f8	elevator	\N	лифт	ru	positive	2026-05-14 12:18:37.46323
+6a680848-eaea-410b-9d4b-d978d3cd3aa0	elevator	\N	лифты	ru	positive	2026-05-14 12:18:37.46323
+867b4b39-ab7b-4232-9a27-546f83cbace8	elevator	\N	lift	uz	positive	2026-05-14 12:18:37.46323
+5f9e0560-5025-4a5e-ba9d-8a770e30f561	elevator	\N	лифт	uz_cyrl	positive	2026-05-14 12:18:37.46323
+aa6d00ce-a4c9-44c5-a0f4-da13801f8245	furniture	full	мебель	ru	positive	2026-05-14 12:18:37.46323
+51ed1e89-4db6-44d0-965a-cdecb76ba9a4	furniture	full	с мебелью	ru	positive	2026-05-14 12:18:37.46323
+bb549508-3cd8-4d7b-a2e7-cdd2be0523c0	furniture	none	без мебели	ru	positive	2026-05-14 12:18:37.46323
+71c507bc-fce6-4940-a3af-3feba0a10f7e	furniture	full	mebel	uz	positive	2026-05-14 12:18:37.46323
+50ecd85f-358c-43b1-af32-e14c86ec1c8a	furniture	full	mebel bilan	uz	positive	2026-05-14 12:18:37.46323
+20ba3a3c-dd84-4144-a6ac-9497e4a839ac	furniture	none	mebelsiz	uz	positive	2026-05-14 12:18:37.46323
+088b84aa-ad4b-47c8-a5b1-6e0bb42774c4	furniture	full	мебел билан	uz_cyrl	positive	2026-05-14 12:18:37.46323
+92a614b1-ece8-4a30-b60a-8a245c25369f	parking	\N	парковка	ru	positive	2026-05-14 12:18:37.46323
+5c613f82-9754-4f3d-b67e-dc7b2d329480	parking	\N	своя парковка	ru	positive	2026-05-14 12:18:37.46323
+6b419ddf-878f-4249-a87f-1f87008bf002	parking	\N	парковочное место	ru	positive	2026-05-14 12:18:37.46323
+8ecc0576-c32d-4110-ad17-2668e96fa4ad	parking	\N	parkovka	uz	positive	2026-05-14 12:18:37.46323
+4b9801db-01d2-4fb8-acd1-9b7689cd9dc4	parking	\N	to'xtash joyi	uz	positive	2026-05-14 12:18:37.46323
+be5064df-15bc-4508-961e-8b38d10432fc	parking	\N	парковка	uz_cyrl	positive	2026-05-14 12:18:37.46323
+8a9320e8-3693-4a86-a59b-c8bcc158bc27	pets_allowed	\N	можно с животными	ru	positive	2026-05-14 12:18:37.46323
+4f04ae67-ea1f-4c95-bccb-31b30990c106	pets_allowed	\N	разрешены животные	ru	positive	2026-05-14 12:18:37.46323
+eab8bd03-0170-4ed6-b543-fbab76e0966a	pets_allowed	\N	uy hayvonlari mumkin	uz	positive	2026-05-14 12:18:37.46323
+79e81f05-4136-4cba-b5a5-ae0dde9c629a	internet	\N	интернет	ru	positive	2026-05-14 12:18:37.46323
+15cfbd70-6dfe-4ee9-9c48-3a993a879132	internet	\N	wi-fi	ru	positive	2026-05-14 12:18:37.46323
+787fd288-b5e3-499d-9e28-5f0841be778b	internet	\N	wifi	ru	positive	2026-05-14 12:18:37.46323
+a8525d57-32c4-4016-a99c-63d67c5e5ed5	internet	\N	вайфай	ru	positive	2026-05-14 12:18:37.46323
+b556a01e-707c-47b6-ae60-9f648b5d5477	internet	\N	internet	uz	positive	2026-05-14 12:18:37.46323
+331ed5c0-d2f3-4ae3-bf1a-0442b491e16b	security	\N	охрана	ru	positive	2026-05-14 12:18:37.46323
+a23690ec-2539-4dd6-be0c-bf270ff702e6	security	\N	видеонаблюдение	ru	positive	2026-05-14 12:18:37.46323
+35f99601-4d87-4cbb-9ff3-338a447b875a	security	\N	охраняемая территория	ru	positive	2026-05-14 12:18:37.46323
+6203d6f8-3d51-4708-ad7c-dc8793ad93ab	security	\N	qo'riqlash	uz	positive	2026-05-14 12:18:37.46323
+297fa6ba-0070-405c-adbf-bce978dc1fac	condition	euro	евроремонт	ru	positive	2026-05-14 12:18:37.46323
+34140709-dfdb-4455-b4e9-b034002ec0f9	condition	designer	дизайнерский ремонт	ru	positive	2026-05-14 12:18:37.46323
+a53477b4-6151-4da7-8dfc-f2722aaca011	condition	needs_repair	требует ремонта	ru	positive	2026-05-14 12:18:37.46323
+3de80e96-e6ea-4037-a609-e657f78a517d	condition	euro	evro remont	uz	positive	2026-05-14 12:18:37.46323
+7064f9e2-b21c-441a-8b1c-60014be9e7d8	gas_supply	central	газ	ru	positive	2026-05-14 12:18:37.46323
+12eeb069-8435-4aa9-ae9a-17478eaa76dd	gas_supply	central	природный газ	ru	positive	2026-05-14 12:18:37.46323
+cc678a18-8b71-4614-8a44-2ec611667201	gas_supply	central	gaz	uz	positive	2026-05-14 12:18:37.46323
+0492129e-4998-4473-b864-bd52b84db8d4	heating	central	центральное отопление	ru	positive	2026-05-14 12:18:37.46323
+2b0a01be-3c98-4fe9-bb7d-0d776226a86d	heating	individual	автономное отопление	ru	positive	2026-05-14 12:18:37.46323
+9e24d124-1dc9-442f-82bb-3af9194aaedb	heating	individual	индивидуальное отопление	ru	positive	2026-05-14 12:18:37.46323
+d3ac791b-f362-4c0f-9c1b-9030ee7dbb74	wall_material	brick	кирпичный дом	ru	positive	2026-05-14 12:18:37.46323
+2cc80e02-6a14-4c05-9526-da494d4ae010	wall_material	panel	панельный дом	ru	positive	2026-05-14 12:18:37.46323
+44121e0e-38d8-4dfa-adeb-2445355c5f43	wall_material	monolith	монолитный дом	ru	positive	2026-05-14 12:18:37.46323
+348f82fc-8a49-4513-b30e-94154e898370	mortgage_ok	\N	можно в ипотеку	ru	positive	2026-05-14 12:18:37.46323
+22ce0821-8b8d-4a1c-9253-bdd03dd6610f	installment_ok	\N	в рассрочку	ru	positive	2026-05-14 12:18:37.46323
+454155c3-3e29-4c61-8dbc-b7c75c8bcb69	halol_ok	\N	халяль	ru	positive	2026-05-14 12:18:37.46323
+d86d837f-fc5d-4476-83a4-508e5bdc9aaa	halol_ok	\N	халол	uz_cyrl	positive	2026-05-14 12:18:37.46323
+8762b205-2235-4fcc-b708-9b0e9eab186d	urgent_flag	\N	срочно	ru	positive	2026-05-14 12:18:37.46323
+1a3458f3-dd4a-4297-9d94-f469d96b5b68	urgent_flag	\N	shoshilinch	uz	positive	2026-05-14 12:18:37.46323
+\.
+
+
+--
+-- TOC entry 5609 (class 0 OID 418929)
 -- Dependencies: 233
 -- Data for Name: telegram_listings; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -1483,7 +2541,19 @@ f09741dc-7f1e-4bc8-962d-e1ca0f33f2ae	apartment	sell	200000	USD	3	100	6	10	sergel
 
 
 --
--- TOC entry 5248 (class 0 OID 418736)
+-- TOC entry 5617 (class 0 OID 468638)
+-- Dependencies: 241
+-- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.transactions (id, wallet_id, type, amount, currency, status, external_payment_id, subscription_id, idempotency_key, transaction_metadata, created_at, completed_at) FROM stdin;
+ff98881b-67cb-4d29-bb49-45940e11558f	03805ddb-f35e-4e59-ae27-5bee79022712	adjustment	50000	UZS	completed	\N	\N	r1:grant	{"reason": "test", "admin_id": "8106a1d2-a94d-4770-bcbf-dd3c9dba84e7", "direction": "credit"}	2026-05-08 10:09:43.794824	2026-05-08 05:09:42.98285
+ab262bf8-5fb5-4da1-94d3-4395e9777565	03805ddb-f35e-4e59-ae27-5bee79022712	withdrawal	20000	UZS	completed	\N	\N	r1:wd	{"purpose": "subscription:cabinet"}	2026-05-08 10:09:43.859073	2026-05-08 05:09:43.037164
+\.
+
+
+--
+-- TOC entry 5602 (class 0 OID 418736)
 -- Dependencies: 226
 -- Data for Name: user_follows_seller; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -1493,7 +2563,30 @@ COPY public.user_follows_seller (id, user_id, seller_id, created_at) FROM stdin;
 
 
 --
--- TOC entry 5257 (class 0 OID 426799)
+-- TOC entry 5618 (class 0 OID 468665)
+-- Dependencies: 242
+-- Data for Name: user_phones; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.user_phones (id, user_id, phone, is_primary, verification_method, verified_at, created_at, updated_at) FROM stdin;
+e49762f0-eb79-40bc-8cfe-f638dad798da	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	+998343434343	t	legacy	2026-02-17 09:55:54.05686	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+a781eb33-be34-4474-b1dd-960db1403eaf	7810eed9-2283-4bb7-b335-32735e532b22	+998234234233	t	legacy	2026-02-20 11:31:24.101155	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+445d572d-4ffa-411b-b00d-4be830fae462	082b7fc6-8ab8-4b13-a47f-cb8578a2fde2	+998903172022	t	legacy	2026-02-18 13:30:08.845412	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+63c6fb8d-3450-45c9-82a4-2667833ba35e	6086fc31-6179-4423-9fbc-9da9c818094b	+998456456456	t	legacy	2026-02-19 05:13:59.804191	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+2650f0e3-131e-4e7d-b2aa-b3312a42ed13	489619ee-c26d-411a-b3d2-8763734a8e66	+998123456789	t	legacy	2026-02-21 06:47:02.124099	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+673a890f-1334-47ba-922f-767c3d4c2967	aee3bb4c-0070-41c4-a0de-19ea92112de9	+998903172053	t	legacy	2026-02-18 07:05:27.671732	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+1542e5fe-02d5-4509-bd01-61aa4577f42f	3c8a894e-ef5f-4501-8989-5a42ef75c80f	+998903124244	t	legacy	2026-02-23 06:30:38.321572	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+46bb805c-fb80-4a61-9bdd-94696227383a	52493fa7-ac25-4441-8cd4-607be2a45d67	+998123423423	t	legacy	2026-02-23 06:50:07.371231	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+eb8de079-44f0-42a9-880b-59dca9e2c502	9470ad3c-9251-4143-8c26-ea23ba8c3cda	+998234234333	t	legacy	2026-02-23 09:14:28.78379	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+f7580cc0-e166-46fb-ba4d-4ebe062d34ea	72f496a8-f04a-4950-99be-6f2def32a958	+998345345344	t	legacy	2026-02-23 09:47:34.551577	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+57f40320-10d0-4bfa-8f17-8ad0a7e81f7b	490aa17c-473c-45cf-8896-83dbc09edec9	+998903172092	t	legacy	2026-02-20 06:19:41.102093	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+4cfded57-d450-457f-8e5e-7012adcd0426	51a926be-c7eb-443b-bedb-a44eb9ebc122	+998903172052	t	legacy	2026-05-04 10:32:48.823495	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+036e7b8f-57c6-4bce-840e-418c7d611107	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	+998777121018	t	legacy	2026-05-04 10:40:23.772459	2026-05-08 10:07:51.883699	2026-05-08 10:07:51.883699
+\.
+
+
+--
+-- TOC entry 5611 (class 0 OID 426799)
 -- Dependencies: 235
 -- Data for Name: user_preferences; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -1506,32 +2599,79 @@ fffcf319-44b2-40e9-b8fb-874121e1c251	ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	{toshk
 
 
 --
--- TOC entry 5241 (class 0 OID 418567)
+-- TOC entry 5595 (class 0 OID 418567)
 -- Dependencies: 219
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.users (id, telegram_id, phone, first_name, last_name, username, avatar_url, language, role, onboarding_completed, deleted_at, deletion_reason, created_at, updated_at, approval_status, approval_notes, approved_by, approved_at, email, email_verified, phone_verified, google_id, auth_providers, primary_auth_provider, last_login_at, last_login_provider, auth_source) FROM stdin;
-8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	\N	+998343434343	sdfsfsd	sdfsd	\N	\N	ru	USER	t	\N	\N	2026-02-17 14:55:54.938166	2026-02-17 14:55:54.938166	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-17 09:55:54.05686	\N	buyer_phone
-593b5511-3e4a-4e5b-885b-156378dafd86	\N	\N	Admin	REAL ESTATE	admin_real_estate	\N	ru	ADMIN	t	\N	\N	2026-02-18 13:41:46.779766	2026-03-10 11:20:39.393534	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-03-10 06:20:38.499367	\N	admin_login
-7810eed9-2283-4bb7-b335-32735e532b22	\N	+998234234233	asda	sdasd	\N	\N	ru	USER	t	\N	\N	2026-02-20 16:31:25.326065	2026-02-20 16:31:25.326065	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-20 11:31:24.101155	\N	buyer_phone
-082b7fc6-8ab8-4b13-a47f-cb8578a2fde2	\N	+998903172022	asdasd	asdas	\N	\N	ru	USER	t	\N	\N	2026-02-18 18:30:08.842563	2026-02-18 18:30:08.842563	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-18 13:30:08.845412	\N	buyer_phone
-6086fc31-6179-4423-9fbc-9da9c818094b	\N	+998456456456	sadfasdf	asdfasd	\N	\N	ru	USER	t	\N	\N	2026-02-19 10:14:00.440346	2026-02-19 10:14:00.440346	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-19 05:13:59.804191	\N	buyer_phone
-489619ee-c26d-411a-b3d2-8763734a8e66	\N	+998123456789	Siddiq	Xasanov	\N	\N	ru	USER	t	\N	\N	2026-02-21 11:47:03.043392	2026-02-21 11:47:03.043392	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-21 06:47:02.124099	\N	buyer_phone
-aee3bb4c-0070-41c4-a0de-19ea92112de9	\N	+998903172053	gdfsgdf sdf	gsdfg sdfg	\N	\N	ru	SELLER	t	\N	\N	2026-02-18 12:03:48.870139	2026-02-18 12:06:30.615283	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-18 07:05:27.671732	\N	buyer_phone
-3c8a894e-ef5f-4501-8989-5a42ef75c80f	\N	+998903124244	siddiq	xasanov	\N	\N	ru	USER	t	\N	\N	2026-02-23 11:30:39.157866	2026-02-23 11:30:39.157866	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 06:30:38.321572	\N	buyer_phone
-52493fa7-ac25-4441-8cd4-607be2a45d67	\N	+998123423423	asda	sda	\N	\N	ru	USER	t	\N	\N	2026-02-23 11:50:08.30847	2026-02-23 11:50:08.30847	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 06:50:07.371231	\N	buyer_phone
-9470ad3c-9251-4143-8c26-ea23ba8c3cda	\N	+998234234333	asdfa	sdfa	\N	\N	ru	USER	t	\N	\N	2026-02-23 14:14:29.838126	2026-02-23 14:14:29.838126	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 09:14:28.78379	\N	buyer_phone
-72f496a8-f04a-4950-99be-6f2def32a958	\N	+998345345344	ffhdfgh	dfghdf	\N	\N	ru	SELLER	t	\N	\N	2026-02-23 14:47:35.650117	2026-02-23 14:47:41.79207	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 09:47:34.551577	\N	buyer_phone
-490aa17c-473c-45cf-8896-83dbc09edec9	\N	+998903172092	asdas	asdas	\N	\N	ru	USER	t	\N	\N	2026-02-20 11:19:42.03713	2026-02-20 11:19:42.03713	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-20 06:19:41.102093	\N	buyer_phone
-a0c646bc-a87c-4acd-a03e-bfa324aa975b	\N	\N	Admin	admin	admin_admin	\N	ru	ADMIN	t	\N	\N	2026-03-29 17:59:36.535562	2026-04-10 13:14:13.868075	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-04-10 08:14:12.912087	\N	admin_login
-ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	7780989992	+998777121018	Siddiq	hasanov	NoneUsers32	\N	uz	SELLER	t	\N	\N	2026-03-29 17:59:09.332085	2026-04-22 17:36:10.754636	APPROVED	\N	\N	2026-03-29 12:59:09.356515	\N	f	f	\N	{}	\N	2026-04-22 12:36:08.595062	\N	seller_otp
-51a926be-c7eb-443b-bedb-a44eb9ebc122	790863031	+998903172052	Seller 2052	\N	\N	\N	uz	SELLER	t	\N	\N	2026-04-03 11:24:10.090492	2026-04-27 12:02:56.333027	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-04-27 07:02:55.440003	\N	seller_otp
+COPY public.users (id, telegram_id, phone, first_name, last_name, username, avatar_url, language, role, onboarding_completed, deleted_at, deletion_reason, created_at, updated_at, approval_status, approval_notes, approved_by, approved_at, email, email_verified, phone_verified, google_id, auth_providers, primary_auth_provider, last_login_at, last_login_provider, auth_source, referred_by_user_id, referral_source, referral_code) FROM stdin;
+8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	\N	+998343434343	sdfsfsd	sdfsd	\N	\N	ru	USER	t	\N	\N	2026-02-17 14:55:54.938166	2026-02-17 14:55:54.938166	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-17 09:55:54.05686	\N	buyer_phone	\N	\N	\N
+593b5511-3e4a-4e5b-885b-156378dafd86	\N	\N	Admin	REAL ESTATE	admin_real_estate	\N	ru	ADMIN	t	\N	\N	2026-02-18 13:41:46.779766	2026-03-10 11:20:39.393534	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-03-10 06:20:38.499367	\N	admin_login	\N	\N	\N
+7810eed9-2283-4bb7-b335-32735e532b22	\N	+998234234233	asda	sdasd	\N	\N	ru	USER	t	\N	\N	2026-02-20 16:31:25.326065	2026-02-20 16:31:25.326065	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-20 11:31:24.101155	\N	buyer_phone	\N	\N	\N
+082b7fc6-8ab8-4b13-a47f-cb8578a2fde2	\N	+998903172022	asdasd	asdas	\N	\N	ru	USER	t	\N	\N	2026-02-18 18:30:08.842563	2026-02-18 18:30:08.842563	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-18 13:30:08.845412	\N	buyer_phone	\N	\N	\N
+6086fc31-6179-4423-9fbc-9da9c818094b	\N	+998456456456	sadfasdf	asdfasd	\N	\N	ru	USER	t	\N	\N	2026-02-19 10:14:00.440346	2026-02-19 10:14:00.440346	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-19 05:13:59.804191	\N	buyer_phone	\N	\N	\N
+489619ee-c26d-411a-b3d2-8763734a8e66	\N	+998123456789	Siddiq	Xasanov	\N	\N	ru	USER	t	\N	\N	2026-02-21 11:47:03.043392	2026-02-21 11:47:03.043392	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-21 06:47:02.124099	\N	buyer_phone	\N	\N	\N
+aee3bb4c-0070-41c4-a0de-19ea92112de9	\N	+998903172053	gdfsgdf sdf	gsdfg sdfg	\N	\N	ru	SELLER	t	\N	\N	2026-02-18 12:03:48.870139	2026-02-18 12:06:30.615283	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-18 07:05:27.671732	\N	buyer_phone	\N	\N	\N
+3c8a894e-ef5f-4501-8989-5a42ef75c80f	\N	+998903124244	siddiq	xasanov	\N	\N	ru	USER	t	\N	\N	2026-02-23 11:30:39.157866	2026-02-23 11:30:39.157866	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 06:30:38.321572	\N	buyer_phone	\N	\N	\N
+52493fa7-ac25-4441-8cd4-607be2a45d67	\N	+998123423423	asda	sda	\N	\N	ru	USER	t	\N	\N	2026-02-23 11:50:08.30847	2026-02-23 11:50:08.30847	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 06:50:07.371231	\N	buyer_phone	\N	\N	\N
+9470ad3c-9251-4143-8c26-ea23ba8c3cda	\N	+998234234333	asdfa	sdfa	\N	\N	ru	USER	t	\N	\N	2026-02-23 14:14:29.838126	2026-02-23 14:14:29.838126	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 09:14:28.78379	\N	buyer_phone	\N	\N	\N
+72f496a8-f04a-4950-99be-6f2def32a958	\N	+998345345344	ffhdfgh	dfghdf	\N	\N	ru	SELLER	t	\N	\N	2026-02-23 14:47:35.650117	2026-02-23 14:47:41.79207	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-23 09:47:34.551577	\N	buyer_phone	\N	\N	\N
+490aa17c-473c-45cf-8896-83dbc09edec9	\N	+998903172092	asdas	asdas	\N	\N	ru	USER	t	\N	\N	2026-02-20 11:19:42.03713	2026-02-20 11:19:42.03713	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-02-20 06:19:41.102093	\N	buyer_phone	\N	\N	\N
+a0c646bc-a87c-4acd-a03e-bfa324aa975b	\N	\N	Admin	admin	admin_admin	\N	ru	ADMIN	t	\N	\N	2026-03-29 17:59:36.535562	2026-05-14 12:29:31.743766	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-05-14 07:29:30.856371	\N	admin_login	\N	\N	\N
+51a926be-c7eb-443b-bedb-a44eb9ebc122	790863031	+998903172052	Seller 2052	\N	\N	\N	uz_cyrl	SELLER	t	\N	\N	2026-04-03 11:24:10.090492	2026-05-14 13:27:46.77426	APPROVED	\N	\N	\N	\N	f	f	\N	{}	\N	2026-05-14 08:27:37.60676	\N	seller_otp	\N	\N	\N
+ff89f40d-55dc-458d-9cd7-6f3b1c5d9f70	7780989992	+998777121018	Siddiq	hasanov	NoneUsers32	\N	uz	SELLER	t	\N	\N	2026-03-29 17:59:09.332085	2026-05-04 15:40:24.866631	APPROVED	\N	\N	2026-03-29 12:59:09.356515	\N	f	f	\N	{}	\N	2026-05-04 10:40:23.772459	\N	seller_otp	\N	\N	\N
 \.
 
 
 --
--- TOC entry 4936 (class 2606 OID 418547)
+-- TOC entry 5615 (class 0 OID 468599)
+-- Dependencies: 239
+-- Data for Name: wallets; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.wallets (id, user_id, current_balance, currency, version, created_at, updated_at) FROM stdin;
+03805ddb-f35e-4e59-ae27-5bee79022712	8106a1d2-a94d-4770-bcbf-dd3c9dba84e7	30000	UZS	2	2026-05-08 10:08:53.098298	2026-05-08 10:09:43.859073
+\.
+
+
+--
+-- TOC entry 5363 (class 2606 OID 476442)
+-- Name: account_link account_link_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_link
+    ADD CONSTRAINT account_link_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5359 (class 2606 OID 476422)
+-- Name: account_suspicion account_suspicion_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_suspicion
+    ADD CONSTRAINT account_suspicion_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5341 (class 2606 OID 476338)
+-- Name: ai_generation_feedback ai_generation_feedback_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generation_feedback
+    ADD CONSTRAINT ai_generation_feedback_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5337 (class 2606 OID 476316)
+-- Name: ai_generations ai_generations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generations
+    ADD CONSTRAINT ai_generations_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5143 (class 2606 OID 418547)
 -- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1540,7 +2680,7 @@ ALTER TABLE ONLY public.alembic_version
 
 
 --
--- TOC entry 4949 (class 2606 OID 418585)
+-- TOC entry 5158 (class 2606 OID 418585)
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1549,7 +2689,43 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
--- TOC entry 5021 (class 2606 OID 418872)
+-- TOC entry 5375 (class 2606 OID 476514)
+-- Name: banners banners_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.banners
+    ADD CONSTRAINT banners_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5324 (class 2606 OID 476128)
+-- Name: behavioral_signals behavioral_signals_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.behavioral_signals
+    ADD CONSTRAINT behavioral_signals_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5329 (class 2606 OID 476145)
+-- Name: bot_channel_posts bot_channel_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_channel_posts
+    ADD CONSTRAINT bot_channel_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5315 (class 2606 OID 476097)
+-- Name: claim_invites claim_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.claim_invites
+    ADD CONSTRAINT claim_invites_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5230 (class 2606 OID 418872)
 -- Name: comment_likes comment_likes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1558,7 +2734,7 @@ ALTER TABLE ONLY public.comment_likes
 
 
 --
--- TOC entry 5015 (class 2606 OID 418847)
+-- TOC entry 5224 (class 2606 OID 418847)
 -- Name: comments comments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1567,7 +2743,34 @@ ALTER TABLE ONLY public.comments
 
 
 --
--- TOC entry 5007 (class 2606 OID 418759)
+-- TOC entry 5320 (class 2606 OID 476114)
+-- Name: deep_link_events deep_link_events_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.deep_link_events
+    ADD CONSTRAINT deep_link_events_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5311 (class 2606 OID 476082)
+-- Name: deep_link_payloads deep_link_payloads_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.deep_link_payloads
+    ADD CONSTRAINT deep_link_payloads_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5349 (class 2606 OID 476375)
+-- Name: export_templates export_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.export_templates
+    ADD CONSTRAINT export_templates_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5216 (class 2606 OID 418759)
 -- Name: favorites favorites_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1576,7 +2779,7 @@ ALTER TABLE ONLY public.favorites
 
 
 --
--- TOC entry 5062 (class 2606 OID 451378)
+-- TOC entry 5272 (class 2606 OID 451378)
 -- Name: housing_complexes housing_complexes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1585,7 +2788,7 @@ ALTER TABLE ONLY public.housing_complexes
 
 
 --
--- TOC entry 5011 (class 2606 OID 418789)
+-- TOC entry 5220 (class 2606 OID 418789)
 -- Name: listing_claims listing_claims_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1594,7 +2797,7 @@ ALTER TABLE ONLY public.listing_claims
 
 
 --
--- TOC entry 5013 (class 2606 OID 418812)
+-- TOC entry 5222 (class 2606 OID 418812)
 -- Name: listing_images listing_images_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1603,7 +2806,25 @@ ALTER TABLE ONLY public.listing_images
 
 
 --
--- TOC entry 5001 (class 2606 OID 418717)
+-- TOC entry 5381 (class 2606 OID 476525)
+-- Name: listing_sales listing_sales_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_sales
+    ADD CONSTRAINT listing_sales_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5278 (class 2606 OID 468504)
+-- Name: listing_view_event listing_view_event_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_view_event
+    ADD CONSTRAINT listing_view_event_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5210 (class 2606 OID 418717)
 -- Name: listings listings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1612,7 +2833,7 @@ ALTER TABLE ONLY public.listings
 
 
 --
--- TOC entry 4951 (class 2606 OID 418599)
+-- TOC entry 5160 (class 2606 OID 418599)
 -- Name: notification_preferences notification_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1621,7 +2842,7 @@ ALTER TABLE ONLY public.notification_preferences
 
 
 --
--- TOC entry 4953 (class 2606 OID 418601)
+-- TOC entry 5162 (class 2606 OID 418601)
 -- Name: notification_preferences notification_preferences_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1630,7 +2851,7 @@ ALTER TABLE ONLY public.notification_preferences
 
 
 --
--- TOC entry 5030 (class 2606 OID 418905)
+-- TOC entry 5239 (class 2606 OID 418905)
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1639,7 +2860,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5053 (class 2606 OID 418952)
+-- TOC entry 5263 (class 2606 OID 418952)
 -- Name: olx_listings olx_listings_olx_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1648,7 +2869,7 @@ ALTER TABLE ONLY public.olx_listings
 
 
 --
--- TOC entry 5055 (class 2606 OID 418950)
+-- TOC entry 5265 (class 2606 OID 418950)
 -- Name: olx_listings olx_listings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1657,7 +2878,7 @@ ALTER TABLE ONLY public.olx_listings
 
 
 --
--- TOC entry 4955 (class 2606 OID 418614)
+-- TOC entry 5164 (class 2606 OID 418614)
 -- Name: parser_errors parser_errors_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1666,7 +2887,7 @@ ALTER TABLE ONLY public.parser_errors
 
 
 --
--- TOC entry 4938 (class 2606 OID 418558)
+-- TOC entry 5145 (class 2606 OID 418558)
 -- Name: parser_sources parser_sources_identifier_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1675,7 +2896,7 @@ ALTER TABLE ONLY public.parser_sources
 
 
 --
--- TOC entry 4940 (class 2606 OID 418556)
+-- TOC entry 5147 (class 2606 OID 418556)
 -- Name: parser_sources parser_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1684,7 +2905,43 @@ ALTER TABLE ONLY public.parser_sources
 
 
 --
--- TOC entry 4958 (class 2606 OID 418628)
+-- TOC entry 5309 (class 2606 OID 468689)
+-- Name: phone_verify_attempt phone_verify_attempt_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.phone_verify_attempt
+    ADD CONSTRAINT phone_verify_attempt_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5334 (class 2606 OID 476300)
+-- Name: prompt_templates prompt_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prompt_templates
+    ADD CONSTRAINT prompt_templates_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5368 (class 2606 OID 476469)
+-- Name: referral_events referral_events_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_events
+    ADD CONSTRAINT referral_events_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5373 (class 2606 OID 476489)
+-- Name: referral_rewards referral_rewards_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_rewards
+    ADD CONSTRAINT referral_rewards_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5167 (class 2606 OID 418628)
 -- Name: saved_searches saved_searches_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1693,7 +2950,25 @@ ALTER TABLE ONLY public.saved_searches
 
 
 --
--- TOC entry 4963 (class 2606 OID 418649)
+-- TOC entry 5355 (class 2606 OID 476400)
+-- Name: seller_client_listings seller_client_listings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.seller_client_listings
+    ADD CONSTRAINT seller_client_listings_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5353 (class 2606 OID 476387)
+-- Name: seller_clients seller_clients_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.seller_clients
+    ADD CONSTRAINT seller_clients_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5172 (class 2606 OID 418649)
 -- Name: sellers sellers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1702,7 +2977,7 @@ ALTER TABLE ONLY public.sellers
 
 
 --
--- TOC entry 4965 (class 2606 OID 418653)
+-- TOC entry 5174 (class 2606 OID 418653)
 -- Name: sellers sellers_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1711,7 +2986,34 @@ ALTER TABLE ONLY public.sellers
 
 
 --
--- TOC entry 5040 (class 2606 OID 418937)
+-- TOC entry 5283 (class 2606 OID 468546)
+-- Name: source_metric source_metric_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.source_metric
+    ADD CONSTRAINT source_metric_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5293 (class 2606 OID 468630)
+-- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5346 (class 2606 OID 476362)
+-- Name: synonym_entries synonym_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.synonym_entries
+    ADD CONSTRAINT synonym_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5250 (class 2606 OID 418937)
 -- Name: telegram_listings telegram_listings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1720,7 +3022,34 @@ ALTER TABLE ONLY public.telegram_listings
 
 
 --
--- TOC entry 5025 (class 2606 OID 418874)
+-- TOC entry 5298 (class 2606 OID 468651)
+-- Name: transactions transactions_idempotency_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_idempotency_key_key UNIQUE (idempotency_key);
+
+
+--
+-- TOC entry 5300 (class 2606 OID 468649)
+-- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5365 (class 2606 OID 476444)
+-- Name: account_link uq_account_link_pair; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_link
+    ADD CONSTRAINT uq_account_link_pair UNIQUE (user_id_a, user_id_b);
+
+
+--
+-- TOC entry 5234 (class 2606 OID 418874)
 -- Name: comment_likes uq_comment_user_like; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1729,7 +3058,34 @@ ALTER TABLE ONLY public.comment_likes
 
 
 --
--- TOC entry 5003 (class 2606 OID 418743)
+-- TOC entry 5383 (class 2606 OID 476527)
+-- Name: listing_sales uq_listing_sales_listing_id; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_sales
+    ADD CONSTRAINT uq_listing_sales_listing_id UNIQUE (listing_id);
+
+
+--
+-- TOC entry 5370 (class 2606 OID 476471)
+-- Name: referral_events uq_referral_event_triple; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_events
+    ADD CONSTRAINT uq_referral_event_triple UNIQUE (referrer_user_id, referred_user_id, event_type);
+
+
+--
+-- TOC entry 5357 (class 2606 OID 476402)
+-- Name: seller_client_listings uq_seller_client_listing_pair; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.seller_client_listings
+    ADD CONSTRAINT uq_seller_client_listing_pair UNIQUE (client_id, listing_id);
+
+
+--
+-- TOC entry 5212 (class 2606 OID 418743)
 -- Name: user_follows_seller uq_user_follows_seller; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1738,7 +3094,7 @@ ALTER TABLE ONLY public.user_follows_seller
 
 
 --
--- TOC entry 5009 (class 2606 OID 418761)
+-- TOC entry 5218 (class 2606 OID 418761)
 -- Name: favorites uq_user_listing_favorite; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1747,7 +3103,7 @@ ALTER TABLE ONLY public.favorites
 
 
 --
--- TOC entry 5005 (class 2606 OID 418741)
+-- TOC entry 5214 (class 2606 OID 418741)
 -- Name: user_follows_seller user_follows_seller_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1756,7 +3112,16 @@ ALTER TABLE ONLY public.user_follows_seller
 
 
 --
--- TOC entry 5058 (class 2606 OID 426813)
+-- TOC entry 5305 (class 2606 OID 468673)
+-- Name: user_phones user_phones_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_phones
+    ADD CONSTRAINT user_phones_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5268 (class 2606 OID 426813)
 -- Name: user_preferences user_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1765,7 +3130,7 @@ ALTER TABLE ONLY public.user_preferences
 
 
 --
--- TOC entry 5060 (class 2606 OID 426815)
+-- TOC entry 5270 (class 2606 OID 426815)
 -- Name: user_preferences user_preferences_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1774,7 +3139,7 @@ ALTER TABLE ONLY public.user_preferences
 
 
 --
--- TOC entry 4947 (class 2606 OID 418575)
+-- TOC entry 5156 (class 2606 OID 418575)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1783,7 +3148,81 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5022 (class 1259 OID 418885)
+-- TOC entry 5287 (class 2606 OID 468610)
+-- Name: wallets wallets_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.wallets
+    ADD CONSTRAINT wallets_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5289 (class 2606 OID 468612)
+-- Name: wallets wallets_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.wallets
+    ADD CONSTRAINT wallets_user_id_key UNIQUE (user_id);
+
+
+--
+-- TOC entry 5342 (class 1259 OID 476354)
+-- Name: idx_ai_feedback_handled_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_feedback_handled_created ON public.ai_generation_feedback USING btree (handled, created_at DESC);
+
+
+--
+-- TOC entry 5338 (class 1259 OID 476327)
+-- Name: idx_ai_generations_listing_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_generations_listing_created ON public.ai_generations USING btree (listing_id, created_at DESC);
+
+
+--
+-- TOC entry 5339 (class 1259 OID 476328)
+-- Name: idx_ai_generations_outcome_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_generations_outcome_created ON public.ai_generations USING btree (outcome, created_at DESC) WHERE ((outcome)::text <> 'ok'::text);
+
+
+--
+-- TOC entry 5330 (class 1259 OID 476157)
+-- Name: idx_bot_channel_posts_seller_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_bot_channel_posts_seller_status ON public.bot_channel_posts USING btree (seller_id, status);
+
+
+--
+-- TOC entry 5316 (class 1259 OID 476104)
+-- Name: idx_claim_invites_channel; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_claim_invites_channel ON public.claim_invites USING btree (channel_username) WHERE (channel_username IS NOT NULL);
+
+
+--
+-- TOC entry 5317 (class 1259 OID 476105)
+-- Name: idx_claim_invites_expires; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_claim_invites_expires ON public.claim_invites USING btree (expires_at) WHERE (used_at IS NULL);
+
+
+--
+-- TOC entry 5318 (class 1259 OID 476103)
+-- Name: idx_claim_invites_pre_imported; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_claim_invites_pre_imported ON public.claim_invites USING btree (pre_imported_user_id) WHERE (pre_imported_user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5231 (class 1259 OID 418885)
 -- Name: idx_comment_likes_comment_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1791,7 +3230,7 @@ CREATE INDEX idx_comment_likes_comment_id ON public.comment_likes USING btree (c
 
 
 --
--- TOC entry 5023 (class 1259 OID 418886)
+-- TOC entry 5232 (class 1259 OID 418886)
 -- Name: idx_comment_likes_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1799,7 +3238,7 @@ CREATE INDEX idx_comment_likes_user_id ON public.comment_likes USING btree (user
 
 
 --
--- TOC entry 5016 (class 1259 OID 418866)
+-- TOC entry 5225 (class 1259 OID 418866)
 -- Name: idx_comments_listing_created; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1807,7 +3246,7 @@ CREATE INDEX idx_comments_listing_created ON public.comments USING btree (listin
 
 
 --
--- TOC entry 5017 (class 1259 OID 418863)
+-- TOC entry 5226 (class 1259 OID 418863)
 -- Name: idx_comments_listing_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1815,7 +3254,7 @@ CREATE INDEX idx_comments_listing_id ON public.comments USING btree (listing_id)
 
 
 --
--- TOC entry 5018 (class 1259 OID 418865)
+-- TOC entry 5227 (class 1259 OID 418865)
 -- Name: idx_comments_parent_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1823,7 +3262,7 @@ CREATE INDEX idx_comments_parent_id ON public.comments USING btree (parent_id);
 
 
 --
--- TOC entry 5019 (class 1259 OID 418864)
+-- TOC entry 5228 (class 1259 OID 418864)
 -- Name: idx_comments_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1831,7 +3270,39 @@ CREATE INDEX idx_comments_user_id ON public.comments USING btree (user_id);
 
 
 --
--- TOC entry 5063 (class 1259 OID 451384)
+-- TOC entry 5321 (class 1259 OID 476120)
+-- Name: idx_dle_prefix_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dle_prefix_created ON public.deep_link_events USING btree (prefix, created_at DESC);
+
+
+--
+-- TOC entry 5322 (class 1259 OID 476121)
+-- Name: idx_dle_user_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dle_user_created ON public.deep_link_events USING btree (user_id, created_at DESC) WHERE (user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5312 (class 1259 OID 476089)
+-- Name: idx_dlp_created_by; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dlp_created_by ON public.deep_link_payloads USING btree (created_by_user_id) WHERE (created_by_user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5313 (class 1259 OID 476088)
+-- Name: idx_dlp_kind_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dlp_kind_created ON public.deep_link_payloads USING btree (kind, created_at DESC);
+
+
+--
+-- TOC entry 5273 (class 1259 OID 451384)
 -- Name: idx_housing_complexes_developer_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1839,7 +3310,31 @@ CREATE INDEX idx_housing_complexes_developer_id ON public.housing_complexes USIN
 
 
 --
--- TOC entry 4966 (class 1259 OID 418728)
+-- TOC entry 5274 (class 1259 OID 468532)
+-- Name: idx_listing_view_event_anon_time; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_view_event_anon_time ON public.listing_view_event USING btree (anon_id, viewed_at DESC) WHERE (anon_id IS NOT NULL);
+
+
+--
+-- TOC entry 5275 (class 1259 OID 468511)
+-- Name: idx_listing_view_event_listing_type_time; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_view_event_listing_type_time ON public.listing_view_event USING btree (listing_id, event_type, viewed_at DESC);
+
+
+--
+-- TOC entry 5276 (class 1259 OID 468510)
+-- Name: idx_listing_view_event_user_time; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_listing_view_event_user_time ON public.listing_view_event USING btree (user_id, viewed_at DESC) WHERE (user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5175 (class 1259 OID 418728)
 -- Name: idx_listings_active; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1847,7 +3342,7 @@ CREATE INDEX idx_listings_active ON public.listings USING btree (status) WHERE (
 
 
 --
--- TOC entry 4967 (class 1259 OID 451339)
+-- TOC entry 5176 (class 1259 OID 451339)
 -- Name: idx_listings_amenities_gin; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1855,7 +3350,7 @@ CREATE INDEX idx_listings_amenities_gin ON public.listings USING gin (amenities)
 
 
 --
--- TOC entry 4968 (class 1259 OID 451366)
+-- TOC entry 5177 (class 1259 OID 451366)
 -- Name: idx_listings_balcony; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1863,7 +3358,7 @@ CREATE INDEX idx_listings_balcony ON public.listings USING btree (balcony) WHERE
 
 
 --
--- TOC entry 4969 (class 1259 OID 451353)
+-- TOC entry 5178 (class 1259 OID 451353)
 -- Name: idx_listings_building_class; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1871,7 +3366,7 @@ CREATE INDEX idx_listings_building_class ON public.listings USING btree (buildin
 
 
 --
--- TOC entry 4970 (class 1259 OID 451354)
+-- TOC entry 5179 (class 1259 OID 451354)
 -- Name: idx_listings_ceiling_height; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1879,7 +3374,7 @@ CREATE INDEX idx_listings_ceiling_height ON public.listings USING btree (ceiling
 
 
 --
--- TOC entry 4971 (class 1259 OID 451352)
+-- TOC entry 5180 (class 1259 OID 451352)
 -- Name: idx_listings_commercial_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1887,7 +3382,7 @@ CREATE INDEX idx_listings_commercial_type ON public.listings USING btree (commer
 
 
 --
--- TOC entry 4972 (class 1259 OID 451393)
+-- TOC entry 5181 (class 1259 OID 451393)
 -- Name: idx_listings_expires_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1895,7 +3390,7 @@ CREATE INDEX idx_listings_expires_at ON public.listings USING btree (expires_at)
 
 
 --
--- TOC entry 4973 (class 1259 OID 451359)
+-- TOC entry 5182 (class 1259 OID 451359)
 -- Name: idx_listings_furniture; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1903,7 +3398,7 @@ CREATE INDEX idx_listings_furniture ON public.listings USING btree (furniture) W
 
 
 --
--- TOC entry 4974 (class 1259 OID 451365)
+-- TOC entry 5183 (class 1259 OID 451365)
 -- Name: idx_listings_garage; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1911,7 +3406,7 @@ CREATE INDEX idx_listings_garage ON public.listings USING btree (garage) WHERE (
 
 
 --
--- TOC entry 4975 (class 1259 OID 451337)
+-- TOC entry 5184 (class 1259 OID 451337)
 -- Name: idx_listings_halol_ok; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1919,7 +3414,7 @@ CREATE INDEX idx_listings_halol_ok ON public.listings USING btree (halol_ok) WHE
 
 
 --
--- TOC entry 4976 (class 1259 OID 451336)
+-- TOC entry 5185 (class 1259 OID 451336)
 -- Name: idx_listings_installment_ok; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1927,7 +3422,7 @@ CREATE INDEX idx_listings_installment_ok ON public.listings USING btree (install
 
 
 --
--- TOC entry 4977 (class 1259 OID 451390)
+-- TOC entry 5186 (class 1259 OID 451390)
 -- Name: idx_listings_jk_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1935,7 +3430,7 @@ CREATE INDEX idx_listings_jk_id ON public.listings USING btree (jk_id) WHERE (jk
 
 
 --
--- TOC entry 4978 (class 1259 OID 451345)
+-- TOC entry 5187 (class 1259 OID 451345)
 -- Name: idx_listings_jk_name; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1943,7 +3438,7 @@ CREATE INDEX idx_listings_jk_name ON public.listings USING btree (jk_name) WHERE
 
 
 --
--- TOC entry 4979 (class 1259 OID 451368)
+-- TOC entry 5188 (class 1259 OID 451368)
 -- Name: idx_listings_land_shape; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1951,7 +3446,7 @@ CREATE INDEX idx_listings_land_shape ON public.listings USING btree (land_shape)
 
 
 --
--- TOC entry 4980 (class 1259 OID 451367)
+-- TOC entry 5189 (class 1259 OID 451367)
 -- Name: idx_listings_listing_subtype; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1959,7 +3454,7 @@ CREATE INDEX idx_listings_listing_subtype ON public.listings USING btree (listin
 
 
 --
--- TOC entry 4981 (class 1259 OID 451338)
+-- TOC entry 5190 (class 1259 OID 451338)
 -- Name: idx_listings_main_feed; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1967,7 +3462,7 @@ CREATE INDEX idx_listings_main_feed ON public.listings USING btree (property_typ
 
 
 --
--- TOC entry 4982 (class 1259 OID 451358)
+-- TOC entry 5191 (class 1259 OID 451358)
 -- Name: idx_listings_market_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1975,7 +3470,7 @@ CREATE INDEX idx_listings_market_type ON public.listings USING btree (market_typ
 
 
 --
--- TOC entry 4983 (class 1259 OID 451343)
+-- TOC entry 5192 (class 1259 OID 451343)
 -- Name: idx_listings_metro_station; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1983,7 +3478,7 @@ CREATE INDEX idx_listings_metro_station ON public.listings USING btree (metro_st
 
 
 --
--- TOC entry 4984 (class 1259 OID 451344)
+-- TOC entry 5193 (class 1259 OID 451344)
 -- Name: idx_listings_microdistrict; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1991,7 +3486,7 @@ CREATE INDEX idx_listings_microdistrict ON public.listings USING btree (microdis
 
 
 --
--- TOC entry 4985 (class 1259 OID 451335)
+-- TOC entry 5194 (class 1259 OID 451335)
 -- Name: idx_listings_mortgage_ok; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1999,7 +3494,7 @@ CREATE INDEX idx_listings_mortgage_ok ON public.listings USING btree (mortgage_o
 
 
 --
--- TOC entry 4986 (class 1259 OID 451340)
+-- TOC entry 5195 (class 1259 OID 451340)
 -- Name: idx_listings_nearby_amenities_gin; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2007,7 +3502,7 @@ CREATE INDEX idx_listings_nearby_amenities_gin ON public.listings USING gin (nea
 
 
 --
--- TOC entry 4987 (class 1259 OID 451334)
+-- TOC entry 5196 (class 1259 OID 451334)
 -- Name: idx_listings_rent_period; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2015,7 +3510,7 @@ CREATE INDEX idx_listings_rent_period ON public.listings USING btree (rent_perio
 
 
 --
--- TOC entry 4988 (class 1259 OID 451392)
+-- TOC entry 5197 (class 1259 OID 451392)
 -- Name: idx_listings_slug; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2023,7 +3518,7 @@ CREATE UNIQUE INDEX idx_listings_slug ON public.listings USING btree (slug) WHER
 
 
 --
--- TOC entry 4989 (class 1259 OID 418729)
+-- TOC entry 5198 (class 1259 OID 418729)
 -- Name: idx_listings_type_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2031,7 +3526,7 @@ CREATE INDEX idx_listings_type_status ON public.listings USING btree (type, stat
 
 
 --
--- TOC entry 4990 (class 1259 OID 451342)
+-- TOC entry 5199 (class 1259 OID 451342)
 -- Name: idx_listings_urgent_flag; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2039,7 +3534,7 @@ CREATE INDEX idx_listings_urgent_flag ON public.listings USING btree (urgent_fla
 
 
 --
--- TOC entry 4991 (class 1259 OID 451360)
+-- TOC entry 5200 (class 1259 OID 451360)
 -- Name: idx_listings_wall_material; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2047,7 +3542,7 @@ CREATE INDEX idx_listings_wall_material ON public.listings USING btree (wall_mat
 
 
 --
--- TOC entry 5026 (class 1259 OID 418927)
+-- TOC entry 5235 (class 1259 OID 418927)
 -- Name: idx_notifications_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2055,7 +3550,7 @@ CREATE INDEX idx_notifications_created_at ON public.notifications USING btree (c
 
 
 --
--- TOC entry 5027 (class 1259 OID 418926)
+-- TOC entry 5236 (class 1259 OID 418926)
 -- Name: idx_notifications_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2063,7 +3558,7 @@ CREATE INDEX idx_notifications_user_id ON public.notifications USING btree (user
 
 
 --
--- TOC entry 5028 (class 1259 OID 418928)
+-- TOC entry 5237 (class 1259 OID 418928)
 -- Name: idx_notifications_user_unread; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2071,7 +3566,7 @@ CREATE INDEX idx_notifications_user_unread ON public.notifications USING btree (
 
 
 --
--- TOC entry 5042 (class 1259 OID 418955)
+-- TOC entry 5252 (class 1259 OID 418955)
 -- Name: idx_olx_listings_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2079,7 +3574,7 @@ CREATE INDEX idx_olx_listings_created_at ON public.olx_listings USING btree (cre
 
 
 --
--- TOC entry 5043 (class 1259 OID 418956)
+-- TOC entry 5253 (class 1259 OID 418956)
 -- Name: idx_olx_listings_district; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2087,7 +3582,7 @@ CREATE INDEX idx_olx_listings_district ON public.olx_listings USING btree (distr
 
 
 --
--- TOC entry 5044 (class 1259 OID 418953)
+-- TOC entry 5254 (class 1259 OID 418953)
 -- Name: idx_olx_listings_olx_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2095,7 +3590,7 @@ CREATE INDEX idx_olx_listings_olx_id ON public.olx_listings USING btree (olx_id)
 
 
 --
--- TOC entry 5045 (class 1259 OID 418964)
+-- TOC entry 5255 (class 1259 OID 418964)
 -- Name: idx_olx_listings_phone_suffix; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2103,7 +3598,7 @@ CREATE INDEX idx_olx_listings_phone_suffix ON public.olx_listings USING btree ("
 
 
 --
--- TOC entry 5046 (class 1259 OID 418957)
+-- TOC entry 5256 (class 1259 OID 418957)
 -- Name: idx_olx_listings_price; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2111,7 +3606,7 @@ CREATE INDEX idx_olx_listings_price ON public.olx_listings USING btree (price);
 
 
 --
--- TOC entry 5047 (class 1259 OID 418954)
+-- TOC entry 5257 (class 1259 OID 418954)
 -- Name: idx_olx_listings_signature_hash; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2119,7 +3614,47 @@ CREATE INDEX idx_olx_listings_signature_hash ON public.olx_listings USING btree 
 
 
 --
--- TOC entry 4956 (class 1259 OID 451401)
+-- TOC entry 5306 (class 1259 OID 468696)
+-- Name: idx_phone_verify_attempt_phone_time; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_phone_verify_attempt_phone_time ON public.phone_verify_attempt USING btree (phone, created_at DESC);
+
+
+--
+-- TOC entry 5307 (class 1259 OID 468695)
+-- Name: idx_phone_verify_attempt_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_phone_verify_attempt_user ON public.phone_verify_attempt USING btree (user_id);
+
+
+--
+-- TOC entry 5332 (class 1259 OID 476307)
+-- Name: idx_prompt_templates_kind_version; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_prompt_templates_kind_version ON public.prompt_templates USING btree (kind, version DESC);
+
+
+--
+-- TOC entry 5366 (class 1259 OID 476482)
+-- Name: idx_referral_events_referrer_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_referral_events_referrer_created ON public.referral_events USING btree (referrer_user_id, created_at DESC);
+
+
+--
+-- TOC entry 5371 (class 1259 OID 476500)
+-- Name: idx_referral_rewards_referrer_granted; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_referral_rewards_referrer_granted ON public.referral_rewards USING btree (referrer_user_id, granted_at DESC);
+
+
+--
+-- TOC entry 5165 (class 1259 OID 451401)
 -- Name: idx_saved_searches_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2127,7 +3662,7 @@ CREATE INDEX idx_saved_searches_user_id ON public.saved_searches USING btree (us
 
 
 --
--- TOC entry 4959 (class 1259 OID 451391)
+-- TOC entry 5168 (class 1259 OID 451391)
 -- Name: idx_sellers_trust_score; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2135,7 +3670,79 @@ CREATE INDEX idx_sellers_trust_score ON public.sellers USING btree (trust_score)
 
 
 --
--- TOC entry 5031 (class 1259 OID 418939)
+-- TOC entry 5325 (class 1259 OID 476136)
+-- Name: idx_signals_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_signals_created ON public.behavioral_signals USING btree (created_at);
+
+
+--
+-- TOC entry 5326 (class 1259 OID 476135)
+-- Name: idx_signals_listing_event; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_signals_listing_event ON public.behavioral_signals USING btree (listing_id, event_type) WHERE (listing_id IS NOT NULL);
+
+
+--
+-- TOC entry 5327 (class 1259 OID 476134)
+-- Name: idx_signals_user_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_signals_user_created ON public.behavioral_signals USING btree (user_id, created_at DESC) WHERE (user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5280 (class 1259 OID 468554)
+-- Name: idx_source_metric_day; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_source_metric_day ON public.source_metric USING btree (day);
+
+
+--
+-- TOC entry 5281 (class 1259 OID 468553)
+-- Name: idx_source_metric_source_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_source_metric_source_id ON public.source_metric USING btree (source_id);
+
+
+--
+-- TOC entry 5290 (class 1259 OID 468637)
+-- Name: idx_sub_next_billing; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_sub_next_billing ON public.subscriptions USING btree (next_billing_at) WHERE (next_billing_at IS NOT NULL);
+
+
+--
+-- TOC entry 5291 (class 1259 OID 468636)
+-- Name: idx_sub_user_type; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_sub_user_type ON public.subscriptions USING btree (user_id, type);
+
+
+--
+-- TOC entry 5343 (class 1259 OID 476363)
+-- Name: idx_synonym_param_lang; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_synonym_param_lang ON public.synonym_entries USING btree (parameter_key, language);
+
+
+--
+-- TOC entry 5344 (class 1259 OID 476364)
+-- Name: idx_synonym_surface_lang; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_synonym_surface_lang ON public.synonym_entries USING btree (surface_form, language);
+
+
+--
+-- TOC entry 5241 (class 1259 OID 418939)
 -- Name: idx_telegram_listings_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2143,7 +3750,7 @@ CREATE INDEX idx_telegram_listings_created_at ON public.telegram_listings USING 
 
 
 --
--- TOC entry 5032 (class 1259 OID 418940)
+-- TOC entry 5242 (class 1259 OID 418940)
 -- Name: idx_telegram_listings_district; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2151,7 +3758,7 @@ CREATE INDEX idx_telegram_listings_district ON public.telegram_listings USING bt
 
 
 --
--- TOC entry 5033 (class 1259 OID 418965)
+-- TOC entry 5243 (class 1259 OID 418965)
 -- Name: idx_telegram_listings_phone_suffix; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2159,7 +3766,7 @@ CREATE INDEX idx_telegram_listings_phone_suffix ON public.telegram_listings USIN
 
 
 --
--- TOC entry 5034 (class 1259 OID 418941)
+-- TOC entry 5244 (class 1259 OID 418941)
 -- Name: idx_telegram_listings_price; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2167,7 +3774,7 @@ CREATE INDEX idx_telegram_listings_price ON public.telegram_listings USING btree
 
 
 --
--- TOC entry 5035 (class 1259 OID 418938)
+-- TOC entry 5245 (class 1259 OID 418938)
 -- Name: idx_telegram_listings_signature_hash; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2175,7 +3782,39 @@ CREATE INDEX idx_telegram_listings_signature_hash ON public.telegram_listings US
 
 
 --
--- TOC entry 4941 (class 1259 OID 418831)
+-- TOC entry 5294 (class 1259 OID 468664)
+-- Name: idx_tx_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_tx_created_at ON public.transactions USING btree (created_at);
+
+
+--
+-- TOC entry 5295 (class 1259 OID 468663)
+-- Name: idx_tx_external_payment_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_tx_external_payment_id ON public.transactions USING btree (external_payment_id) WHERE (external_payment_id IS NOT NULL);
+
+
+--
+-- TOC entry 5296 (class 1259 OID 468662)
+-- Name: idx_tx_wallet_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_tx_wallet_status ON public.transactions USING btree (wallet_id, status);
+
+
+--
+-- TOC entry 5301 (class 1259 OID 468681)
+-- Name: idx_user_phones_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_phones_user ON public.user_phones USING btree (user_id);
+
+
+--
+-- TOC entry 5148 (class 1259 OID 418831)
 -- Name: idx_users_approval_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2183,7 +3822,71 @@ CREATE INDEX idx_users_approval_status ON public.users USING btree (approval_sta
 
 
 --
--- TOC entry 4992 (class 1259 OID 418730)
+-- TOC entry 5149 (class 1259 OID 476073)
+-- Name: idx_users_referred_by_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_referred_by_user_id ON public.users USING btree (referred_by_user_id) WHERE (referred_by_user_id IS NOT NULL);
+
+
+--
+-- TOC entry 5285 (class 1259 OID 468618)
+-- Name: idx_wallets_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_wallets_user_id ON public.wallets USING btree (user_id);
+
+
+--
+-- TOC entry 5360 (class 1259 OID 476434)
+-- Name: ix_account_suspicion_primary_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_account_suspicion_primary_user ON public.account_suspicion USING btree (primary_user_id);
+
+
+--
+-- TOC entry 5361 (class 1259 OID 476433)
+-- Name: ix_account_suspicion_status_created; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_account_suspicion_status_created ON public.account_suspicion USING btree (status, created_at DESC);
+
+
+--
+-- TOC entry 5376 (class 1259 OID 476515)
+-- Name: ix_banners_active_placement_lang; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_banners_active_placement_lang ON public.banners USING btree (placement, language) WHERE is_active;
+
+
+--
+-- TOC entry 5377 (class 1259 OID 476535)
+-- Name: ix_listing_sales_currency_sold_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_listing_sales_currency_sold_at ON public.listing_sales USING btree (sold_currency, sold_at);
+
+
+--
+-- TOC entry 5378 (class 1259 OID 476533)
+-- Name: ix_listing_sales_listing_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_listing_sales_listing_id ON public.listing_sales USING btree (listing_id);
+
+
+--
+-- TOC entry 5379 (class 1259 OID 476534)
+-- Name: ix_listing_sales_sold_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_listing_sales_sold_at ON public.listing_sales USING btree (sold_at);
+
+
+--
+-- TOC entry 5201 (class 1259 OID 418730)
 -- Name: ix_listings_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2191,7 +3894,7 @@ CREATE INDEX ix_listings_created_at ON public.listings USING btree (created_at);
 
 
 --
--- TOC entry 4993 (class 1259 OID 418731)
+-- TOC entry 5202 (class 1259 OID 418731)
 -- Name: ix_listings_district; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2199,7 +3902,7 @@ CREATE INDEX ix_listings_district ON public.listings USING btree (district);
 
 
 --
--- TOC entry 4994 (class 1259 OID 418732)
+-- TOC entry 5203 (class 1259 OID 418732)
 -- Name: ix_listings_price; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2207,7 +3910,7 @@ CREATE INDEX ix_listings_price ON public.listings USING btree (price);
 
 
 --
--- TOC entry 4995 (class 1259 OID 419256)
+-- TOC entry 5204 (class 1259 OID 419256)
 -- Name: ix_listings_region; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2215,7 +3918,7 @@ CREATE INDEX ix_listings_region ON public.listings USING btree (region);
 
 
 --
--- TOC entry 4996 (class 1259 OID 419257)
+-- TOC entry 5205 (class 1259 OID 419257)
 -- Name: ix_listings_region_district; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2223,7 +3926,7 @@ CREATE INDEX ix_listings_region_district ON public.listings USING btree (region,
 
 
 --
--- TOC entry 4997 (class 1259 OID 418733)
+-- TOC entry 5206 (class 1259 OID 418733)
 -- Name: ix_listings_seller_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2231,7 +3934,7 @@ CREATE INDEX ix_listings_seller_id ON public.listings USING btree (seller_id);
 
 
 --
--- TOC entry 4998 (class 1259 OID 418734)
+-- TOC entry 5207 (class 1259 OID 418734)
 -- Name: ix_listings_signature_hash; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2239,7 +3942,7 @@ CREATE INDEX ix_listings_signature_hash ON public.listings USING btree (signatur
 
 
 --
--- TOC entry 4999 (class 1259 OID 418735)
+-- TOC entry 5208 (class 1259 OID 418735)
 -- Name: ix_listings_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2247,7 +3950,7 @@ CREATE INDEX ix_listings_status ON public.listings USING btree (status);
 
 
 --
--- TOC entry 5048 (class 1259 OID 426746)
+-- TOC entry 5258 (class 1259 OID 426746)
 -- Name: ix_olx_listings_converted_listing_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2255,7 +3958,7 @@ CREATE INDEX ix_olx_listings_converted_listing_id ON public.olx_listings USING b
 
 
 --
--- TOC entry 5049 (class 1259 OID 426747)
+-- TOC entry 5259 (class 1259 OID 426747)
 -- Name: ix_olx_listings_converted_unique; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2263,7 +3966,7 @@ CREATE UNIQUE INDEX ix_olx_listings_converted_unique ON public.olx_listings USIN
 
 
 --
--- TOC entry 5050 (class 1259 OID 426782)
+-- TOC entry 5260 (class 1259 OID 426782)
 -- Name: ix_olx_listings_region; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2271,7 +3974,7 @@ CREATE INDEX ix_olx_listings_region ON public.olx_listings USING btree (region);
 
 
 --
--- TOC entry 5051 (class 1259 OID 459611)
+-- TOC entry 5261 (class 1259 OID 459611)
 -- Name: ix_olx_rejected_by_seller; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2279,7 +3982,15 @@ CREATE INDEX ix_olx_rejected_by_seller ON public.olx_listings USING btree (rejec
 
 
 --
--- TOC entry 4960 (class 1259 OID 418967)
+-- TOC entry 5351 (class 1259 OID 476393)
+-- Name: ix_seller_clients_seller_stage; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX ix_seller_clients_seller_stage ON public.seller_clients USING btree (seller_id, pipeline_stage);
+
+
+--
+-- TOC entry 5169 (class 1259 OID 418967)
 -- Name: ix_sellers_phone_unique; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2287,7 +3998,7 @@ CREATE UNIQUE INDEX ix_sellers_phone_unique ON public.sellers USING btree (phone
 
 
 --
--- TOC entry 4961 (class 1259 OID 418968)
+-- TOC entry 5170 (class 1259 OID 418968)
 -- Name: ix_sellers_source_channel; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2295,7 +4006,7 @@ CREATE UNIQUE INDEX ix_sellers_source_channel ON public.sellers USING btree (sou
 
 
 --
--- TOC entry 5036 (class 1259 OID 426781)
+-- TOC entry 5246 (class 1259 OID 426781)
 -- Name: ix_telegram_listings_region; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2303,7 +4014,7 @@ CREATE INDEX ix_telegram_listings_region ON public.telegram_listings USING btree
 
 
 --
--- TOC entry 5037 (class 1259 OID 418969)
+-- TOC entry 5247 (class 1259 OID 418969)
 -- Name: ix_telegram_listings_source_channel; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2311,7 +4022,7 @@ CREATE INDEX ix_telegram_listings_source_channel ON public.telegram_listings USI
 
 
 --
--- TOC entry 5038 (class 1259 OID 459605)
+-- TOC entry 5248 (class 1259 OID 459605)
 -- Name: ix_telegram_rejected_by_seller; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2319,7 +4030,7 @@ CREATE INDEX ix_telegram_rejected_by_seller ON public.telegram_listings USING bt
 
 
 --
--- TOC entry 5056 (class 1259 OID 426821)
+-- TOC entry 5266 (class 1259 OID 426821)
 -- Name: ix_user_preferences_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2327,7 +4038,7 @@ CREATE UNIQUE INDEX ix_user_preferences_user_id ON public.user_preferences USING
 
 
 --
--- TOC entry 4942 (class 1259 OID 418961)
+-- TOC entry 5150 (class 1259 OID 418961)
 -- Name: ix_users_email; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2335,7 +4046,7 @@ CREATE UNIQUE INDEX ix_users_email ON public.users USING btree (email) WHERE (em
 
 
 --
--- TOC entry 4943 (class 1259 OID 418962)
+-- TOC entry 5151 (class 1259 OID 418962)
 -- Name: ix_users_google_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2343,7 +4054,7 @@ CREATE UNIQUE INDEX ix_users_google_id ON public.users USING btree (google_id) W
 
 
 --
--- TOC entry 4944 (class 1259 OID 418576)
+-- TOC entry 5152 (class 1259 OID 418576)
 -- Name: ix_users_phone; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2351,7 +4062,7 @@ CREATE UNIQUE INDEX ix_users_phone ON public.users USING btree (phone);
 
 
 --
--- TOC entry 4945 (class 1259 OID 443122)
+-- TOC entry 5153 (class 1259 OID 443122)
 -- Name: ix_users_telegram_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2359,7 +4070,63 @@ CREATE UNIQUE INDEX ix_users_telegram_id ON public.users USING btree (telegram_i
 
 
 --
--- TOC entry 5041 (class 1259 OID 459599)
+-- TOC entry 5331 (class 1259 OID 476156)
+-- Name: uq_bot_channel_posts_listing_channel; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_bot_channel_posts_listing_channel ON public.bot_channel_posts USING btree (listing_id, channel_id);
+
+
+--
+-- TOC entry 5350 (class 1259 OID 476376)
+-- Name: uq_export_template_active; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_export_template_active ON public.export_templates USING btree (platform, language) WHERE is_active;
+
+
+--
+-- TOC entry 5279 (class 1259 OID 468531)
+-- Name: uq_listing_view_event_dedup_v2; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_listing_view_event_dedup_v2 ON public.listing_view_event USING btree (COALESCE((user_id)::text, (anon_id)::text), listing_id, event_type, date(viewed_at)) WHERE (COALESCE((user_id)::text, (anon_id)::text) IS NOT NULL);
+
+
+--
+-- TOC entry 5240 (class 1259 OID 468533)
+-- Name: uq_notification_crawled_match; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_notification_crawled_match ON public.notifications USING btree (user_id, listing_id, type) WHERE (type = 'crawled_match'::public.notificationtype);
+
+
+--
+-- TOC entry 5335 (class 1259 OID 476306)
+-- Name: uq_prompt_templates_active_per_kind; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_prompt_templates_active_per_kind ON public.prompt_templates USING btree (kind) WHERE is_active;
+
+
+--
+-- TOC entry 5284 (class 1259 OID 468552)
+-- Name: uq_source_metric_day; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_source_metric_day ON public.source_metric USING btree (source_id, day);
+
+
+--
+-- TOC entry 5347 (class 1259 OID 476365)
+-- Name: uq_synonym_uniq; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_synonym_uniq ON public.synonym_entries USING btree (parameter_key, COALESCE(parameter_value, ''::character varying), surface_form, language);
+
+
+--
+-- TOC entry 5251 (class 1259 OID 459599)
 -- Name: uq_telegram_converted_listing; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2367,7 +4134,121 @@ CREATE UNIQUE INDEX uq_telegram_converted_listing ON public.telegram_listings US
 
 
 --
--- TOC entry 5065 (class 2606 OID 418586)
+-- TOC entry 5302 (class 1259 OID 468679)
+-- Name: uq_user_phones_phone; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_user_phones_phone ON public.user_phones USING btree (phone);
+
+
+--
+-- TOC entry 5303 (class 1259 OID 468680)
+-- Name: uq_user_phones_primary; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_user_phones_primary ON public.user_phones USING btree (user_id) WHERE (is_primary = true);
+
+
+--
+-- TOC entry 5154 (class 1259 OID 476460)
+-- Name: uq_users_referral_code; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX uq_users_referral_code ON public.users USING btree (referral_code) WHERE (referral_code IS NOT NULL);
+
+
+--
+-- TOC entry 5440 (class 2606 OID 476455)
+-- Name: account_link account_link_decided_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_link
+    ADD CONSTRAINT account_link_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES public.users(id);
+
+
+--
+-- TOC entry 5441 (class 2606 OID 476445)
+-- Name: account_link account_link_user_id_a_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_link
+    ADD CONSTRAINT account_link_user_id_a_fkey FOREIGN KEY (user_id_a) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5442 (class 2606 OID 476450)
+-- Name: account_link account_link_user_id_b_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_link
+    ADD CONSTRAINT account_link_user_id_b_fkey FOREIGN KEY (user_id_b) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5438 (class 2606 OID 476423)
+-- Name: account_suspicion account_suspicion_primary_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_suspicion
+    ADD CONSTRAINT account_suspicion_primary_user_id_fkey FOREIGN KEY (primary_user_id) REFERENCES public.users(id);
+
+
+--
+-- TOC entry 5439 (class 2606 OID 476428)
+-- Name: account_suspicion account_suspicion_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.account_suspicion
+    ADD CONSTRAINT account_suspicion_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5432 (class 2606 OID 476339)
+-- Name: ai_generation_feedback ai_generation_feedback_generation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generation_feedback
+    ADD CONSTRAINT ai_generation_feedback_generation_id_fkey FOREIGN KEY (generation_id) REFERENCES public.ai_generations(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5433 (class 2606 OID 476344)
+-- Name: ai_generation_feedback ai_generation_feedback_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generation_feedback
+    ADD CONSTRAINT ai_generation_feedback_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5434 (class 2606 OID 476349)
+-- Name: ai_generation_feedback ai_generation_feedback_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generation_feedback
+    ADD CONSTRAINT ai_generation_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5430 (class 2606 OID 476317)
+-- Name: ai_generations ai_generations_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generations
+    ADD CONSTRAINT ai_generations_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5431 (class 2606 OID 476322)
+-- Name: ai_generations ai_generations_prompt_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_generations
+    ADD CONSTRAINT ai_generations_prompt_template_id_fkey FOREIGN KEY (prompt_template_id) REFERENCES public.prompt_templates(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5386 (class 2606 OID 418586)
 -- Name: audit_log audit_log_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2376,7 +4257,43 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
--- TOC entry 5083 (class 2606 OID 418875)
+-- TOC entry 5426 (class 2606 OID 476129)
+-- Name: behavioral_signals behavioral_signals_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.behavioral_signals
+    ADD CONSTRAINT behavioral_signals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5427 (class 2606 OID 476146)
+-- Name: bot_channel_posts bot_channel_posts_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_channel_posts
+    ADD CONSTRAINT bot_channel_posts_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5428 (class 2606 OID 476151)
+-- Name: bot_channel_posts bot_channel_posts_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_channel_posts
+    ADD CONSTRAINT bot_channel_posts_seller_id_fkey FOREIGN KEY (seller_id) REFERENCES public.sellers(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5424 (class 2606 OID 476098)
+-- Name: claim_invites claim_invites_pre_imported_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.claim_invites
+    ADD CONSTRAINT claim_invites_pre_imported_user_id_fkey FOREIGN KEY (pre_imported_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5404 (class 2606 OID 418875)
 -- Name: comment_likes comment_likes_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2385,7 +4302,7 @@ ALTER TABLE ONLY public.comment_likes
 
 
 --
--- TOC entry 5084 (class 2606 OID 418880)
+-- TOC entry 5405 (class 2606 OID 418880)
 -- Name: comment_likes comment_likes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2394,7 +4311,7 @@ ALTER TABLE ONLY public.comment_likes
 
 
 --
--- TOC entry 5081 (class 2606 OID 418858)
+-- TOC entry 5402 (class 2606 OID 418858)
 -- Name: comments comments_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2403,7 +4320,7 @@ ALTER TABLE ONLY public.comments
 
 
 --
--- TOC entry 5082 (class 2606 OID 418853)
+-- TOC entry 5403 (class 2606 OID 418853)
 -- Name: comments comments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2412,7 +4329,25 @@ ALTER TABLE ONLY public.comments
 
 
 --
--- TOC entry 5076 (class 2606 OID 418767)
+-- TOC entry 5425 (class 2606 OID 476115)
+-- Name: deep_link_events deep_link_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.deep_link_events
+    ADD CONSTRAINT deep_link_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5423 (class 2606 OID 476083)
+-- Name: deep_link_payloads deep_link_payloads_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.deep_link_payloads
+    ADD CONSTRAINT deep_link_payloads_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5397 (class 2606 OID 418767)
 -- Name: favorites favorites_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2421,7 +4356,7 @@ ALTER TABLE ONLY public.favorites
 
 
 --
--- TOC entry 5070 (class 2606 OID 418832)
+-- TOC entry 5391 (class 2606 OID 418832)
 -- Name: listings fk_listings_moderated_by; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2430,7 +4365,7 @@ ALTER TABLE ONLY public.listings
 
 
 --
--- TOC entry 5064 (class 2606 OID 418826)
+-- TOC entry 5384 (class 2606 OID 418826)
 -- Name: users fk_users_approved_by; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2439,7 +4374,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5093 (class 2606 OID 451379)
+-- TOC entry 5414 (class 2606 OID 451379)
 -- Name: housing_complexes housing_complexes_developer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2448,7 +4383,7 @@ ALTER TABLE ONLY public.housing_complexes
 
 
 --
--- TOC entry 5077 (class 2606 OID 418790)
+-- TOC entry 5398 (class 2606 OID 418790)
 -- Name: listing_claims listing_claims_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2457,7 +4392,7 @@ ALTER TABLE ONLY public.listing_claims
 
 
 --
--- TOC entry 5078 (class 2606 OID 418795)
+-- TOC entry 5399 (class 2606 OID 418795)
 -- Name: listing_claims listing_claims_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2466,7 +4401,7 @@ ALTER TABLE ONLY public.listing_claims
 
 
 --
--- TOC entry 5079 (class 2606 OID 418800)
+-- TOC entry 5400 (class 2606 OID 418800)
 -- Name: listing_claims listing_claims_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2475,7 +4410,7 @@ ALTER TABLE ONLY public.listing_claims
 
 
 --
--- TOC entry 5080 (class 2606 OID 418813)
+-- TOC entry 5401 (class 2606 OID 418813)
 -- Name: listing_images listing_images_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2484,7 +4419,25 @@ ALTER TABLE ONLY public.listing_images
 
 
 --
--- TOC entry 5071 (class 2606 OID 451385)
+-- TOC entry 5447 (class 2606 OID 476528)
+-- Name: listing_sales listing_sales_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_sales
+    ADD CONSTRAINT listing_sales_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5415 (class 2606 OID 468505)
+-- Name: listing_view_event listing_view_event_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.listing_view_event
+    ADD CONSTRAINT listing_view_event_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5392 (class 2606 OID 451385)
 -- Name: listings listings_jk_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2493,7 +4446,7 @@ ALTER TABLE ONLY public.listings
 
 
 --
--- TOC entry 5072 (class 2606 OID 418718)
+-- TOC entry 5393 (class 2606 OID 418718)
 -- Name: listings listings_master_record_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2502,7 +4455,7 @@ ALTER TABLE ONLY public.listings
 
 
 --
--- TOC entry 5073 (class 2606 OID 418723)
+-- TOC entry 5394 (class 2606 OID 418723)
 -- Name: listings listings_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2511,7 +4464,7 @@ ALTER TABLE ONLY public.listings
 
 
 --
--- TOC entry 5066 (class 2606 OID 418602)
+-- TOC entry 5387 (class 2606 OID 418602)
 -- Name: notification_preferences notification_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2520,7 +4473,7 @@ ALTER TABLE ONLY public.notification_preferences
 
 
 --
--- TOC entry 5085 (class 2606 OID 418921)
+-- TOC entry 5406 (class 2606 OID 418921)
 -- Name: notifications notifications_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2529,7 +4482,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5086 (class 2606 OID 418916)
+-- TOC entry 5407 (class 2606 OID 418916)
 -- Name: notifications notifications_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2538,7 +4491,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5087 (class 2606 OID 418906)
+-- TOC entry 5408 (class 2606 OID 418906)
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2547,7 +4500,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5090 (class 2606 OID 426741)
+-- TOC entry 5411 (class 2606 OID 426741)
 -- Name: olx_listings olx_listings_converted_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2556,7 +4509,7 @@ ALTER TABLE ONLY public.olx_listings
 
 
 --
--- TOC entry 5091 (class 2606 OID 459606)
+-- TOC entry 5412 (class 2606 OID 459606)
 -- Name: olx_listings olx_listings_rejected_by_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2565,7 +4518,7 @@ ALTER TABLE ONLY public.olx_listings
 
 
 --
--- TOC entry 5067 (class 2606 OID 418615)
+-- TOC entry 5388 (class 2606 OID 418615)
 -- Name: parser_errors parser_errors_source_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2574,7 +4527,61 @@ ALTER TABLE ONLY public.parser_errors
 
 
 --
--- TOC entry 5068 (class 2606 OID 418629)
+-- TOC entry 5422 (class 2606 OID 468690)
+-- Name: phone_verify_attempt phone_verify_attempt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.phone_verify_attempt
+    ADD CONSTRAINT phone_verify_attempt_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5429 (class 2606 OID 476301)
+-- Name: prompt_templates prompt_templates_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.prompt_templates
+    ADD CONSTRAINT prompt_templates_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5443 (class 2606 OID 476477)
+-- Name: referral_events referral_events_referred_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_events
+    ADD CONSTRAINT referral_events_referred_user_id_fkey FOREIGN KEY (referred_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5444 (class 2606 OID 476472)
+-- Name: referral_events referral_events_referrer_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_events
+    ADD CONSTRAINT referral_events_referrer_user_id_fkey FOREIGN KEY (referrer_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5445 (class 2606 OID 476490)
+-- Name: referral_rewards referral_rewards_referrer_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_rewards
+    ADD CONSTRAINT referral_rewards_referrer_user_id_fkey FOREIGN KEY (referrer_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5446 (class 2606 OID 476495)
+-- Name: referral_rewards referral_rewards_wallet_tx_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.referral_rewards
+    ADD CONSTRAINT referral_rewards_wallet_tx_id_fkey FOREIGN KEY (wallet_tx_id) REFERENCES public.transactions(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5389 (class 2606 OID 418629)
 -- Name: saved_searches saved_searches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2583,7 +4590,34 @@ ALTER TABLE ONLY public.saved_searches
 
 
 --
--- TOC entry 5069 (class 2606 OID 418654)
+-- TOC entry 5436 (class 2606 OID 476403)
+-- Name: seller_client_listings seller_client_listings_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.seller_client_listings
+    ADD CONSTRAINT seller_client_listings_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.seller_clients(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5437 (class 2606 OID 476408)
+-- Name: seller_client_listings seller_client_listings_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.seller_client_listings
+    ADD CONSTRAINT seller_client_listings_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5435 (class 2606 OID 476388)
+-- Name: seller_clients seller_clients_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.seller_clients
+    ADD CONSTRAINT seller_clients_seller_id_fkey FOREIGN KEY (seller_id) REFERENCES public.sellers(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5390 (class 2606 OID 418654)
 -- Name: sellers sellers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2592,7 +4626,25 @@ ALTER TABLE ONLY public.sellers
 
 
 --
--- TOC entry 5088 (class 2606 OID 459594)
+-- TOC entry 5416 (class 2606 OID 468547)
+-- Name: source_metric source_metric_source_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.source_metric
+    ADD CONSTRAINT source_metric_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.parser_sources(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5418 (class 2606 OID 468631)
+-- Name: subscriptions subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5409 (class 2606 OID 459594)
 -- Name: telegram_listings telegram_listings_converted_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2601,7 +4653,7 @@ ALTER TABLE ONLY public.telegram_listings
 
 
 --
--- TOC entry 5089 (class 2606 OID 459600)
+-- TOC entry 5410 (class 2606 OID 459600)
 -- Name: telegram_listings telegram_listings_rejected_by_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2610,7 +4662,25 @@ ALTER TABLE ONLY public.telegram_listings
 
 
 --
--- TOC entry 5074 (class 2606 OID 418744)
+-- TOC entry 5419 (class 2606 OID 468657)
+-- Name: transactions transactions_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5420 (class 2606 OID 468652)
+-- Name: transactions transactions_wallet_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_wallet_id_fkey FOREIGN KEY (wallet_id) REFERENCES public.wallets(id) ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 5395 (class 2606 OID 418744)
 -- Name: user_follows_seller user_follows_seller_seller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2619,7 +4689,7 @@ ALTER TABLE ONLY public.user_follows_seller
 
 
 --
--- TOC entry 5075 (class 2606 OID 418749)
+-- TOC entry 5396 (class 2606 OID 418749)
 -- Name: user_follows_seller user_follows_seller_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2628,7 +4698,16 @@ ALTER TABLE ONLY public.user_follows_seller
 
 
 --
--- TOC entry 5092 (class 2606 OID 426816)
+-- TOC entry 5421 (class 2606 OID 468674)
+-- Name: user_phones user_phones_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_phones
+    ADD CONSTRAINT user_phones_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 5413 (class 2606 OID 426816)
 -- Name: user_preferences user_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2636,11 +4715,29 @@ ALTER TABLE ONLY public.user_preferences
     ADD CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
--- Completed on 2026-05-02 15:42:14
+--
+-- TOC entry 5385 (class 2606 OID 476068)
+-- Name: users users_referred_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_referred_by_user_id_fkey FOREIGN KEY (referred_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 5417 (class 2606 OID 468613)
+-- Name: wallets wallets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.wallets
+    ADD CONSTRAINT wallets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+-- Completed on 2026-05-19 12:04:42
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict dSAuGZZ65BVlhjyVUpKvlf25f9dPwLV2SyeAEvP6jyfN0HKIYTYcShhaEZI7IU1
+\unrestrict 3A4NO7gZ4756qsE4bpTHmwfJdaKLdXPo1jhLjUu7jP4JVjJcCbATnX76VxgpFdG
 
