@@ -51,8 +51,14 @@ jobs:
             # Sync db (SQL dumps / schema snapshots)
             rsync -av --delete _repo/db/ db/
 
+            # Drop any zombie containers left by a previous failed recreate
+            # (docker renames the old one to "<hash>_demo-X" when conflict hits)
+            docker ps -a --format '{{.Names}}' \
+              | grep -E '^[0-9a-f]+_demo-' \
+              | xargs -r docker rm -f
+
             # Rebuild and restart all services
-            docker compose up -d --build
+            docker compose up -d --build --remove-orphans
 
             # Apply database migrations
             docker compose run --rm api alembic upgrade head
