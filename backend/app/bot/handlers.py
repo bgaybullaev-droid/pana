@@ -295,9 +295,7 @@ def _twa_open_kb(payload: str, lang: str) -> InlineKeyboardMarkup:
     username = settings.telegram_bot_username or "UcharMarketBot"
     url = f"https://t.me/{username}?startapp={payload}"
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=t(lang, "btn_open_app"), url=url)]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text=t(lang, "btn_open_app"), url=url)]]
     )
 
 
@@ -613,7 +611,30 @@ async def process_language_selection(
         user.language = get_language(new_lang)
         await session.commit()
 
-    # After language selection — show welcome with register button
+        # Already-registered sellers should see their current status after
+        # changing language, not the new-user "welcome + register" flow.
+        seller_q = select(Seller).where(Seller.user_id == user.id)
+        seller = (await session.execute(seller_q)).scalar_one_or_none()
+        if seller:
+            if user.approval_status == UserApprovalStatus.PENDING:
+                await callback.message.answer(f"⏳ {t(new_lang, 'status_pending')}")
+                return
+            if user.approval_status == UserApprovalStatus.APPROVED:
+                await callback.message.answer(f"✅ {t(new_lang, 'status_approved')}")
+                return
+            if user.approval_status == UserApprovalStatus.REJECTED:
+                reason = user.approval_notes
+                if reason:
+                    text = t(new_lang, "status_rejected_reason", reason=reason)
+                else:
+                    text = t(new_lang, "status_rejected")
+                await callback.message.answer(
+                    f"❌ {text}", reply_markup=get_rejected_kb(new_lang)
+                )
+                return
+
+    # New user or existing user without a seller record — show welcome
+    # with register button.
     await callback.message.answer(
         f"👋 {t(new_lang, 'welcome')}",
         reply_markup=get_start_kb(new_lang),
@@ -2001,15 +2022,11 @@ async def handle_reject_crawled(call: CallbackQuery):
 def _kb_from_spec(spec: list) -> InlineKeyboardMarkup:
     """Convert keyboard-spec lists back into aiogram markup."""
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(**btn) for btn in row] for row in spec
-        ]
+        inline_keyboard=[[InlineKeyboardButton(**btn) for btn in row] for row in spec]
     )
 
 
-async def _handle_fav_toggle(
-    call: CallbackQuery, *, intent: str
-) -> None:
+async def _handle_fav_toggle(call: CallbackQuery, *, intent: str) -> None:
     """Shared body for ``fav:add`` and ``fav:remove`` callbacks.
 
     Idempotent: looks at current DB state, ensures it matches intent,
@@ -2069,9 +2086,7 @@ async def _handle_fav_toggle(
         lang = user.language or DEFAULT_LANGUAGE
 
         # Load listing + seller + current favorite state in parallel.
-        listing_row = await db.execute(
-            select(Listing).where(Listing.id == listing_id)
-        )
+        listing_row = await db.execute(select(Listing).where(Listing.id == listing_id))
         listing = listing_row.scalar_one_or_none()
         if listing is None or listing.status not in (
             ListingStatus.ACTIVE,
@@ -2091,9 +2106,7 @@ async def _handle_fav_toggle(
             except Exception:
                 pass
             try:
-                await call.answer(
-                    t(lang, "push_listing_unavailable"), show_alert=False
-                )
+                await call.answer(t(lang, "push_listing_unavailable"), show_alert=False)
             except Exception:
                 pass
             return
