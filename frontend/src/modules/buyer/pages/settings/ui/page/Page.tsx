@@ -60,7 +60,6 @@ import {
 } from "@modules/seller/shared/state";
 import { ProfileCard } from "./ProfileCard";
 import { shadows, radii } from "@app/styles/theme";
-import { CTAButton } from "./CTAButton";
 import { SectionCard } from "./SectionCard";
 import { SettingsRow } from "./SettingsRow";
 import { DestructiveBlock } from "./DestructiveBlock";
@@ -292,55 +291,48 @@ function Page() {
 				</Box>
 			)}
 
-			{/* ─── CTA Button ─── */}
-			<CTAButton
-				label={t("settings.addListing")}
-				onClick={() => navigate("/seller/create")}
-			/>
-
-			{/* ─── CTA from Dashboard (duplicate — pick one later) ─── */}
-			<Box mt={8}>
-				<UnstyledButton
-					onClick={() => navigate("/seller/create")}
-					style={{ display: "block", width: "100%" }}
-				>
-					<Card
-						radius={radii.md}
-						p="sm"
-						style={{
-							background: "#228be6",
-							color: "white",
-							border: "none",
-							boxShadow: shadows.accent,
-						}}
-					>
-						<Group wrap="nowrap" justify="space-between">
-							<Group wrap="nowrap" gap="sm">
-								<Box
-									style={{
-										width: 32,
-										height: 32,
-										borderRadius: radii.sm,
-										background: "rgba(255,255,255,0.2)",
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "center",
-									}}
-								>
-									<IconPlus size={18} color="white" />
-								</Box>
-								<Text fw={600} size="13px">
-									{ts("dashboard.createListing")}
-								</Text>
-							</Group>
-							<IconArrowRight size={16} opacity={0.7} />
-						</Group>
-					</Card>
-				</UnstyledButton>
-			</Box>
 
 			{/* ─── Seller Tools ─── */}
 			<SectionCard label={t("settings.sections.sellerTools")}>
+				<Box px={8} pt={8} pb={4}>
+					<UnstyledButton
+						onClick={() => navigate("/seller/create")}
+						style={{ display: "block", width: "100%" }}
+					>
+						<Card
+							radius={radii.md}
+							p="sm"
+							style={{
+								background: "#228be6",
+								color: "white",
+								border: "none",
+								boxShadow: shadows.accent,
+							}}
+						>
+							<Group wrap="nowrap" justify="space-between">
+								<Group wrap="nowrap" gap="sm">
+									<Box
+										style={{
+											width: 32,
+											height: 32,
+											borderRadius: radii.sm,
+											background: "rgba(255,255,255,0.2)",
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "center",
+										}}
+									>
+										<IconPlus size={18} color="white" />
+									</Box>
+									<Text fw={600} size="13px">
+										{ts("dashboard.createListing")}
+									</Text>
+								</Group>
+								<IconArrowRight size={16} opacity={0.7} color="white" />
+							</Group>
+						</Card>
+					</UnstyledButton>
+				</Box>
 				<SettingsRow
 					icon={IconClipboardList}
 					label={t("settings.myListings")}
