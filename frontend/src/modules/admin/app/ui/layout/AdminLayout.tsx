@@ -15,6 +15,13 @@ export function AdminLayout() {
 	const { user, isAuthenticated, isLoading } = useAuth();
 	const { t } = useTranslation("admin");
 
+	useEffect(() => {
+		document.title = "Uchar Admin";
+		return () => {
+			document.title = "Ucharmarket - Вся недвижимость Узбекистана";
+		};
+	}, []);
+
 	// Responsive + persisted UI state (declared before early returns for Rules of Hooks).
 	// Default `true` keeps the desktop sidebar on first paint (no flash); this is a Vite SPA.
 	const isDesktop = useMediaQuery("(min-width: 992px)", true) ?? true;
