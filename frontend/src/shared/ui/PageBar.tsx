@@ -10,13 +10,15 @@ interface PageBarProps {
 	onBack?: () => void;
 	actions?: ReactNode;
 	badge?: ReactNode;
+	/** Custom content for the left slot (e.g. a menu Burger). Overrides the back button when set. */
+	leftSlot?: ReactNode;
 }
 
 /**
  * Top app bar for inner pages (Notifications, Edit Profile, Seller pages, Admin pages).
  * Sticky, full-bleed background, back button on the left.
  */
-export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
+export function PageBar({ title, onBack, actions, badge, leftSlot }: PageBarProps) {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
 	const handleBack = onBack || (() => navigate(-1));
@@ -41,8 +43,12 @@ export function PageBar({ title, onBack, actions, badge }: PageBarProps) {
 					position: "relative",
 				}}
 			>
-				{/* Back button */}
-				{(!webApp?.initData && !navigator.userAgent.includes('Telegram')) ? (
+				{/* Left slot: custom content (e.g. menu Burger) overrides the back button */}
+				{leftSlot ? (
+					<Box style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
+						{leftSlot}
+					</Box>
+				) : (!webApp?.initData && !navigator.userAgent.includes('Telegram')) ? (
 					<ActionIcon
 						variant="default"
 						size={40}

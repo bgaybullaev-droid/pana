@@ -1,114 +1,18 @@
-import { Outlet, useLocation, useNavigate, Navigate } from "react-router-dom";
-import { Box, UnstyledButton, Text, Group } from "@mantine/core";
+import { Outlet, useNavigate, Navigate } from "react-router-dom";
+import { Box, Text, Group, Burger } from "@mantine/core";
+import { useDisclosure, useLocalStorage, useMediaQuery } from "@mantine/hooks";
 import { PageBar } from "@shared/ui/PageBar";
-import {
-	IconLayoutDashboard,
-	IconUsers,
-	IconList,
-	IconWorldSearch,
-	IconServerCog,
-	IconHistory,
-	IconBroadcast,
-	IconSparkles,
-	IconLanguage,
-	IconFileExport,
-	IconChartLine,
-	IconPhoto,
-	IconShieldExclamation,
-} from "@tabler/icons-react";
-import { useUnit } from "effector-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/providers/useAuth";
-import {
-	$dashboardStats,
-	fetchDashboardStats,
-} from "@modules/admin/shared/state";
+import { fetchDashboardStats } from "@modules/admin/shared/state";
 import { LanguageSwitcher } from "@shared/ui/LanguageSwitcher";
+import { AdminSidebar } from "./AdminSidebar";
 import "@modules/admin/shared/ui/admin.css";
 
-interface NavItem {
-	icon: typeof IconLayoutDashboard;
-	labelKey: string;
-	path: string;
-	badgeKey?: "pending_users" | "pending_listings";
-}
-
-const NAV_ITEMS: NavItem[] = [
-	{
-		icon: IconLayoutDashboard,
-		labelKey: "nav.dashboard",
-		path: "/admin",
-	},
-	{
-		icon: IconUsers,
-		labelKey: "nav.users",
-		path: "/admin/users",
-		badgeKey: "pending_users",
-	},
-	{
-		icon: IconList,
-		labelKey: "nav.listings",
-		path: "/admin/listings",
-		badgeKey: "pending_listings",
-	},
-	{
-		icon: IconWorldSearch,
-		labelKey: "nav.crawled",
-		path: "/admin/crawled",
-	},
-	{
-		icon: IconBroadcast,
-		labelKey: "nav.sources",
-		path: "/admin/sources",
-	},
-	{
-		icon: IconSparkles,
-		labelKey: "nav.aiQuality",
-		path: "/admin/ai-quality",
-	},
-	{
-		icon: IconLanguage,
-		labelKey: "nav.synonyms",
-		path: "/admin/synonyms",
-	},
-	{
-		icon: IconFileExport,
-		labelKey: "nav.exportTemplates",
-		path: "/admin/export-templates",
-	},
-	{
-		icon: IconChartLine,
-		labelKey: "nav.analytics",
-		path: "/admin/analytics",
-	},
-	{
-		icon: IconPhoto,
-		labelKey: "nav.banners",
-		path: "/admin/banners",
-	},
-	{
-		icon: IconShieldExclamation,
-		labelKey: "nav.suspicions",
-		path: "/admin/suspicions",
-	},
-	{
-		icon: IconServerCog,
-		labelKey: "nav.meiliOps",
-		path: "/admin/ops/meili",
-	},
-	{
-		icon: IconHistory,
-		labelKey: "nav.auditLog",
-		path: "/admin/audit",
-	},
-];
-
 export function AdminLayout() {
-	const location = useLocation();
 	const navigate = useNavigate();
 	const { user, isAuthenticated, isLoading } = useAuth();
-	const [stats] = useUnit([$dashboardStats]);
 	const { t } = useTranslation("admin");
 
 	useEffect(() => {
@@ -117,6 +21,17 @@ export function AdminLayout() {
 			document.title = "Ucharmarket - Вся недвижимость Узбекистана";
 		};
 	}, []);
+
+	// Responsive + persisted UI state (declared before early returns for Rules of Hooks).
+	// Default `true` keeps the desktop sidebar on first paint (no flash); this is a Vite SPA.
+	const isDesktop = useMediaQuery("(min-width: 992px)", true) ?? true;
+	const [collapsed, setCollapsed] = useLocalStorage<boolean>({
+		key: "admin:sidebarCollapsed",
+		defaultValue: false,
+		getInitialValueInEffect: false,
+	});
+	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
+		useDisclosure(false);
 
 	// Fetch dashboard stats on mount (must be before early returns for Rules of Hooks)
 	useEffect(() => {
@@ -141,122 +56,61 @@ export function AdminLayout() {
 		<Box
 			style={{
 				display: "flex",
-				flexDirection: "column",
-				height: "93%",
+				flexDirection: "row",
+				height: "100%",
 				width: "100%",
 				background: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
 			}}
 		>
-			{/* Header */}
-			<PageBar
-				title={t("header.title")}
-				onBack={() => navigate("/")}
-				actions={
-					<Group gap={8}>
-						<LanguageSwitcher />
-						<Text size="xs" fw={600} c="dimmed">
-							{firstName}
-						</Text>
-					</Group>
-				}
+			{/* Left navigation: persistent sidebar (desktop) or slide-in drawer (mobile) */}
+			<AdminSidebar
+				isDesktop={isDesktop}
+				collapsed={collapsed}
+				onToggleCollapsed={() => setCollapsed((c) => !c)}
+				drawerOpened={drawerOpened}
+				onCloseDrawer={closeDrawer}
 			/>
 
-			{/* Main content */}
+			{/* Right column: header + scrollable content */}
 			<Box
 				style={{
+					display: "flex",
+					flexDirection: "column",
 					flex: 1,
-					overflow: "auto",
-					paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+					minWidth: 0,
+					height: "100%",
 				}}
-				className="admin-page-bg hide-scrollbar"
 			>
-				<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
-					<Outlet />
-				</Box>
-			</Box>
+				<PageBar
+					title={t("header.title")}
+					onBack={() => navigate("/")}
+					leftSlot={
+						isDesktop ? undefined : (
+							<Burger
+								opened={drawerOpened}
+								onClick={openDrawer}
+								aria-label={t("nav.openMenu")}
+								size="sm"
+							/>
+						)
+					}
+					actions={
+						<Group gap={8}>
+							<LanguageSwitcher />
+							<Text size="xs" fw={600} c="dimmed">
+								{firstName}
+							</Text>
+						</Group>
+					}
+				/>
 
-			{/* Bottom navigation */}
-			<Box
-				component="nav"
-				className="admin-bottom-nav"
-				style={{
-					position: "fixed",
-					bottom: 0,
-					left: 0,
-					right: 0,
-					paddingBottom: "env(safe-area-inset-bottom, 0px)",
-					zIndex: 100,
-				}}
-			>
 				<Box
-					style={{
-						display: "flex",
-						justifyContent: "space-around",
-						padding: "6px 8px",
-						gap: 4,
-					}}
+					style={{ flex: 1, overflow: "auto" }}
+					className="admin-page-bg hide-scrollbar"
 				>
-					{NAV_ITEMS.map((item) => {
-						const isActive =
-							item.path === "/admin"
-								? location.pathname === "/admin"
-								: location.pathname.startsWith(item.path);
-						const badgeCount =
-							item.badgeKey && stats ? stats[item.badgeKey] : 0;
-						const Icon = item.icon;
-
-						return (
-							<UnstyledButton
-								key={item.path}
-								onClick={() => navigate(item.path)}
-								className={`admin-nav-item ${isActive ? "admin-nav-item--active" : ""}`}
-							>
-								<Box style={{ position: "relative" }}>
-									<Icon
-										size={22}
-										color={isActive ? "#4f46e5" : "#94a3b8"}
-										stroke={isActive ? 2 : 1.5}
-									/>
-									{!!badgeCount && badgeCount > 0 && (
-										<Box className="admin-nav-badge-wrap">
-											<Box className="admin-nav-badge-ping" />
-											<Box
-												style={{
-													position: "relative",
-													background: "#ef4444",
-													color: "white",
-													fontSize: 9,
-													fontWeight: 700,
-													borderRadius: 9999,
-													minWidth: 16,
-													height: 16,
-													display: "flex",
-													alignItems: "center",
-													justifyContent: "center",
-													padding: "0 4px",
-												}}
-											>
-												{badgeCount > 99 ? "99+" : badgeCount}
-											</Box>
-										</Box>
-									)}
-								</Box>
-								<Text
-									size="xs"
-									mt={2}
-									fw={isActive ? 700 : 500}
-									style={{
-										color: isActive ? "#4f46e5" : "#94a3b8",
-										fontSize: 11,
-										transition: "color 0.2s ease",
-									}}
-								>
-									{t(item.labelKey)}
-								</Text>
-								{isActive && <Box className="admin-nav-dot" />}
-							</UnstyledButton>
-						);
-					})}
+					<Box style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
+						<Outlet />
+					</Box>
 				</Box>
 			</Box>
 		</Box>
