@@ -26,5 +26,10 @@ jobs:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           cd repo.git
-          git push --mirror \
-            "https://x-access-token:${MIRROR_TOKEN}@github.com/hasanoff507/ucharmarket-frontend.git"
+          # Faqat branch va taglarni mirror qilamiz; refs/pull/* (GitHub hidden refs)
+          # ni chetlab o'tamiz, aks holda "deny updating a hidden ref" xatosi chiqadi.
+          # --prune manbada o'chirilgan branchlarni nishonda ham o'chiradi.
+          git push --force --prune \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/hasanoff507/ucharmarket-frontend.git" \
+            "refs/heads/*:refs/heads/*" \
+            "refs/tags/*:refs/tags/*"
