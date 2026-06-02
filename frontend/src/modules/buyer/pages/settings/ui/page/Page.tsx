@@ -22,6 +22,7 @@ import {
 	ThemeIcon,
 	Skeleton,
 	SegmentedControl,
+	UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -42,6 +43,12 @@ import {
 	IconPhone,
 	IconHeart,
 	IconSearch,
+	IconDeviceMobile,
+	IconCoin,
+	IconBrandTelegram,
+	IconGift,
+	IconArrowRight,
+	IconPlus,
 } from "@tabler/icons-react";
 import { UnauthScreen } from "@shared/ui/UnauthScreen";
 import { RootPage } from "@shared/ui/RootPage";
@@ -291,6 +298,47 @@ function Page() {
 				onClick={() => navigate("/seller/create")}
 			/>
 
+			{/* ─── CTA from Dashboard (duplicate — pick one later) ─── */}
+			<Box mt={8}>
+				<UnstyledButton
+					onClick={() => navigate("/seller/create")}
+					style={{ display: "block", width: "100%" }}
+				>
+					<Card
+						radius={radii.md}
+						p="sm"
+						style={{
+							background: "#228be6",
+							color: "white",
+							border: "none",
+							boxShadow: shadows.accent,
+						}}
+					>
+						<Group wrap="nowrap" justify="space-between">
+							<Group wrap="nowrap" gap="sm">
+								<Box
+									style={{
+										width: 32,
+										height: 32,
+										borderRadius: radii.sm,
+										background: "rgba(255,255,255,0.2)",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+									}}
+								>
+									<IconPlus size={18} color="white" />
+								</Box>
+								<Text fw={600} size="13px">
+									{ts("dashboard.createListing")}
+								</Text>
+							</Group>
+							<IconArrowRight size={16} opacity={0.7} />
+						</Group>
+					</Card>
+				</UnstyledButton>
+			</Box>
+
 			{/* ─── Seller Tools ─── */}
 			<SectionCard label={t("settings.sections.sellerTools")}>
 				<SettingsRow
@@ -302,6 +350,27 @@ function Page() {
 					icon={IconSearch}
 					label={ts("dashboard.found") || t("settings.found")}
 					onClick={() => navigate("/seller/found")}
+				/>
+				<SettingsRow
+					icon={IconDeviceMobile}
+					label={ts("nav.phones")}
+					onClick={() => navigate("/seller/phones")}
+				/>
+				<SettingsRow
+					icon={IconCoin}
+					label={ts("nav.tariffs")}
+					onClick={() => navigate("/seller/tariffs")}
+					rightValue={ts("tariffs.heroBanner")}
+				/>
+				<SettingsRow
+					icon={IconBrandTelegram}
+					label={ts("autopost.title")}
+					onClick={() => navigate("/seller/autoposting")}
+				/>
+				<SettingsRow
+					icon={IconGift}
+					label={ts("nav.referrals")}
+					onClick={() => navigate("/seller/referrals")}
 				/>
 				<SettingsRow
 					icon={IconWallet}
