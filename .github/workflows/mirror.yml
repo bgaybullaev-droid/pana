@@ -1,0 +1,30 @@
+name: Mirror to hasanoff507
+
+# Bu repoga (bgaybullaev-droid/ucharmarket-frontend) har qanday push bo'lganda
+# kodni avtomatik hasanoff507/ucharmarket-frontend ga ko'chiradi (mirror qiladi).
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone source (full mirror)
+        run: |
+          git clone --mirror \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" \
+            repo.git
+
+      - name: Push to hasanoff507
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          cd repo.git
+          git push --mirror \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/hasanoff507/ucharmarket-frontend.git"
