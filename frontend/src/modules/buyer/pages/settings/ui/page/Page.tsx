@@ -360,11 +360,6 @@ function Page() {
 					onClick={() => navigate("/seller/autoposting")}
 				/>
 				<SettingsRow
-					icon={IconGift}
-					label={ts("nav.referrals")}
-					onClick={() => navigate("/seller/referrals")}
-				/>
-				<SettingsRow
 					icon={IconWallet}
 					label={t("settings.myBalance")}
 					onClick={soonHandlers.open}
@@ -466,8 +461,13 @@ function Page() {
 				/>
 			</SectionCard>
 
-			{/* ─── Share ─── */}
-			<SectionCard label={t("settings.sections.share")}>
+			{/* ─── Bring Friends ─── */}
+			<SectionCard label="Приведи друзей">
+				<SettingsRow
+					icon={IconGift}
+					label={ts("nav.referrals")}
+					onClick={() => navigate("/seller/referrals")}
+				/>
 				<SettingsRow
 					icon={IconShare2}
 					label={t("settings.shareWithFriend")}
