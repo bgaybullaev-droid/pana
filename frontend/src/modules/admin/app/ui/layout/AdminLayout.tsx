@@ -111,6 +111,13 @@ export function AdminLayout() {
 	const [stats] = useUnit([$dashboardStats]);
 	const { t } = useTranslation("admin");
 
+	useEffect(() => {
+		document.title = "Uchar Admin";
+		return () => {
+			document.title = "Ucharmarket - Вся недвижимость Узбекистана";
+		};
+	}, []);
+
 	// Fetch dashboard stats on mount (must be before early returns for Rules of Hooks)
 	useEffect(() => {
 		if (isAuthenticated && user?.role === "admin") {
