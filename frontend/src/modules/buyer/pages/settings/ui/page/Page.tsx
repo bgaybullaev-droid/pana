@@ -344,26 +344,26 @@ function Page() {
 					onClick={() => navigate("/seller/found")}
 				/>
 				<SettingsRow
-					icon={IconDeviceMobile}
-					label={ts("nav.phones")}
-					onClick={() => navigate("/seller/phones")}
-				/>
-				<SettingsRow
-					icon={IconCoin}
-					label={ts("nav.tariffs")}
-					onClick={() => navigate("/seller/tariffs")}
-					rightValue={ts("tariffs.heroBanner")}
-				/>
-				<SettingsRow
 					icon={IconBrandTelegram}
 					label={ts("autopost.title")}
 					onClick={() => navigate("/seller/autoposting")}
+				/>
+				<SettingsRow
+					icon={IconDeviceMobile}
+					label={ts("nav.phones")}
+					onClick={() => navigate("/seller/phones")}
 				/>
 				<SettingsRow
 					icon={IconWallet}
 					label={t("settings.myBalance")}
 					onClick={soonHandlers.open}
 					variant="soon"
+				/>
+				<SettingsRow
+					icon={IconCoin}
+					label={ts("nav.tariffs")}
+					onClick={() => navigate("/seller/tariffs")}
+					rightValue={ts("tariffs.heroBanner")}
 					showDivider={false}
 				/>
 			</SectionCard>
@@ -436,6 +436,21 @@ function Page() {
 				/>
 			</SectionCard>
 
+			{/* ─── Bring Friends ─── */}
+			<SectionCard label="Приведи друзей">
+				<SettingsRow
+					icon={IconGift}
+					label={ts("nav.referrals")}
+					onClick={() => navigate("/seller/referrals")}
+				/>
+				<SettingsRow
+					icon={IconShare2}
+					label={t("settings.shareWithFriend")}
+					onClick={handleShare}
+					showDivider={false}
+				/>
+			</SectionCard>
+
 			{/* ─── About & Help ─── */}
 			<SectionCard label={t("settings.sections.aboutHelp")}>
 				<SettingsRow
@@ -457,21 +472,6 @@ function Page() {
 					icon={IconHeadphones}
 					label={t("settings.support")}
 					onClick={() => navigate("/support")}
-					showDivider={false}
-				/>
-			</SectionCard>
-
-			{/* ─── Bring Friends ─── */}
-			<SectionCard label="Приведи друзей">
-				<SettingsRow
-					icon={IconGift}
-					label={ts("nav.referrals")}
-					onClick={() => navigate("/seller/referrals")}
-				/>
-				<SettingsRow
-					icon={IconShare2}
-					label={t("settings.shareWithFriend")}
-					onClick={handleShare}
 					showDivider={false}
 				/>
 			</SectionCard>
