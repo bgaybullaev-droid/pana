@@ -14,6 +14,10 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    # Mirror faqat manba repoda (bgaybullaev-droid) ishlaydi. Bu workflow
+    # hasanoff507 ga ham ko'chiriladi, lekin u yerda ishlamasligi kerak
+    # (o'zini-o'ziga push qilmasligi va MIRROR_TOKEN talab qilmasligi uchun).
+    if: github.repository == 'bgaybullaev-droid/ucharmarket-frontend'
     steps:
       - name: Clone source (full mirror)
         run: |
