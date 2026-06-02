@@ -268,55 +268,162 @@
   pointer-events: none;
 }
 
-/* ---------- Bottom Nav ---------- */
+/* ---------- Admin Sidebar ---------- */
 
-.admin-bottom-nav {
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  flex-shrink: 0;
+  height: 100%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.04);
+  transition: width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
 }
 
-.admin-nav-item {
+.admin-sidebar--rail {
+  width: 72px;
+}
+
+.admin-sidebar-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 6px 16px;
-  position: relative;
-  transition: all 0.25s ease;
-  border-radius: 12px;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
-.admin-nav-item:active {
-  transform: scale(0.92);
+.admin-sidebar--rail .admin-sidebar-header {
+  justify-content: center;
 }
 
-.admin-nav-item--active {
+.admin-sidebar-brand {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.2px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+
+.admin-sidebar-toggle {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: #64748b;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.admin-sidebar-toggle:hover {
   background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
 }
 
-.admin-nav-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+/* Sidebar item — shared by full / rail / drawer modes */
+.admin-sidebar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #64748b;
+  transition: background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.admin-sidebar-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.admin-sidebar-item:active {
+  transform: scale(0.98);
+}
+
+.admin-sidebar-item--rail {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.admin-sidebar-item--active {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+}
+
+.admin-sidebar-item--active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
   background: #4f46e5;
-  margin-top: 3px;
-  animation: adminBounceIn 0.4s ease-out;
 }
 
-.admin-nav-badge-wrap {
-  position: absolute;
-  top: 2px;
-  right: 6px;
+.admin-sidebar-item--active.admin-sidebar-item--rail::before {
+  display: none;
 }
 
-.admin-nav-badge-ping {
-  position: absolute;
-  inset: 0;
+.admin-sidebar-item-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-sidebar-item-label {
+  font-size: 13.5px;
+  line-height: 1.1;
+}
+
+/* Number pill at the row end (full / drawer) */
+.admin-sidebar-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 9999px;
   background: #ef4444;
-  animation: badgePing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Dot on the icon corner (rail) */
+.admin-sidebar-badge--dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  margin-left: 0;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+}
+
+/* Mobile drawer reuses the sidebar item styles edge-to-edge */
+.admin-sidebar-drawer-body {
+  padding: 0;
 }
 
 /* ---------- Chip Filters ---------- */
@@ -588,7 +695,7 @@
 
 .admin-action-bar {
   position: sticky;
-  bottom: 68px;
+  bottom: 0;
   left: 0;
   right: 0;
   padding: 12px 16px;
