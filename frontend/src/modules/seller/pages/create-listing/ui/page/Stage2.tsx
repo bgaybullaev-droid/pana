@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
 	Alert,
+	Badge,
 	Box,
 	Button,
 	Container,
@@ -367,37 +368,59 @@ function Stage2() {
 							<Box
 								style={{
 									borderRadius: 16,
-									border: "1.5px dashed #93c5fd",
-									backgroundColor: "#f0f9ff",
+									border: "1.5px solid #93c5fd",
+									backgroundColor: "#f8faff",
 									padding: 20,
-									textAlign: "center",
 								}}
 							>
-								<ThemeIcon
-									size={44}
-									radius="xl"
-									color="blue"
-									variant="light"
-									style={{ margin: "0 auto 12px" }}
-								>
-									<IconRobot size={24} />
-								</ThemeIcon>
-								<Text fw={600} size="sm" mb={4}>
+								<Group gap={10} mb={12} wrap="nowrap">
+									<ThemeIcon
+										size={40}
+										radius="xl"
+										color="blue"
+										variant="light"
+										style={{ flexShrink: 0 }}
+									>
+										<IconRobot size={22} />
+									</ThemeIcon>
+									<Box>
+										<Text fw={700} size="sm" lh={1.3}>
+											{t(
+												"createListing.addAiDescription",
+												"Добавьте описание с AI",
+											)}
+										</Text>
+										<Text size="xs" c="dimmed" lh={1.4}>
+											{t(
+												"createListing.aiRecommend",
+												"Рекомендуем — обычно выходит убедительнее",
+											)}
+										</Text>
+									</Box>
+								</Group>
+
+								<Text size="xs" c="dimmed" mb={8}>
 									{t(
-										"createListing.addAiDescription",
-										"Добавить описание с AI",
+										"createListing.aiLanguagesLabel",
+										"Текст сразу на трёх языках:",
 									)}
 								</Text>
-								<Text size="xs" c="dimmed" mb="md">
-									{t(
-										"createListing.aiSectionHint",
-										"AI составит текст на русском и узбекском",
-									)}
-								</Text>
+								<Group gap={6} mb={16}>
+									<Badge variant="light" color="blue" size="sm" radius="md">
+										🇷🇺 Русский
+									</Badge>
+									<Badge variant="light" color="green" size="sm" radius="md">
+										🇺🇿 O&apos;zbek
+									</Badge>
+									<Badge variant="light" color="teal" size="sm" radius="md">
+										Ўзбекча
+									</Badge>
+								</Group>
+
 								<Button
-									size="sm"
+									fullWidth
 									radius="xl"
-									leftSection={<IconRobot size={15} />}
+									leftSection={<IconRobot size={16} />}
 									onClick={() => startAiGeneration()}
 								>
 									{t(
@@ -405,6 +428,13 @@ function Stage2() {
 										"Сгенерировать с AI",
 									)}
 								</Button>
+
+								<Text size="xs" c="dimmed" ta="center" mt={8}>
+									{t(
+										"createListing.aiEditableHint",
+										"Результат можно отредактировать",
+									)}
+								</Text>
 							</Box>
 						)}
 
