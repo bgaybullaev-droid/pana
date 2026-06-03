@@ -72,15 +72,8 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 	const handleImageError = (index: number) => {
 		setFailedImages((prev) => [...prev, index]);
 	};
-	const [titleExpanded, setTitleExpanded] = useState(false);
-
 	const handleTitleTap = () => {
-		if (!titleExpanded) {
-			setTitleExpanded(true);
-		} else {
-			setDescriptionOpen(true);
-			setTitleExpanded(false);
-		}
+		setDescriptionOpen(true);
 	};
 
 	const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
@@ -485,7 +478,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 								size="sm"
 								fw={500}
 								c="white"
-								lineClamp={titleExpanded ? 5 : 3}
+								lineClamp={3}
 								onClick={handleTitleTap}
 								style={{
 									cursor: "pointer",
