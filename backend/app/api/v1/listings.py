@@ -3235,8 +3235,20 @@ async def create_draft_listing(
     # abandoned drafts (purged after 7 days) from inflating quotas.
     await db.commit()
 
-    # Enqueue AI generation immediately. The worker writes
-    # ai_description_* and keeps status=DRAFT (PR-F5a worker change).
+    # Write template fallback synchronously so the draft-preview poll
+    # always returns non-null ai_description_ru, even when the Celery
+    # worker is down.  The AI task overwrites these fields on success.
+    from app.workers.tasks.ai_generation import (
+        _template_fallback,
+        generate_listing_description,
+    )
+
+    listing.ai_description_ru = _template_fallback(listing, "ru")
+    listing.ai_description_uz = _template_fallback(listing, "uz")
+    listing.ai_description_uz_cyrl = _template_fallback(listing, "uz_cyrl")
+    await db.commit()
+
+    # Enqueue AI generation to overwrite with proper text when Celery is up.
     try:
         generate_listing_description.delay(str(listing.id), triggered_by="manual")
         logger.info(
@@ -3246,8 +3258,6 @@ async def create_draft_listing(
             len(data.images or []),
         )
     except Exception as exc:
-        # Celery hiccup — listing is already saved. Seller can hit
-        # /regenerate from Stage 2 if needed.
         logger.warning(
             "listing.draft.ai_enqueue_failed listing=%s: %s",
             listing.id,
