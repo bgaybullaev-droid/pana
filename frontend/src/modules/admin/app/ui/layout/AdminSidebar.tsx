@@ -107,7 +107,10 @@ export function AdminSidebar({
 				</Text>
 			}
 			scrollAreaComponent={ScrollArea.Autosize}
-			classNames={{ body: "admin-sidebar-drawer-body" }}
+			classNames={{
+				content: "admin-drawer-content",
+				body: "admin-sidebar-drawer-body",
+			}}
 		>
 			{navList("drawer", (path) => {
 				navigate(path);

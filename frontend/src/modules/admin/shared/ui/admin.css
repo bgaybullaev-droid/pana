@@ -426,6 +426,16 @@
   padding: 0;
 }
 
+/* Keep the left navigation drawer flush against the screen edge. The global
+   `.mantine-Drawer-content` rule (index.css) centers content with
+   `margin: auto` for bottom sheets; that would push this left drawer to the
+   middle, so we reset it here. */
+.admin-drawer-content {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* ---------- Chip Filters ---------- */
 
 .admin-chips-scroll {
