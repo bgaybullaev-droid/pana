@@ -47,6 +47,7 @@ import {
 import type { UnifiedListing } from "@shared/api/types";
 import { FeedbackLink } from "@modules/seller/feature/ai-feedback";
 import { SynonymHints } from "@modules/seller/feature/synonym-hints";
+import { clearDraft } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import { ListingSlideContent } from "@modules/buyer/pages/listing-detail/ui/main/ListingSlideContent";
 
 import {
@@ -284,6 +285,7 @@ function Stage2() {
 				/* non-fatal */
 			}
 			resetDraftFlow();
+			clearDraft();
 			navigate("/seller/listings");
 		} catch (err: unknown) {
 			const status =

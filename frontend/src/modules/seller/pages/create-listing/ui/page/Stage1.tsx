@@ -38,18 +38,29 @@ import {
 	type ListingCreateData,
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
+import {
+	draftDataToFormValues,
+	loadDraft,
+} from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
 import { radii } from "@app/styles/theme";
 
-import { $isCreatingDraft } from "../../model/stores";
+import { $draftFormData, $isCreatingDraft } from "../../model/stores";
 import { setCurrentParamSnapshot } from "../../model/events";
 
 function Stage1() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
 	const isCreatingDraft = useUnit($isCreatingDraft);
+	const draftFormData = useUnit($draftFormData);
 	const photoSectionRef = useRef<HTMLDivElement>(null);
 	const [imageError, setImageError] = useState(false);
+
+	// Compute pre-fill values exactly once on mount.
+	// Priority: $draftFormData (Stage2 → Stage1 back) > localStorage (accidental leave).
+	const [prefill] = useState(() =>
+		draftFormData ? draftDataToFormValues(draftFormData) : (loadDraft() ?? undefined),
+	);
 
 	const {
 		form,
@@ -64,7 +75,7 @@ function Stage1() {
 		handleUploadImages,
 		buildListingData,
 		t,
-	} = useListingForm();
+	} = useListingForm("create", prefill);
 
 	// Reset legacy create-state on Stage 1 leave (Page wrapper resets the
 	// F1 draft flow on full page unmount).

@@ -32,6 +32,7 @@ import {
 	IconGift,
 } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
+import { clearDraft } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import {
 	$sellerProfile,
 	$sellerStats,
@@ -168,7 +169,7 @@ function Page() {
 						{t("dashboard.quickActions", "Actions")}
 					</Text>
 					<Stack gap="xs">
-						<UnstyledButton onClick={() => navigate("/seller/create")}>
+						<UnstyledButton onClick={() => { clearDraft(); navigate("/seller/create"); }}>
 							<Card radius={radii.md} p="sm" style={{ background: '#228be6', color: 'white', border: 'none', boxShadow: shadows.accent }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">
@@ -269,7 +270,7 @@ function Page() {
 				{/* ── Compact Onboarding Prompt ── */}
 				{stats && stats.totalListings === 0 && !isLoading && (
 					<Box style={{ animation: 'fade-in-up 0.4s ease-out 0.15s both' }}>
-						<UnstyledButton onClick={() => navigate("/seller/create")} style={{ width: '100%', display: 'block' }}>
+						<UnstyledButton onClick={() => { clearDraft(); navigate("/seller/create"); }} style={{ width: '100%', display: 'block' }}>
 							<Card
 								radius={radii.md}
 								p="sm"

@@ -10,6 +10,7 @@ import {
 	frontendToBackendLanguage,
 } from "@shared/i18n";
 import { formatPhone } from "@shared/lib/formatPhone";
+import { clearDraft } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import {
 	Box,
 	Text,
@@ -296,7 +297,7 @@ function Page() {
 			<SectionCard label={t("settings.sections.sellerTools")}>
 				<Box px={8} pt={8} pb={4}>
 					<UnstyledButton
-						onClick={() => navigate("/seller/create")}
+						onClick={() => { clearDraft(); navigate("/seller/create"); }}
 						style={{ display: "block", width: "100%" }}
 					>
 						<Card
