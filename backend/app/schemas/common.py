@@ -1,7 +1,7 @@
 """Common schemas used across the application."""
 
 from datetime import datetime, timezone
-from typing import Annotated, Dict, Generic, List, TypeVar
+from typing import Annotated, Dict, Generic, List, Optional, TypeVar
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, PlainSerializer
@@ -27,6 +27,20 @@ def serialize_datetime_utc(dt: datetime) -> str:
 UTCDateTime = Annotated[
     datetime, PlainSerializer(serialize_datetime_utc, return_type=str)
 ]
+
+
+def text_snippet(text: Optional[str], limit: int = 160) -> Optional[str]:
+    """Collapse whitespace and trim *text* to a single-line excerpt suitable
+    for list cards. Cuts on a word boundary and appends an ellipsis when the
+    text is longer than *limit*."""
+    if not text:
+        return None
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= limit:
+        return cleaned
+    cut = cleaned[: limit - 1].rsplit(" ", 1)[0]
+    return (cut or cleaned[: limit - 1]).rstrip() + "…"
+
 
 T = TypeVar("T")
 

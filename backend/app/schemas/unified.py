@@ -57,6 +57,11 @@ class UnifiedListingResponse(BaseModel):
     condition: Optional[str] = None  # euro / cosmetic / needs_repair / rough
     land_purpose: Optional[str] = None  # private / industrial
 
+    # Sale-finance flags (main listings only; crawled sources default False)
+    mortgage_ok: bool = False
+    installment_ok: bool = False
+    halol_ok: bool = False
+
     # Crawler-specific fields
     amenities: Optional[List[str]] = None
     confidence: Optional[float] = None

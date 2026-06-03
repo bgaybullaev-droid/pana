@@ -461,6 +461,45 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 								)}
 							</Group>
 
+							{/* Finance perks — mortgage / installment / halal.
+							    Main listings only; crawled sources default false. */}
+							{(listing.mortgage_ok ||
+								listing.installment_ok ||
+								listing.halol_ok) && (
+								<Group gap={4} wrap="wrap">
+									{listing.mortgage_ok && (
+										<Badge
+											size="xs"
+											variant="filled"
+											color="teal"
+											radius="sm"
+										>
+											{t("listing.badges.mortgage")}
+										</Badge>
+									)}
+									{listing.installment_ok && (
+										<Badge
+											size="xs"
+											variant="filled"
+											color="teal"
+											radius="sm"
+										>
+											{t("listing.badges.installment")}
+										</Badge>
+									)}
+									{listing.halol_ok && (
+										<Badge
+											size="xs"
+											variant="filled"
+											color="teal"
+											radius="sm"
+										>
+											{t("listing.badges.halol")}
+										</Badge>
+									)}
+								</Group>
+							)}
+
 							{/* Badges row 2 — location */}
 							<Group gap={4}>
 								<Badge size="xs" variant="filled" color="gray" radius="sm">

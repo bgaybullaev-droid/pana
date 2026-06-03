@@ -26,7 +26,7 @@ from app.schemas.buyer import (
     BuyerListingsResponse,
     LikeToggleResponse,
 )
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import PaginatedResponse, text_snippet
 from app.schemas.listing import ListingListResponse
 from app.services.recommendations import get_recommended_listings
 
@@ -53,6 +53,9 @@ def _build_list_response(
     localized_title = (
         getattr(listing, f"title_{lang}", None) or listing.title
     )
+    localized_description = (
+        getattr(listing, f"description_{lang}", None) or listing.description
+    )
     return ListingListResponse(
         id=listing.id,
         type=listing.type.value,
@@ -66,6 +69,7 @@ def _build_list_response(
         price=listing.price,
         currency=listing.currency.value,
         title=localized_title,
+        description=text_snippet(localized_description),
         views_count=listing.views_count,
         favorites_count=listing.favorites_count,
         comments_count=listing.comments_count,

@@ -106,7 +106,6 @@ export const ListingCard: FC<ListingCardProps> = ({
 		: "";
 
 	const standardTitle = `${propertyLabel}${titleSuffix}, ${fullLocationLabel}`;
-	const tagLine = cardContent.tagLine ?? "";
 
 	// Deterministic varied height for masonry based on listing id
 	const masonryHeight =
@@ -293,11 +292,6 @@ export const ListingCard: FC<ListingCardProps> = ({
 						style={{ fontFamily: "var(--mantine-font-family-headings)" }}
 					>
 						{propertyLabel}
-						{titleSuffix && (
-							<Text span c="gray.6" fw={500}>
-								{titleSuffix}
-							</Text>
-						)}
 					</Text>
 
 					<Box
@@ -359,13 +353,13 @@ export const ListingCard: FC<ListingCardProps> = ({
 						})}
 					</Box>
 
-					{/* Tag line (building_type / condition / land_purpose) —
-					    also adapter-derived. No placeholder: if the line is
-					    empty we render nothing (spec: "No placeholders like -
-					    or N/A"). */}
-					{tagLine && (
-						<Text size="xs" c="blue.5" fw={500} mt={4} truncate>
-							{tagLine}
+					{/* Description snippet (1 line) — replaces the old building
+					    type / condition tag line to cut visual noise (the type
+					    badge already carries that signal) and surface the
+					    seller's own words. Empty/absent → render nothing. */}
+					{listing.description && (
+						<Text size="xs" c="gray.6" mt={4} truncate>
+							{listing.description}
 						</Text>
 					)}
 				</Box>
