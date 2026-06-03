@@ -16,6 +16,7 @@ import {
 	publishDraftFx,
 	regenerateDraftFx,
 	type DraftPreviewData,
+	type ListingCreateData,
 } from "@shared/state/listing/model";
 
 import {
@@ -26,6 +27,7 @@ import {
 	resetDraftFlow,
 	setCurrentParamSnapshot,
 	stageBackToParams,
+	startAiGeneration,
 } from "../events";
 
 export type Stage = 1 | 2;
@@ -47,6 +49,11 @@ export const $stage = createStore<Stage>(1)
 /** The Listing UUID created at Stage 1 → Stage 2 transition. */
 export const $draftId = createStore<string | null>(null)
 	.on(createDraftListingFx.doneData, (_, data) => data.id)
+	.reset(resetDraftFlow);
+
+/** The full form payload submitted in Stage 1 — used to build the preview listing. */
+export const $draftFormData = createStore<ListingCreateData | null>(null)
+	.on(createDraftListingFx.done, (_, { params }) => params)
 	.reset(resetDraftFlow);
 
 /** Snapshot of the listing's key params at the time of the most recent
@@ -102,7 +109,7 @@ export const $editedDescriptions = createStore<EditedDescriptions>(EMPTY_EDITS)
 
 /** True while Stage 2 is awaiting the first AI text. */
 export const $isPolling = createStore<boolean>(false)
-	.on(createDraftListingFx.doneData, () => true)
+	.on(startAiGeneration, () => true) // user opted-in
 	.on(fetchDraftPreviewFx.doneData, (state, data) =>
 		// stop polling as soon as ru text appears
 		data.ai_description_ru ? false : state,

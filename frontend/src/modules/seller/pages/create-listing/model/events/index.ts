@@ -37,3 +37,6 @@ export const hydrateDraftPreview = createEvent<DraftPreviewData>();
 export const setCurrentParamSnapshot = createEvent<
 	Record<string, unknown> | null
 >();
+
+/** User clicked "Сгенерировать с AI" — starts the polling loop. */
+export const startAiGeneration = createEvent();

@@ -1,15 +1,13 @@
 /**
- * Block F V2.0 (F1) — Stage 2 of two-step publish.
+ * Block F V2.0 (F1) — Stage 2: preview + optional AI description.
  *
- * Polls /listings/{id}/draft-preview at 2s × 15 iterations (30s budget).
- * When ai_description_ru lands the textareas seed once; further polling
- * stops. Seller edits three locales independently, optionally
- * regenerates after param drift, and clicks "Опубликовать" which
- * PATCHes status=active. The backend's 409 ai_generation_pending
- * surfaces as a toast and the polling resumes.
+ * Shows the listing exactly as buyers will see it (interactive ListingSlideContent
+ * in a "screenshot frame"). AI description is opt-in: seller clicks
+ * "Сгенерировать с AI" to start polling. "Опубликовать" is always active —
+ * seller can publish with or without an AI-generated description.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
@@ -43,12 +41,16 @@ import {
 	fetchDraftPreviewFx,
 	publishDraftFx,
 	regenerateDraftFx,
+	type ListingCreateData,
 } from "@shared/state/listing/model";
+import type { UnifiedListing } from "@shared/api/types";
 import { FeedbackLink } from "@modules/seller/feature/ai-feedback";
 import { SynonymHints } from "@modules/seller/feature/synonym-hints";
+import { ListingSlideContent } from "@modules/buyer/pages/listing-detail/ui/main/ListingSlideContent";
 
 import {
 	$currentParamSnapshot,
+	$draftFormData,
 	$draftId,
 	$draftPreview,
 	$editedDescriptions,
@@ -65,10 +67,11 @@ import {
 	pollingTimedOut,
 	resetDraftFlow,
 	stageBackToParams,
+	startAiGeneration,
 } from "../../model/events";
 
 const POLL_INTERVAL_MS = 2000;
-const POLL_MAX_ITERATIONS = 15; // 15 × 2s = 30s budget
+const POLL_MAX_ITERATIONS = 15;
 
 type Lang = "ru" | "uz" | "uz_cyrl";
 
@@ -78,7 +81,6 @@ const LANG_TABS: Array<{ value: Lang; label: string }> = [
 	{ value: "uz_cyrl", label: "ЎЗ" },
 ];
 
-/** Shallow compare of the 5 key params we track for drift detection. */
 function paramsDiffer(
 	a: Record<string, unknown> | null,
 	b: Record<string, unknown> | null,
@@ -88,6 +90,53 @@ function paramsDiffer(
 	return keys.some((k) => a[k] !== b[k]);
 }
 
+function buildPreviewListing(
+	data: ListingCreateData,
+	id: string,
+): UnifiedListing {
+	return {
+		source: "main",
+		id,
+		type: data.type,
+		property_type: data.property_type,
+		price: data.price,
+		currency: data.currency,
+		rooms: data.rooms ?? null,
+		area: data.area ?? null,
+		floor: data.floor ?? null,
+		total_floors: data.total_floors ?? null,
+		region: data.region ?? null,
+		district: data.district,
+		address: data.address ?? null,
+		latitude: data.latitude ?? null,
+		longitude: data.longitude ?? null,
+		description: null,
+		raw_text: null,
+		images: (data.images ?? []).map((img) => ({
+			url: img.original_url,
+			thumbnail: img.thumbnail_url ?? null,
+		})),
+		contact_phone: data.phone ?? null,
+		created_at: new Date().toISOString(),
+		title: null,
+		views_count: 0,
+		favorites_count: 0,
+		comments_count: 0,
+		is_favorited: false,
+		is_boosted: false,
+		is_highlighted: false,
+		seller_id: null,
+		seller_name: null,
+		seller_avatar_url: null,
+		seller_verified: false,
+		amenities: data.amenities ?? null,
+		confidence: null,
+		source_url: null,
+		original_language: null,
+		is_translated: false,
+	};
+}
+
 function Stage2() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
@@ -95,6 +144,7 @@ function Stage2() {
 
 	const [
 		draftId,
+		draftFormData,
 		preview,
 		edits,
 		isPolling,
@@ -106,6 +156,7 @@ function Stage2() {
 		paramBannerDismissed,
 	] = useUnit([
 		$draftId,
+		$draftFormData,
 		$draftPreview,
 		$editedDescriptions,
 		$isPolling,
@@ -121,9 +172,13 @@ function Stage2() {
 	const pollIterations = useRef(0);
 	const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	// ── Polling loop ─────────────────────────────────────────────────
+	const previewListing = useMemo((): UnifiedListing | null => {
+		if (!draftFormData || !draftId) return null;
+		return buildPreviewListing(draftFormData, draftId);
+	}, [draftFormData, draftId]);
+
+	// Polling loop — only runs when $isPolling is true (user opted-in)
 	useEffect(() => {
-		// Reset iteration counter every time we (re)start polling.
 		if (!isPolling || !draftId) {
 			if (pollTimer.current) {
 				clearTimeout(pollTimer.current);
@@ -138,15 +193,9 @@ function Stage2() {
 			pollIterations.current += 1;
 			try {
 				const data = await fetchDraftPreviewFx(draftId);
-				if (data.ai_description_ru) {
-					// Store reducer will flip $isPolling=false; the effect
-					// will cleanup the timer on the next render.
-					return;
-				}
+				if (data.ai_description_ru) return;
 			} catch {
-				// Network blip: keep polling until timeout. We don't want
-				// to surface every transient 5xx — the manual "Обновить"
-				// button is the recovery path.
+				// Network blip — keep polling
 			}
 			if (pollIterations.current >= POLL_MAX_ITERATIONS) {
 				pollingTimedOut();
@@ -164,9 +213,6 @@ function Stage2() {
 			}
 		};
 	}, [isPolling, draftId]);
-
-	// Cleanup on unmount — full state reset is owned by Page.tsx wrapper
-	// (so back-navigation between stages preserves edits).
 
 	const handleManualRefresh = () => {
 		if (!draftId) return;
@@ -194,7 +240,10 @@ function Stage2() {
 
 	const handlePublish = async () => {
 		if (!draftId) return;
-		const description = edits.ru.trim() || preview?.ai_description_ru || "";
+		const hasAi = Boolean(preview?.ai_description_ru);
+		const description = hasAi
+			? edits.ru.trim() || preview?.ai_description_ru || undefined
+			: undefined;
 		try {
 			await publishDraftFx({ id: draftId, description });
 			webApp?.HapticFeedback.notificationOccurred("success");
@@ -203,10 +252,6 @@ function Stage2() {
 				message: t("notifications.listingCreated"),
 				color: "green",
 			});
-			// Block C V2.0 (C2) — after a successful publish, hint that
-			// the seller is approaching/over the free-listings limit during
-			// the test period. Best-effort: failure to read the dashboard
-			// just suppresses the hint.
 			try {
 				const res = await apiClient.get<{
 					total_active_listings?: number;
@@ -240,18 +285,14 @@ function Stage2() {
 			resetDraftFlow();
 			navigate("/seller/listings");
 		} catch (err: unknown) {
-			// Backend 409 ai_generation_pending → keep polling; toast a hint.
 			const status =
 				(err as { response?: { status?: number } } | undefined)?.response
 					?.status ?? null;
-			const detail =
-				(
-					err as
-						| {
-								response?: { data?: { detail?: { error?: string } } };
-						  }
-						| undefined
-				)?.response?.data?.detail;
+			const detail = (
+				err as
+					| { response?: { data?: { detail?: { error?: string } } } }
+					| undefined
+			)?.response?.data?.detail;
 			if (status === 409 && detail?.error === "ai_generation_pending") {
 				notifications.show({
 					title: t("notifications.info", "Подождите"),
@@ -274,293 +315,377 @@ function Stage2() {
 		}
 	};
 
+	const hasAi = Boolean(preview?.ai_description_ru);
+
 	const showParamBanner =
 		!paramBannerDismissed &&
 		!isRegenerating &&
 		preview?.ai_description_ru != null &&
 		paramsDiffer(paramSnapshot, currentParams);
 
-	const hasAi = Boolean(preview?.ai_description_ru);
-
 	return (
-		<InnerPage title={t("createListing.previewTitle", "Просмотр объявления")} noPadding>
-			<Container px="md" pt="md" pb={160}>
+		<InnerPage
+			title={t("createListing.previewPageTitle", "Ваше объявление")}
+			noPadding
+		>
+			<Container px={0} pt="sm" pb={180}>
 				<Stack gap="md">
-					{/* Polling loading state */}
-					{!hasAi && isPolling && !pollTimedOut && (
+					{/* Subtitle */}
+					<Text size="xs" c="dimmed" ta="center" px="md">
+						{t(
+							"createListing.previewSubtitle",
+							"Посмотрите, как будет выглядеть для покупателей",
+						)}
+					</Text>
+
+					{/* ── Interactive "screenshot" preview frame ── */}
+					{previewListing && (
 						<Box
+							mx="md"
 							style={{
-								padding: 24,
-								borderRadius: 16,
-								backgroundColor: "#f0f9ff",
-								border: "1px solid #bae6fd",
-								display: "flex",
-								flexDirection: "column",
-								alignItems: "center",
-								gap: 12,
+								height: "65vh",
+								borderRadius: 20,
+								overflow: "hidden",
+								boxShadow:
+									"0 8px 40px rgba(0,0,0,0.18), 0 2px 12px rgba(0,0,0,0.1)",
+								border: "2.5px solid #fff",
+								position: "relative",
 							}}
 						>
-							<ThemeIcon size={48} radius="xl" color="blue" variant="light">
-								<IconRobot size={28} />
-							</ThemeIcon>
-							<Text fw={600} size="sm" c="#0369a1">
-								{t(
-									"createListing.generatingText",
-									"AI готовит описание объявления…",
-								)}
-							</Text>
-							<Loader size="sm" color="blue" />
+							<ListingSlideContent
+								listing={previewListing}
+								isActive={true}
+								mode="buyer"
+							/>
 						</Box>
 					)}
 
-					{/* Polling timeout state */}
-					{!hasAi && pollTimedOut && (
-						<Alert
-							icon={<IconInfoCircle size={16} />}
-							color="orange"
-							title={t(
-								"createListing.pollingTimedOutTitle",
-								"Генерация занимает дольше обычного",
-							)}
-						>
-							<Text size="sm" mb="sm">
-								{t(
-									"createListing.pollingTimedOutBody",
-									"Текст ещё не готов. Попробуйте обновить или сгенерировать заново.",
-								)}
-							</Text>
-							<Group gap="sm">
-								<Button
-									size="xs"
+					{/* ── Optional AI description section ── */}
+					<Box px="md">
+						{/* State: idle — user hasn't started AI yet */}
+						{!hasAi && !isPolling && !pollTimedOut && (
+							<Box
+								style={{
+									borderRadius: 16,
+									border: "1.5px dashed #93c5fd",
+									backgroundColor: "#f0f9ff",
+									padding: 20,
+									textAlign: "center",
+								}}
+							>
+								<ThemeIcon
+									size={44}
+									radius="xl"
+									color="blue"
 									variant="light"
-									leftSection={<IconRefresh size={14} />}
-									onClick={handleManualRefresh}
+									style={{ margin: "0 auto 12px" }}
 								>
-									{t("createListing.pollingRetry", "Обновить")}
-								</Button>
-								<Button
-									size="xs"
-									variant="subtle"
-									loading={isRegenerating}
-									onClick={() => handleRegenerate("manual_retry")}
-								>
-									{t("createListing.regenerateButton", "Сгенерировать заново")}
-								</Button>
-							</Group>
-						</Alert>
-					)}
-
-					{/* Param-change banner */}
-					{showParamBanner && (
-						<Alert
-							icon={<IconBulb size={16} />}
-							color="yellow"
-							title={t(
-								"createListing.paramChangedTitle",
-								"Параметры изменились",
-							)}
-						>
-							<Text size="sm" mb="sm">
-								{t(
-									"createListing.paramChangedBody",
-									"Обновить текст с учётом изменений? Ваши правки будут потеряны.",
-								)}
-							</Text>
-							<Group gap="sm">
-								<Button
-									size="xs"
-									color="yellow"
-									loading={isRegenerating}
-									onClick={() => handleRegenerate("param_change")}
-								>
-									{t("createListing.paramChangedUpdate", "Обновить")}
-								</Button>
-								<Button
-									size="xs"
-									variant="subtle"
-									onClick={() => dismissParamChangeBanner()}
-								>
-									{t("createListing.paramChangedKeep", "Оставить как есть")}
-								</Button>
-							</Group>
-						</Alert>
-					)}
-
-					{/* AI text editor */}
-					{hasAi && (
-						<Box>
-							<Tabs
-								value={activeTab}
-								onChange={(v) => v && setActiveTab(v as Lang)}
-								radius="md"
-								variant="pills"
-								color="blue"
-							>
-								<Tabs.List grow>
-									{LANG_TABS.map(({ value, label }) => (
-										<Tabs.Tab key={value} value={value}>
-											{label}
-										</Tabs.Tab>
-									))}
-								</Tabs.List>
-								{LANG_TABS.map(({ value }) => (
-									<Tabs.Panel key={value} value={value} pt="sm">
-										<Textarea
-											value={edits[value]}
-											onChange={(e) =>
-												editDescription({
-													lang: value,
-													value: e.currentTarget.value,
-												})
-											}
-											minRows={6}
-											maxRows={12}
-											autosize
-											placeholder={t(
-												"createListing.editPlaceholder",
-												"Текст объявления…",
-											)}
-										/>
-									</Tabs.Panel>
-								))}
-							</Tabs>
-
-							{/* Block F F2 — synonym hint cards for the active tab. */}
-							{draftId && (
-								<Box mt="sm">
-									<SynonymHints
-										listingId={draftId}
-										text={edits[activeTab] || ""}
-										language={activeTab}
-										currentParams={(currentParams ?? {}) as Record<string, unknown>}
-										onParamApply={() => {
-											// Stage 2 has no params editor — sellers go back to
-											// Stage 1 to amend structured fields. The hint click
-											// is currently best-effort UI feedback only; the
-											// underlying ``currentParams`` will refresh on the
-											// next Stage 1 → Stage 2 round-trip.
-										}}
-									/>
-								</Box>
-							)}
-
-							{/* Disclaimer */}
-							<Alert
-								mt="sm"
-								icon={<IconInfoCircle size={14} />}
-								color="blue"
-								variant="light"
-								radius="md"
-							>
-								<Text size="xs" c="#0369a1">
+									<IconRobot size={24} />
+								</ThemeIcon>
+								<Text fw={600} size="sm" mb={4}>
 									{t(
-										"createListing.aiDisclaimer",
-										"AI создал черновик описания на основе ваших параметров. Перед публикацией обязательно перечитайте текст и убедитесь, что он точно соответствует объекту.",
+										"createListing.addAiDescription",
+										"Добавить описание с AI",
 									)}
 								</Text>
-							</Alert>
-
-							{/* Regenerate (manual) + Feedback */}
-							<Group justify="space-between" mt="xs">
-								{draftId ? (
-									<FeedbackLink listingId={draftId} />
-								) : (
-									<span />
-								)}
+								<Text size="xs" c="dimmed" mb="md">
+									{t(
+										"createListing.aiSectionHint",
+										"AI составит текст на русском и узбекском",
+									)}
+								</Text>
 								<Button
-									size="xs"
-									variant="subtle"
-									leftSection={<IconRefresh size={14} />}
-									loading={isRegenerating}
-									onClick={() => handleRegenerate("manual_retry")}
+									size="sm"
+									radius="xl"
+									leftSection={<IconRobot size={15} />}
+									onClick={() => startAiGeneration()}
 								>
-									{t("createListing.regenerateButton", "Сгенерировать заново")}
+									{t(
+										"createListing.generateAiButton",
+										"Сгенерировать с AI",
+									)}
 								</Button>
-							</Group>
-						</Box>
-					)}
-				</Stack>
+							</Box>
+						)}
 
-				{/* Fixed Action Buttons Panel */}
+						{/* State: polling — AI is generating */}
+						{!hasAi && isPolling && !pollTimedOut && (
+							<Box
+								style={{
+									padding: 24,
+									borderRadius: 16,
+									backgroundColor: "#f0f9ff",
+									border: "1px solid #bae6fd",
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "center",
+									gap: 12,
+								}}
+							>
+								<ThemeIcon size={48} radius="xl" color="blue" variant="light">
+									<IconRobot size={28} />
+								</ThemeIcon>
+								<Text fw={600} size="sm" c="#0369a1">
+									{t(
+										"createListing.generatingText",
+										"AI готовит описание объявления…",
+									)}
+								</Text>
+								<Loader size="sm" color="blue" />
+							</Box>
+						)}
+
+						{/* State: polling timed out */}
+						{!hasAi && pollTimedOut && (
+							<Alert
+								icon={<IconInfoCircle size={16} />}
+								color="orange"
+								title={t(
+									"createListing.pollingTimedOutTitle",
+									"Генерация занимает дольше обычного",
+								)}
+							>
+								<Text size="sm" mb="sm">
+									{t(
+										"createListing.pollingTimedOutBody",
+										"Текст ещё не готов. Попробуйте обновить или сгенерировать заново.",
+									)}
+								</Text>
+								<Group gap="sm">
+									<Button
+										size="xs"
+										variant="light"
+										leftSection={<IconRefresh size={14} />}
+										onClick={handleManualRefresh}
+									>
+										{t("createListing.pollingRetry", "Обновить")}
+									</Button>
+									<Button
+										size="xs"
+										variant="subtle"
+										loading={isRegenerating}
+										onClick={() => handleRegenerate("manual_retry")}
+									>
+										{t(
+											"createListing.regenerateButton",
+											"Сгенерировать заново",
+										)}
+									</Button>
+								</Group>
+							</Alert>
+						)}
+
+						{/* State: AI text ready — show editor */}
+						{hasAi && (
+							<Box>
+								{/* Param-change banner */}
+								{showParamBanner && (
+									<Alert
+										icon={<IconBulb size={16} />}
+										color="yellow"
+										title={t(
+											"createListing.paramChangedTitle",
+											"Параметры изменились",
+										)}
+										mb="sm"
+									>
+										<Text size="sm" mb="sm">
+											{t(
+												"createListing.paramChangedBody",
+												"Обновить текст с учётом изменений? Ваши правки будут потеряны.",
+											)}
+										</Text>
+										<Group gap="sm">
+											<Button
+												size="xs"
+												color="yellow"
+												loading={isRegenerating}
+												onClick={() => handleRegenerate("param_change")}
+											>
+												{t(
+													"createListing.paramChangedUpdate",
+													"Обновить",
+												)}
+											</Button>
+											<Button
+												size="xs"
+												variant="subtle"
+												onClick={() => dismissParamChangeBanner()}
+											>
+												{t(
+													"createListing.paramChangedKeep",
+													"Оставить как есть",
+												)}
+											</Button>
+										</Group>
+									</Alert>
+								)}
+
+								{/* Language tabs + text editors */}
+								<Tabs
+									value={activeTab}
+									onChange={(v) => v && setActiveTab(v as Lang)}
+									radius="md"
+									variant="pills"
+									color="blue"
+								>
+									<Tabs.List grow>
+										{LANG_TABS.map(({ value, label }) => (
+											<Tabs.Tab key={value} value={value}>
+												{label}
+											</Tabs.Tab>
+										))}
+									</Tabs.List>
+									{LANG_TABS.map(({ value }) => (
+										<Tabs.Panel key={value} value={value} pt="sm">
+											<Textarea
+												value={edits[value]}
+												onChange={(e) =>
+													editDescription({
+														lang: value,
+														value: e.currentTarget.value,
+													})
+												}
+												minRows={6}
+												maxRows={12}
+												autosize
+												placeholder={t(
+													"createListing.editPlaceholder",
+													"Текст объявления…",
+												)}
+											/>
+										</Tabs.Panel>
+									))}
+								</Tabs>
+
+								{draftId && (
+									<Box mt="sm">
+										<SynonymHints
+											listingId={draftId}
+											text={edits[activeTab] || ""}
+											language={activeTab}
+											currentParams={
+												(currentParams ?? {}) as Record<string, unknown>
+											}
+											onParamApply={() => {}}
+										/>
+									</Box>
+								)}
+
+								<Alert
+									mt="sm"
+									icon={<IconInfoCircle size={14} />}
+									color="blue"
+									variant="light"
+									radius="md"
+								>
+									<Text size="xs" c="#0369a1">
+										{t(
+											"createListing.aiDisclaimer",
+											"AI создал черновик описания на основе ваших параметров. Перед публикацией обязательно перечитайте текст и убедитесь, что он точно соответствует объекту.",
+										)}
+									</Text>
+								</Alert>
+
+								<Group justify="space-between" mt="xs">
+									{draftId ? (
+										<FeedbackLink listingId={draftId} />
+									) : (
+										<span />
+									)}
+									<Button
+										size="xs"
+										variant="subtle"
+										leftSection={<IconRefresh size={14} />}
+										loading={isRegenerating}
+										onClick={() => handleRegenerate("manual_retry")}
+									>
+										{t(
+											"createListing.regenerateButton",
+											"Сгенерировать заново",
+										)}
+									</Button>
+								</Group>
+							</Box>
+						)}
+					</Box>
+				</Stack>
+			</Container>
+
+			{/* ── Fixed bottom action panel ── */}
+			<Box
+				style={{
+					position: "fixed",
+					bottom: 0,
+					left: 0,
+					right: 0,
+					paddingBottom: "env(safe-area-inset-bottom, 0px)",
+					zIndex: 10001,
+					pointerEvents: "none",
+				}}
+			>
 				<Box
 					style={{
-						position: "fixed",
-						bottom: 0,
-						left: 0,
-						right: 0,
-						paddingBottom: "env(safe-area-inset-bottom, 0px)",
-						zIndex: 10001,
-						pointerEvents: "none",
+						padding: "4px 12px 12px",
+						maxWidth: 500,
+						margin: "0 auto",
 					}}
 				>
 					<Box
 						style={{
-							padding: "4px 12px 12px",
-							maxWidth: 500,
-							margin: "0 auto",
+							display: "flex",
+							alignItems: "center",
+							height: 56,
+							pointerEvents: "auto",
+							gap: "10px",
 						}}
 					>
-						<Box
-							style={{
-								display: "flex",
-								alignItems: "center",
-								height: 56,
-								pointerEvents: "auto",
-								gap: "10px",
+						<Button
+							style={{ flex: 1 }}
+							h="100%"
+							radius={100}
+							c="#495057"
+							fw={600}
+							fz={14}
+							leftSection={<IconArrowLeft size={16} />}
+							onClick={() => stageBackToParams()}
+							styles={{
+								root: {
+									backgroundColor: "rgba(255, 255, 255, 0.55)",
+									backdropFilter: "blur(20px) saturate(180%)",
+									WebkitBackdropFilter: "blur(20px) saturate(180%)",
+									border: "1px solid rgba(0, 0, 0, 0.12)",
+									boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+								},
 							}}
 						>
-							<Button
-								style={{ flex: 1 }}
-								h="100%"
-								radius={100}
-								c="#495057"
-								fw={600}
-								fz={14}
-								leftSection={<IconArrowLeft size={16} />}
-								onClick={() => stageBackToParams()}
-								styles={{
-									root: {
-										backgroundColor: "rgba(255, 255, 255, 0.55)",
-										backdropFilter: "blur(20px) saturate(180%)",
-										WebkitBackdropFilter: "blur(20px) saturate(180%)",
-										border: "1px solid rgba(0, 0, 0, 0.12)",
-										boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-									},
-								}}
-							>
-								{t("createListing.back", "Назад")}
-							</Button>
-							<Button
-								style={{ flex: 1.4 }}
-								h="100%"
-								radius={100}
-								c="white"
-								fw={600}
-								fz={14}
-								disabled={!hasAi}
-								loading={isPublishing}
-								leftSection={<IconCheck size={16} />}
-								onClick={handlePublish}
-								styles={{
-									root: {
-										backgroundColor: hasAi
-											? "rgba(34, 139, 230, 0.85)"
-											: "rgba(34, 139, 230, 0.35)",
-										backdropFilter: "blur(20px) saturate(180%)",
-										WebkitBackdropFilter: "blur(20px) saturate(180%)",
-										boxShadow: hasAi
-											? "0 4px 15px rgba(34, 139, 230, 0.4)"
-											: "0 2px 8px rgba(34, 139, 230, 0.2)",
-										border: "1px solid rgba(255, 255, 255, 0.2)",
-									},
-								}}
-							>
-								{t("createListing.publish", "Опубликовать")}
-							</Button>
-						</Box>
+							{t("createListing.back", "Назад")}
+						</Button>
+						<Button
+							style={{ flex: 1.4 }}
+							h="100%"
+							radius={100}
+							c="white"
+							fw={600}
+							fz={14}
+							loading={isPublishing}
+							leftSection={<IconCheck size={16} />}
+							onClick={handlePublish}
+							styles={{
+								root: {
+									backgroundColor: "rgba(34, 139, 230, 0.85)",
+									backdropFilter: "blur(20px) saturate(180%)",
+									WebkitBackdropFilter: "blur(20px) saturate(180%)",
+									boxShadow: "0 4px 15px rgba(34, 139, 230, 0.4)",
+									border: "1px solid rgba(255, 255, 255, 0.2)",
+								},
+							}}
+						>
+							{t("createListing.publish", "Опубликовать")}
+						</Button>
 					</Box>
 				</Box>
-			</Container>
+			</Box>
 		</InnerPage>
 	);
 }

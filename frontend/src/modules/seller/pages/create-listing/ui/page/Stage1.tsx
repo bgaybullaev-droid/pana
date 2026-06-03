@@ -439,7 +439,7 @@ function Stage1() {
 							>
 								{isUploading
 									? t("createListing.uploadingPhotos")
-									: t("createListing.generateButton", "Сгенерировать объявление")}
+									: t("createListing.nextButton", "Далее →")}
 							</Button>
 						</Box>
 						{!hasMinimumParams && (
