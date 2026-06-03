@@ -278,12 +278,56 @@ async def _call_openai(
 # ── Celery entry point ────────────────────────────────────────────────
 
 
+async def _write_fallback_on_failure(listing_id: str) -> None:
+    """Write template fallback to DB when all AI retries are exhausted.
+
+    Called from the on_failure hook so the frontend poll always gets a
+    non-null ai_description_ru instead of hanging forever on null.
+    """
+    from app.db.session import async_session_factory
+
+    try:
+        async with async_session_factory() as db:
+            row = await db.execute(
+                select(Listing).where(Listing.id == UUID(listing_id))
+            )
+            listing = row.scalar_one_or_none()
+            if listing and not listing.ai_description_ru:
+                listing.ai_description_ru = _template_fallback(listing, "ru")
+                listing.ai_description_uz = _template_fallback(listing, "uz")
+                listing.ai_description_uz_cyrl = _template_fallback(listing, "uz_cyrl")
+                await db.commit()
+                logger.info(
+                    "ai_generation.fallback_written listing=%s (on_failure)", listing_id
+                )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(
+            "ai_generation.fallback_write_failed listing=%s: %s", listing_id, e
+        )
+
+
+class _GenerateDescriptionTask(celery_app.Task):
+    """Custom Task base that writes the template fallback when all retries
+    are exhausted, ensuring ai_description_ru is never permanently null."""
+
+    abstract = True
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):  # noqa: ARG002
+        listing_id = (args[0] if args else None) or kwargs.get("listing_id")
+        if listing_id:
+            try:
+                asyncio.run(_write_fallback_on_failure(str(listing_id)))
+            except Exception as e:  # noqa: BLE001
+                logger.warning("ai_generation.on_failure_hook_error: %s", e)
+
+
 @celery_app.task(
     bind=True,
+    base=_GenerateDescriptionTask,
     name="app.workers.tasks.ai_generation.generate_listing_description",
     autoretry_for=(Exception,),
     retry_backoff=True,
-    retry_backoff_max=300,
+    retry_backoff_max=60,
     retry_jitter=True,
     max_retries=3,
 )

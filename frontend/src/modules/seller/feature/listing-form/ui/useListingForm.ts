@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import {
 	getRegionOptions,
 	getDistrictOptions,
 } from "@shared/constants/regions";
+import { saveDraft } from "./listingDraftStorage";
 
 export interface ListingFormValues {
 	type: "sell" | "rent";
@@ -103,7 +104,10 @@ export interface ListingFormValues {
 
 export type ListingFormMode = "create" | "edit";
 
-export function useListingForm(mode: ListingFormMode = "create") {
+export function useListingForm(
+	mode: ListingFormMode = "create",
+	initialOverrides?: Partial<ListingFormValues>,
+) {
 	const { t } = useTranslation("seller");
 	const [images, setImages] = useState<File[]>([]);
 	const [isUploading, setIsUploading] = useState(false);
@@ -191,6 +195,7 @@ export function useListingForm(mode: ListingFormMode = "create") {
 			longitude: undefined,
 			phone: "",
 			seller_type: "",
+			...(initialOverrides ?? {}),
 		},
 		validate: {
 			type: (value, values) =>
@@ -286,6 +291,18 @@ export function useListingForm(mode: ListingFormMode = "create") {
 		() => getDistrictOptions(form.values.region, t),
 		[form.values.region, t],
 	);
+
+	// Auto-save form values to localStorage while filling Stage 1 (create mode only).
+	// Debounced 800 ms to avoid excessive writes.
+	const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+	useEffect(() => {
+		if (mode !== "create") return;
+		clearTimeout(saveTimerRef.current);
+		saveTimerRef.current = setTimeout(() => saveDraft(form.values), 800);
+		return () => clearTimeout(saveTimerRef.current);
+	// form.values is a new reference on every field change — intentional dep.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [form.values, mode]);
 
 	const handleRegionChange = (value: string) => {
 		form.setFieldValue("region", value);

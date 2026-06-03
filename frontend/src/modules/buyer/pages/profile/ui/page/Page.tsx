@@ -39,6 +39,7 @@ import { ProfileMenuItem } from "@shared/ui/ProfileMenuItem";
 import { LanguageSwitcher } from "@shared/ui/LanguageSwitcher";
 import { ActionIcon } from "@mantine/core";
 import { shadows, gradients, radii, surface } from "@app/styles/theme";
+import { clearDraft } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -147,7 +148,7 @@ function Page() {
 			label: t("profile.createListing"),
 			color: "#40c057",
 			bg: "#ebfbee",
-			onClick: () => navigate("/seller/create"),
+			onClick: () => { clearDraft(); navigate("/seller/create"); },
 		},
 		{
 			icon: IconChartBar,
