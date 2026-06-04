@@ -125,7 +125,6 @@ function Page() {
 			halol_ok: editingListing.halol_ok ?? false,
 			deed_type: editingListing.deed_type || undefined,
 			urgent_flag: editingListing.urgent_flag ?? false,
-			city: editingListing.city || "",
 			microdistrict: editingListing.microdistrict || undefined,
 			jk_name: editingListing.jk_name || undefined,
 			landmark: editingListing.landmark || undefined,

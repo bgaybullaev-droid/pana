@@ -1,4 +1,4 @@
-import { FC, useState, useRef } from "react";
+import { FC, Fragment, useState, useRef } from "react";
 import {
 	Drawer,
 	Box,
@@ -9,6 +9,7 @@ import {
 	ScrollArea,
 	Avatar,
 	Button,
+	UnstyledButton,
 	SimpleGrid,
 	ThemeIcon,
 	Divider,
@@ -19,7 +20,6 @@ import {
 	IconUser,
 	IconHome,
 	IconBed,
-	IconRuler2,
 	IconStairs,
 	IconShieldCheck,
 	IconCalendar,
@@ -29,6 +29,8 @@ import {
 	IconTree,
 	IconBuilding,
 	IconBrandTelegram,
+	IconChevronRight,
+	IconMap2,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -38,6 +40,7 @@ import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { formatPhone } from "@shared/lib/formatPhone";
 import { trackContact } from "@shared/lib/viewTracking";
 import { CommentsDrawer } from "./CommentsDrawer";
+import { MapDrawer } from "./MapDrawer";
 import { formatPrice, radii } from "@app/styles/theme";
 
 interface DescriptionDrawerProps {
@@ -230,6 +233,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 	const { t, i18n } = useTranslation("buyer");
 	const navigate = useNavigate();
 	const [commentsOpen, setCommentsOpen] = useState(false);
+	const [mapOpen, setMapOpen] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	const { dragOffset, isDragging, isClosing, handlers } = useSwipeDismiss({
@@ -311,103 +315,105 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		return key ? ts(key, a) : a;
 	};
 
-	// Strip postal codes, country names, and tokens already shown above from the
-	// reverse-geocoded address string (MapPicker fills it automatically).
-	const cleanedAddress = listing.address
-		? listing.address
-				.split(",")
-				.map((s) => s.trim())
-				.filter(
-					(s) =>
-						s.length > 0 &&
-						!/^\d{5,6}$/.test(s) &&
-						!/O'zbekiston|Uzbekistan|Ўзбекистон/i.test(s) &&
-						s.toLowerCase() !== (listing.region ?? "").toLowerCase() &&
-						s.toLowerCase() !== (listing.city ?? "").toLowerCase(),
-				)
-				.join(", ") || null
-		: null;
-
-	// Key parameters grid (measurable values only; property type goes to characteristicBadges).
-	const params: ParamRow[] = [];
-	if (listing.rooms)
-		params.push({ icon: IconBed, value: listing.rooms, label: t("listing.rooms") });
+	// ── Area chips: total / living / kitchen / land / price-per-sqm ──────────
+	type AreaChip = { value: string; label: string };
+	const areaChips: AreaChip[] = [];
 	if (listing.area)
-		params.push({ icon: IconRuler2, value: `${listing.area} м²`, label: "м²" });
+		areaChips.push({ value: `${listing.area}`, label: "м² " + t("descriptionDrawer.areaTotal", "общая") });
 	if (listing.living_area)
-		params.push({
-			icon: IconRuler2,
-			value: `${listing.living_area} м²`,
-			label: t("descriptionDrawer.livingArea"),
-		});
+		areaChips.push({ value: `${listing.living_area}`, label: "м² " + t("descriptionDrawer.livingArea", "жилая") });
 	if (listing.kitchen_area)
-		params.push({
-			icon: IconRuler2,
-			value: `${listing.kitchen_area} м²`,
-			label: t("descriptionDrawer.kitchenArea"),
-		});
+		areaChips.push({ value: `${listing.kitchen_area}`, label: "м² " + t("descriptionDrawer.kitchenArea", "кухня") });
 	if (listing.land_area)
-		params.push({
-			icon: IconTree,
-			value: listing.land_area,
-			label: t("descriptionDrawer.landArea"),
-		});
+		areaChips.push({ value: `${listing.land_area}`, label: t("descriptionDrawer.landArea", "сот.") });
+	if (listing.price_per_sqm)
+		areaChips.push({ value: formatPrice(listing.price_per_sqm, listing.currency), label: t("descriptionDrawer.pricePerSqm", "за м²") });
+
+	// ── Layout params grid: rooms / floor / ceiling ───────────────────────────
+	const layoutParams: ParamRow[] = [];
+	if (listing.rooms)
+		layoutParams.push({ icon: IconBed, value: listing.rooms, label: t("listing.rooms") });
 	if (listing.floor)
-		params.push({
+		layoutParams.push({
 			icon: IconStairs,
 			value: `${listing.floor}/${listing.total_floors || "?"}`,
 			label: t("listing.floorLabel"),
 		});
 	if (listing.ceiling_height)
-		params.push({
+		layoutParams.push({
 			icon: IconBuilding,
 			value: `${listing.ceiling_height} м`,
 			label: t("descriptionDrawer.ceilingHeight"),
 		});
-	if (listing.price_per_sqm)
-		params.push({
-			icon: IconRuler2,
-			value: formatPrice(listing.price_per_sqm, listing.currency),
-			label: t("descriptionDrawer.pricePerSqm"),
+	if (listing.land_area && !areaChips.length)
+		layoutParams.push({
+			icon: IconTree,
+			value: listing.land_area,
+			label: t("descriptionDrawer.landArea"),
 		});
 
-	// Characteristics badges (property type first, then building/condition/etc.).
-	const characteristicBadges: string[] = [propertyLabel];
+	// ── Characteristic rows: labeled key-value pairs ─────────────────────────
+	const yes = t("descriptionDrawer.yes", "Есть");
+	type CharRow = { label: string; value: string };
+	const characteristicRows: CharRow[] = [
+		{ label: t("card.propertyType.title", "Тип"), value: propertyLabel },
+	];
 	if (listing.building_type)
-		characteristicBadges.push(
-			t(`listing.buildingType.${listing.building_type}`, listing.building_type),
-		);
+		characteristicRows.push({
+			label: ts("createListing.buildingType", "Тип строения"),
+			value: t(`listing.buildingType.${listing.building_type}`, listing.building_type),
+		});
 	const marketVal = enumVal("market_type", listing.market_type);
-	if (marketVal) characteristicBadges.push(marketVal);
+	if (marketVal)
+		characteristicRows.push({ label: ts("createListing.marketTypeLabel", "Тип рынка"), value: marketVal });
 	const conditionVal = enumVal("condition", listing.condition);
-	if (conditionVal) characteristicBadges.push(conditionVal);
+	if (conditionVal)
+		characteristicRows.push({ label: ts("createListing.condition", "Ремонт"), value: conditionVal });
 	const houseTypeVal = enumVal("house_type", listing.house_type);
-	if (houseTypeVal) characteristicBadges.push(houseTypeVal);
-	characteristicBadges.push(...arrayVals("house_condition", listing.house_condition));
-	characteristicBadges.push(...arrayVals("location_type", listing.location_type));
+	if (houseTypeVal)
+		characteristicRows.push({ label: ts("createListing.houseType", "Тип дома"), value: houseTypeVal });
+	const houseCondVals = arrayVals("house_condition", listing.house_condition);
+	if (houseCondVals.length)
+		characteristicRows.push({ label: ts("createListing.houseCondition", "Состояние дома"), value: houseCondVals.join(", ") });
+	const locationTypeVals = arrayVals("location_type", listing.location_type);
+	if (locationTypeVals.length)
+		characteristicRows.push({ label: ts("createListing.locationType", "Расположение"), value: locationTypeVals.join(", ") });
 	const wallVal = enumVal("wall_material", listing.wall_material);
-	if (wallVal) characteristicBadges.push(wallVal);
+	if (wallVal)
+		characteristicRows.push({ label: ts("createListing.wallMaterialLabel", "Материал стен"), value: wallVal });
 	const furnitureVal = enumVal("furniture", listing.furniture);
-	if (furnitureVal) characteristicBadges.push(furnitureVal);
+	if (furnitureVal)
+		characteristicRows.push({ label: ts("createListing.furnitureLabel", "Мебель"), value: furnitureVal });
 	const subtypeVal = enumVal("listing_subtype", listing.listing_subtype);
-	if (subtypeVal) characteristicBadges.push(subtypeVal);
+	if (subtypeVal)
+		characteristicRows.push({ label: ts("createListing.listingSubtypeLabel", "Планировка"), value: subtypeVal });
 	if (listing.balcony && listing.balcony !== "none") {
 		const balconyVal = enumVal("balcony", listing.balcony);
-		if (balconyVal) characteristicBadges.push(balconyVal);
+		if (balconyVal)
+			characteristicRows.push({ label: ts("createListing.balconyLabel", "Балкон"), value: balconyVal });
 	}
 	const landShapeVal = enumVal("land_shape", listing.land_shape);
-	if (landShapeVal) characteristicBadges.push(landShapeVal);
+	if (landShapeVal)
+		characteristicRows.push({ label: ts("createListing.landShapeLabel", "Форма участка"), value: landShapeVal });
 	const commercialVal = enumVal("commercial_type", listing.commercial_type);
-	if (commercialVal) characteristicBadges.push(commercialVal);
+	if (commercialVal)
+		characteristicRows.push({ label: ts("createListing.commercialTypeLabel", "Тип помещения"), value: commercialVal });
 	const buildingClassVal = enumVal("building_class", listing.building_class);
-	if (buildingClassVal) characteristicBadges.push(buildingClassVal);
+	if (buildingClassVal)
+		characteristicRows.push({ label: ts("createListing.buildingClassLabel", "Класс здания"), value: buildingClassVal });
 	const entranceVal = enumVal("entrance", listing.entrance);
-	if (entranceVal) characteristicBadges.push(entranceVal);
-	if (listing.parking_comm) characteristicBadges.push(ts("createListing.parkingCommLabel"));
-	if (listing.garage) characteristicBadges.push(ts("createListing.garageLabel"));
-	if (listing.basement) characteristicBadges.push(ts("createListing.basementLabel"));
-	if (listing.buildings_exist) characteristicBadges.push(ts("createListing.buildingsExistLabel"));
-	if (listing.fence) characteristicBadges.push(ts("createListing.fenceLabel"));
+	if (entranceVal)
+		characteristicRows.push({ label: ts("createListing.entranceLabel", "Вход"), value: entranceVal });
+	if (listing.parking_comm)
+		characteristicRows.push({ label: ts("createListing.parkingCommLabel", "Парковка"), value: yes });
+	if (listing.garage)
+		characteristicRows.push({ label: ts("createListing.garageLabel", "Гараж"), value: yes });
+	if (listing.basement)
+		characteristicRows.push({ label: ts("createListing.basementLabel", "Подвал"), value: yes });
+	if (listing.buildings_exist)
+		characteristicRows.push({ label: ts("createListing.buildingsExistLabel", "Постройки"), value: yes });
+	if (listing.fence)
+		characteristicRows.push({ label: ts("createListing.fenceLabel", "Ограждение"), value: yes });
 
 	// Utilities section.
 	const hasUtilities =
@@ -564,46 +570,82 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								</Text>
 							)}
 
-							{/* Key parameters grid */}
-							<SimpleGrid cols={2} spacing="sm" verticalSpacing="sm">
-								{params.map((p, idx) => {
-									const ItemIcon = p.icon;
-									return (
-										<Group key={idx} gap={10} wrap="nowrap">
-											<ThemeIcon
-												variant="light"
-												color="blue"
-												size={38}
-												radius="md"
-											>
-												<ItemIcon size={20} />
-											</ThemeIcon>
-											<Box style={{ minWidth: 0 }}>
-												<Text fw={700} size="sm" lh={1.2} truncate>
-													{p.value}
-												</Text>
-												<Text size="xs" c="dimmed" lh={1.2} truncate>
-													{p.label}
-												</Text>
-											</Box>
-										</Group>
-									);
-								})}
-							</SimpleGrid>
+							{/* Area chips row */}
+							{areaChips.length > 0 && (
+								<Group gap={8} wrap="wrap">
+									{areaChips.map((chip, i) => (
+										<Box
+											key={i}
+											px={12}
+											py={6}
+											style={{
+												border: "1px solid var(--mantine-color-gray-3)",
+												borderRadius: 10,
+												background: "var(--mantine-color-gray-0)",
+												textAlign: "center",
+												minWidth: 56,
+											}}
+										>
+											<Text fw={700} size="md" lh={1.2}>
+												{chip.value}
+											</Text>
+											<Text size="10px" c="dimmed" lh={1.2}>
+												{chip.label}
+											</Text>
+										</Box>
+									))}
+								</Group>
+							)}
 
-							{/* Characteristics badges */}
-							{characteristicBadges.length > 0 && (
+							{/* Layout params grid: rooms / floor / ceiling */}
+							{layoutParams.length > 0 && (
+								<SimpleGrid cols={2} spacing="sm" verticalSpacing="sm">
+									{layoutParams.map((p, idx) => {
+										const ItemIcon = p.icon;
+										return (
+											<Group key={idx} gap={10} wrap="nowrap">
+												<ThemeIcon variant="light" color="blue" size={36} radius="md">
+													<ItemIcon size={18} />
+												</ThemeIcon>
+												<Box style={{ minWidth: 0 }}>
+													<Text fw={700} size="sm" lh={1.2} truncate>
+														{p.value}
+													</Text>
+													<Text size="xs" c="dimmed" lh={1.2} truncate>
+														{p.label}
+													</Text>
+												</Box>
+											</Group>
+										);
+									})}
+								</SimpleGrid>
+							)}
+
+							{/* Characteristics: labeled key-value grid */}
+							{characteristicRows.length > 0 && (
 								<Stack gap={6}>
 									<Text fw={600} size="xs" c="dimmed" tt="uppercase">
 										{t("descriptionDrawer.characteristics")}
 									</Text>
-									<Group gap={6}>
-										{characteristicBadges.map((a) => (
-											<Badge key={a} size="sm" variant="light" color="gray" radius="sm">
-												{a}
-											</Badge>
+									<Box
+										style={{
+											display: "grid",
+											gridTemplateColumns: "auto 1fr",
+											columnGap: 12,
+											rowGap: 5,
+										}}
+									>
+										{characteristicRows.map((row) => (
+											<Fragment key={row.label}>
+												<Text size="sm" c="dimmed" style={{ whiteSpace: "nowrap" }}>
+													{row.label}
+												</Text>
+												<Text size="sm" fw={500}>
+													{row.value}
+												</Text>
+											</Fragment>
 										))}
-									</Group>
+									</Box>
 								</Stack>
 							)}
 
@@ -785,8 +827,9 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								listing.microdistrict ||
 								listing.landmark ||
 								listing.district ||
-								cleanedAddress) && (
+								listing.latitude) && (
 								<Stack gap={4}>
+									{/* Region (translated) — city only if different from region key */}
 									{(listing.region || listing.city) && (
 										<Group gap={6} wrap="nowrap">
 											<IconMapPin
@@ -795,17 +838,38 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												style={{ flexShrink: 0 }}
 											/>
 											<Text size="sm" c="dimmed">
-												{listing.region
-													? translateRegion(listing.region, t)
-													: ""}
-												{listing.city &&
-												listing.city.toLowerCase() !==
-													(listing.region ?? "").toLowerCase()
-													? `${listing.region ? ", " : ""}${listing.city}`
-													: ""}
+												{[
+													listing.region ? translateRegion(listing.region, t) : null,
+													listing.city &&
+													listing.city.toLowerCase() !==
+														(listing.region ?? "").toLowerCase()
+														? listing.city
+														: null,
+												]
+													.filter(Boolean)
+													.join(", ")}
 											</Text>
 										</Group>
 									)}
+									{/* District / microdistrict (no raw geocoder address) */}
+									{(listing.district || listing.microdistrict) && (
+										<Group gap={6} align="flex-start" wrap="nowrap">
+											<IconMapPin
+												size={14}
+												color="var(--mantine-color-gray-6)"
+												style={{ marginTop: 2, flexShrink: 0 }}
+											/>
+											<Text size="sm" c="dimmed">
+												{[
+													translateDistrict(listing.district, t),
+													listing.microdistrict,
+												]
+													.filter(Boolean)
+													.join(", ")}
+											</Text>
+										</Group>
+									)}
+									{/* JK name */}
 									{listing.jk_name && (
 										<Group gap={6} wrap="nowrap">
 											<IconBuilding
@@ -818,6 +882,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 											</Text>
 										</Group>
 									)}
+									{/* Metro — translated via seller i18n keys */}
 									{listing.metro_station && (
 										<Group gap={6} wrap="nowrap">
 											<IconMapPin
@@ -827,31 +892,16 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 											/>
 											<Text size="sm" c="dimmed">
 												{t("descriptionDrawer.location.metro")}:{" "}
-												{listing.metro_station.charAt(0).toUpperCase() +
-													listing.metro_station.slice(1)}
+												{ts(
+													`createListing.metroStation.${listing.metro_station}`,
+													listing.metro_station
+														.replace(/_/g, " ")
+														.replace(/^\w/, (c) => c.toUpperCase()),
+												)}
 											</Text>
 										</Group>
 									)}
-									{(listing.district ||
-										cleanedAddress ||
-										listing.microdistrict) && (
-										<Group gap={6} align="flex-start">
-											<IconMapPin
-												size={14}
-												color="var(--mantine-color-gray-6)"
-												style={{ marginTop: 2, flexShrink: 0 }}
-											/>
-											<Text size="sm" c="dimmed">
-												{[
-													translateDistrict(listing.district, t),
-													listing.microdistrict,
-													cleanedAddress,
-												]
-													.filter(Boolean)
-													.join(", ")}
-											</Text>
-										</Group>
-									)}
+									{/* Landmark */}
 									{listing.landmark && (
 										<Group gap={6} wrap="nowrap">
 											<IconMapPin
@@ -864,6 +914,24 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												{listing.landmark}
 											</Text>
 										</Group>
+									)}
+									{/* Map button — replaces raw address text */}
+									{listing.latitude && listing.longitude && (
+										<UnstyledButton
+											mt={4}
+											onClick={() => setMapOpen(true)}
+											style={{
+												display: "inline-flex",
+												alignItems: "center",
+												gap: 6,
+												color: "var(--mantine-color-blue-6)",
+												fontSize: "var(--mantine-font-size-sm)",
+											}}
+										>
+											<IconMap2 size={14} />
+											{t("descriptionDrawer.location.viewOnMap", "Посмотреть на карте")}
+											<IconChevronRight size={12} />
+										</UnstyledButton>
 									)}
 								</Stack>
 							)}
@@ -974,6 +1042,13 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 					)}
 				</Box>
 			</Drawer>
+
+			<MapDrawer
+				opened={mapOpen}
+				onClose={() => setMapOpen(false)}
+				listing={listing}
+				container={container}
+			/>
 
 			<CommentsDrawer
 				opened={commentsOpen}
