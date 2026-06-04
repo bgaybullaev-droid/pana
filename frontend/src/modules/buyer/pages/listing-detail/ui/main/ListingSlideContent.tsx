@@ -1,4 +1,4 @@
-import { FC, useState, useCallback, useEffect } from "react";
+import { FC, RefObject, useState, useCallback, useEffect } from "react";
 import {
 	Box,
 	Text,
@@ -46,6 +46,12 @@ interface ListingSlideContentProps {
 	onClaim?: (id: string) => void;
 	onReject?: (id: string) => void;
 	mode?: "buyer" | "seller-crawled";
+	/**
+	 * When provided, the description/map drawers render inside this element
+	 * instead of the full viewport. Used by the seller Stage-2 preview so
+	 * the drawers stay within the "phone screenshot" frame.
+	 */
+	containerRef?: RefObject<HTMLElement | null>;
 }
 
 const shadow = "0 1px 4px rgba(0,0,0,0.6)";
@@ -59,6 +65,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 	onClaim,
 	onReject,
 	mode = "buyer",
+	containerRef,
 }) => {
 	const { t } = useTranslation("buyer");
 	const navigate = useNavigate();
@@ -512,6 +519,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 				onClose={() => setDescriptionOpen(false)}
 				listing={listing}
 				onCommentAdded={() => onCommentAdded?.(listing.id)}
+				container={containerRef?.current}
 			/>
 
 			{/* ── Map Drawer ── */}
@@ -519,6 +527,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 				opened={mapOpen}
 				onClose={() => setMapOpen(false)}
 				listing={listing}
+				container={containerRef?.current}
 			/>
 		</Box>
 	);
