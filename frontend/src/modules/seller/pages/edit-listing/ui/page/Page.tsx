@@ -2,34 +2,41 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
-	Container,
-	Stack,
-	FileButton,
-	Image,
-	SimpleGrid,
-	Box,
-	ActionIcon,
-	Text,
-	Button,
-	LoadingOverlay,
-	Skeleton,
+	Alert,
 	Badge,
-	Group,
+	Box,
+	Button,
 	Collapse,
-	UnstyledButton,
+	Container,
+	FileButton,
+	Group,
+	Image,
+	Loader,
+	LoadingOverlay,
 	Modal,
 	NumberInput,
 	Select,
+	SimpleGrid,
+	Skeleton,
+	Stack,
+	Tabs,
+	Text,
 	Textarea,
+	ThemeIcon,
+	ActionIcon,
+	UnstyledButton,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
-	IconX,
 	IconCameraPlus,
 	IconChevronDown,
 	IconChevronUp,
-	IconFileText,
 	IconCircleCheck,
+	IconFileText,
+	IconInfoCircle,
+	IconRefresh,
+	IconRobot,
+	IconX,
 } from "@tabler/icons-react";
 import { apiClient } from "@shared/api/client";
 import { InnerPage } from "@shared/ui/InnerPage";
@@ -41,6 +48,8 @@ import { ExportButtons } from "@modules/seller/feature/text-export";
 import {
 	fetchListingForEdit,
 	fetchListingSourceTextFx,
+	fetchDraftPreviewFx,
+	regenerateDraftFx,
 	updateListing,
 	updateListingFx,
 	$editingListing,
@@ -54,6 +63,15 @@ import {
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
 import { radii, surface } from "@app/styles/theme";
+
+type AiLang = "ru" | "uz" | "uz_cyrl";
+const AI_LANG_TABS: Array<{ value: AiLang; label: string }> = [
+	{ value: "ru", label: "RU" },
+	{ value: "uz", label: "UZ" },
+	{ value: "uz_cyrl", label: "ЎЗ" },
+];
+const AI_POLL_INTERVAL_MS = 2000;
+const AI_POLL_MAX_ITERATIONS = 15;
 
 function Page() {
 	const navigate = useNavigate();
@@ -70,6 +88,16 @@ function Page() {
 	const [imageError, setImageError] = useState(false);
 	const [sourceText, setSourceText] = useState<SourceTextData | null>(null);
 	const [sourceTextExpanded, setSourceTextExpanded] = useState(false);
+
+	// AI description generation state
+	const [aiWishes, setAiWishes] = useState("");
+	const [aiActiveTab, setAiActiveTab] = useState<AiLang>("ru");
+	const [aiEdits, setAiEdits] = useState({ ru: "", uz: "", uz_cyrl: "" });
+	const [aiPolling, setAiPolling] = useState(false);
+	const [aiTimedOut, setAiTimedOut] = useState(false);
+	const [aiRegenerating, setAiRegenerating] = useState(false);
+	const aiPollIterations = useRef(0);
+	const aiPollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Block phase-2 — "Mark as sold" modal local state. The modal
 	// itself PATCHes through apiClient (not updateListingFx) so the
@@ -226,7 +254,6 @@ function Page() {
 				deed_type: editingListing.deed_type || undefined,
 				// Sprint 3 — cross-cutting location (T-001)
 				urgent_flag: editingListing.urgent_flag ?? false,
-				city: editingListing.city || "",
 				microdistrict: editingListing.microdistrict || undefined,
 				jk_name: editingListing.jk_name || undefined,
 				landmark: editingListing.landmark || undefined,
@@ -316,6 +343,72 @@ function Page() {
 		}
 	};
 
+	// AI polling loop
+	useEffect(() => {
+		if (!aiPolling || !id) {
+			if (aiPollTimer.current) { clearTimeout(aiPollTimer.current); aiPollTimer.current = null; }
+			return;
+		}
+		aiPollIterations.current = 0;
+		const tick = async () => {
+			aiPollIterations.current += 1;
+			try {
+				const data = await fetchDraftPreviewFx(id);
+				if (data.ai_description_ru) {
+					setAiEdits({
+						ru: data.ai_description_ru ?? "",
+						uz: data.ai_description_uz ?? "",
+						uz_cyrl: data.ai_description_uz_cyrl ?? "",
+					});
+					setAiPolling(false);
+					return;
+				}
+			} catch { /* network blip */ }
+			if (aiPollIterations.current >= AI_POLL_MAX_ITERATIONS) {
+				setAiPolling(false);
+				setAiTimedOut(true);
+				return;
+			}
+			aiPollTimer.current = setTimeout(tick, AI_POLL_INTERVAL_MS);
+		};
+		aiPollTimer.current = setTimeout(tick, AI_POLL_INTERVAL_MS);
+		return () => { if (aiPollTimer.current) { clearTimeout(aiPollTimer.current); aiPollTimer.current = null; } };
+	}, [aiPolling, id]);
+
+	const handleAiGenerate = async () => {
+		if (!id) return;
+		setAiTimedOut(false);
+		setAiEdits({ ru: "", uz: "", uz_cyrl: "" });
+		setAiRegenerating(true);
+		try {
+			await regenerateDraftFx({ id, triggered_by: "manual_retry" });
+			setAiPolling(true);
+			webApp?.HapticFeedback.impactOccurred("light");
+		} catch {
+			notifications.show({
+				title: t("notifications.error"),
+				message: t("createListing.regenerateFailed", "Не удалось перегенерировать. Попробуйте ещё раз."),
+				color: "red",
+			});
+		} finally {
+			setAiRegenerating(false);
+		}
+	};
+
+	const handleAiRefresh = () => {
+		if (!id) return;
+		void fetchDraftPreviewFx(id).then((data) => {
+			if (data.ai_description_ru) {
+				setAiEdits({
+					ru: data.ai_description_ru ?? "",
+					uz: data.ai_description_uz ?? "",
+					uz_cyrl: data.ai_description_uz_cyrl ?? "",
+				});
+				setAiTimedOut(false);
+			}
+		}).catch(() => undefined);
+	};
+
 	const handleSubmit = async (values: typeof form.values) => {
 		if (!id) return;
 		const existingCount = existingImagesList.length;
@@ -358,6 +451,7 @@ function Page() {
 
 		const listingData: ListingUpdateData = {
 			...buildListingData(values),
+			description: aiEdits.ru.trim() || values.description || undefined,
 			images: isImagesModified ? finalImages : undefined,
 		};
 
@@ -686,6 +780,143 @@ function Page() {
 							districts={districts}
 							onRegionChange={handleRegionChange}
 						/>
+
+						{/* ── AI Description Block ── */}
+						<Box
+							style={{
+								borderRadius: 16,
+								border: aiEdits.ru ? "1.5px solid #86efac" : "1.5px solid #93c5fd",
+								backgroundColor: aiEdits.ru ? "#f0fdf4" : "#f8faff",
+								padding: 20,
+							}}
+						>
+							{/* Header */}
+							<Group gap={10} mb={12} wrap="nowrap">
+								<ThemeIcon
+									size={40}
+									radius="xl"
+									color={aiEdits.ru ? "green" : "blue"}
+									variant="light"
+									style={{ flexShrink: 0 }}
+								>
+									<IconRobot size={22} />
+								</ThemeIcon>
+								<Box>
+									<Text fw={700} size="sm" lh={1.3}>
+										{aiEdits.ru
+											? t("createListing.aiReadyTitle", "Описание сгенерировано")
+											: t("createListing.addAiDescription", "Добавьте описание с AI")}
+									</Text>
+									{!aiEdits.ru && (
+										<Text size="xs" c="dimmed" lh={1.4}>
+											{t("createListing.aiRecommend", "Рекомендуем — обычно выходит убедительнее")}
+										</Text>
+									)}
+								</Box>
+							</Group>
+
+							{/* Language badges (idle state) */}
+							{!aiEdits.ru && !aiPolling && !aiTimedOut && (
+								<>
+									<Text size="xs" c="dimmed" mb={6}>
+										{t("createListing.aiLanguagesLabel", "Текст сразу на трёх языках:")}
+									</Text>
+									<Group gap={6} mb={14}>
+										<Badge variant="light" color="blue" size="sm" radius="md">🇷🇺 Русский</Badge>
+										<Badge variant="light" color="green" size="sm" radius="md">🇺🇿 O&apos;zbek</Badge>
+										<Badge variant="light" color="teal" size="sm" radius="md">Ўзбекча</Badge>
+									</Group>
+								</>
+							)}
+
+							{/* Wishes field */}
+							{!aiEdits.ru && (
+								<Textarea
+									label={t("createListing.aiWishesLabel", "Пожелания для AI")}
+									placeholder={t("createListing.aiWishesPlaceholder", "Укажите особенности, которые важно упомянуть…")}
+									value={aiWishes}
+									onChange={(e) => setAiWishes(e.currentTarget.value)}
+									minRows={2}
+									maxRows={4}
+									autosize
+									mb={12}
+									styles={{ input: { fontSize: 13 } }}
+								/>
+							)}
+
+							{/* Idle state */}
+							{!aiEdits.ru && !aiPolling && !aiTimedOut && (
+								<>
+									<Button
+										fullWidth
+										radius="xl"
+										leftSection={<IconRobot size={16} />}
+										loading={aiRegenerating}
+										onClick={handleAiGenerate}
+									>
+										{t("createListing.generateAiButton", "Сгенерировать с AI")}
+									</Button>
+									<Text size="xs" c="dimmed" ta="center" mt={8}>
+										{t("createListing.aiEditableHint", "Результат можно отредактировать")}
+									</Text>
+								</>
+							)}
+
+							{/* Polling */}
+							{!aiEdits.ru && aiPolling && !aiTimedOut && (
+								<Box style={{ padding: "16px 0 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+									<Loader size="sm" color="blue" />
+									<Text fw={600} size="sm" c="#0369a1">
+										{t("createListing.generatingText", "AI готовит описание объявления…")}
+									</Text>
+								</Box>
+							)}
+
+							{/* Timed out */}
+							{!aiEdits.ru && aiTimedOut && (
+								<Alert icon={<IconInfoCircle size={16} />} color="orange" title={t("createListing.pollingTimedOutTitle", "Генерация занимает дольше обычного")}>
+									<Text size="sm" mb="sm">
+										{t("createListing.pollingTimedOutBody", "Текст ещё не готов. Попробуйте обновить или сгенерировать заново.")}
+									</Text>
+									<Group gap="sm">
+										<Button size="xs" variant="light" leftSection={<IconRefresh size={14} />} onClick={handleAiRefresh}>
+											{t("createListing.pollingRetry", "Обновить")}
+										</Button>
+										<Button size="xs" variant="subtle" loading={aiRegenerating} onClick={handleAiGenerate}>
+											{t("createListing.regenerateButton", "Сгенерировать заново")}
+										</Button>
+									</Group>
+								</Alert>
+							)}
+
+							{/* AI text ready */}
+							{aiEdits.ru && (
+								<Box>
+									<Tabs value={aiActiveTab} onChange={(v) => v && setAiActiveTab(v as AiLang)} radius="md" variant="pills" color="green">
+										<Tabs.List grow>
+											{AI_LANG_TABS.map(({ value, label }) => (
+												<Tabs.Tab key={value} value={value}>{label}</Tabs.Tab>
+											))}
+										</Tabs.List>
+										{AI_LANG_TABS.map(({ value }) => (
+											<Tabs.Panel key={value} value={value} pt="sm">
+												<Textarea
+													value={aiEdits[value]}
+													onChange={(e) => setAiEdits((prev) => ({ ...prev, [value]: e.currentTarget.value }))}
+													minRows={6}
+													maxRows={12}
+													autosize
+													placeholder={t("createListing.editPlaceholder", "Текст объявления…")}
+												/>
+											</Tabs.Panel>
+										))}
+									</Tabs>
+									<Button mt="sm" size="xs" variant="subtle" leftSection={<IconRefresh size={14} />} loading={aiRegenerating} onClick={handleAiGenerate}>
+										{t("createListing.regenerateButton", "Сгенерировать заново")}
+									</Button>
+								</Box>
+							)}
+						</Box>
 					</Stack>
 				</form>
 

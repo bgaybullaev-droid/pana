@@ -382,21 +382,19 @@ export function ListingFormFields({
 	];
 
 	// S3 — metro stations of Tashkent (gated by P5 to region=toshkent_shahri).
-	// Simple list for the MVP; a later PR can source this from a static
-	// data module if the set grows.
 	const metroStationOpts = [
-		{ value: "chilonzor", label: "Chilonzor" },
-		{ value: "mustaqillik_maydoni", label: "Mustaqillik Maydoni" },
-		{ value: "amir_temur_xiyoboni", label: "Amir Temur Xiyoboni" },
-		{ value: "yunus_rajabiy", label: "Yunus Rajabiy" },
-		{ value: "minor", label: "Minor" },
-		{ value: "beruniy", label: "Beruniy" },
-		{ value: "pushkin", label: "Pushkin" },
-		{ value: "ming_urik", label: "Ming O'rik" },
-		{ value: "oybek", label: "Oybek" },
-		{ value: "kosmonavtlar", label: "Kosmonavtlar" },
-		{ value: "olmazor", label: "Olmazor" },
-		{ value: "sergeli", label: "Sergeli" },
+		{ value: "chilonzor",           label: t("createListing.metroStation.chilonzor") },
+		{ value: "mustaqillik_maydoni", label: t("createListing.metroStation.mustaqillik_maydoni") },
+		{ value: "amir_temur_xiyoboni", label: t("createListing.metroStation.amir_temur_xiyoboni") },
+		{ value: "yunus_rajabiy",       label: t("createListing.metroStation.yunus_rajabiy") },
+		{ value: "minor",               label: t("createListing.metroStation.minor") },
+		{ value: "beruniy",             label: t("createListing.metroStation.beruniy") },
+		{ value: "pushkin",             label: t("createListing.metroStation.pushkin") },
+		{ value: "ming_urik",           label: t("createListing.metroStation.ming_urik") },
+		{ value: "oybek",               label: t("createListing.metroStation.oybek") },
+		{ value: "kosmonavtlar",        label: t("createListing.metroStation.kosmonavtlar") },
+		{ value: "olmazor",             label: t("createListing.metroStation.olmazor") },
+		{ value: "sergeli",             label: t("createListing.metroStation.sergeli") },
 	];
 
 	// Apartment amenities
@@ -974,15 +972,6 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
-				{/* S3 — always-visible city (required on CREATE) */}
-				<TextInput
-					label={t("createListing.cityLabel")}
-					placeholder={t("createListing.cityPlaceholder")}
-					required
-					value={form.values.city}
-					onChange={(e) => set("city", e.currentTarget.value)}
-					error={form.errors.city as string}
-				/>
 				{/* S3 — always-visible microdistrict */}
 				<TextInput
 					label={t("createListing.microdistrictLabel")}
