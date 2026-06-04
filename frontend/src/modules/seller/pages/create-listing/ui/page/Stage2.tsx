@@ -179,6 +179,9 @@ function Stage2() {
 	const [activeTab, setActiveTab] = useState<Lang>("ru");
 	const pollIterations = useRef(0);
 	const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Preview "phone screenshot" frame — drawers opened from the preview
+	// render inside this element instead of covering the whole viewport.
+	const previewFrameRef = useRef<HTMLDivElement>(null);
 
 	const previewListing = useMemo((): UnifiedListing | null => {
 		if (!draftFormData || !draftId) return null;
@@ -350,6 +353,7 @@ function Stage2() {
 					{/* ── Interactive "screenshot" preview frame ── */}
 					{previewListing && (
 						<Box
+							ref={previewFrameRef}
 							mx="md"
 							style={{
 								height: "65vh",
@@ -365,6 +369,7 @@ function Stage2() {
 								listing={previewListing}
 								isActive={true}
 								mode="buyer"
+								containerRef={previewFrameRef}
 							/>
 						</Box>
 					)}

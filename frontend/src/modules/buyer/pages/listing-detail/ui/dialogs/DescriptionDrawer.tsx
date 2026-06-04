@@ -40,6 +40,13 @@ interface DescriptionDrawerProps {
 	onClose: () => void;
 	listing: UnifiedListing;
 	onCommentAdded?: () => void;
+	/**
+	 * When set, the drawer is rendered *inside* this element (via portal)
+	 * with absolute positioning instead of covering the whole viewport.
+	 * Used by the seller Stage-2 preview so the drawer stays within the
+	 * "phone screenshot" frame. The container must be `position: relative`.
+	 */
+	container?: HTMLElement | null;
 }
 
 type ParamRow = { icon: typeof IconHome; value: string | number; label: string };
@@ -74,6 +81,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 	onClose,
 	listing,
 	onCommentAdded,
+	container,
 }) => {
 	const { t, i18n } = useTranslation("buyer");
 	const navigate = useNavigate();
@@ -195,7 +203,19 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 				position="bottom"
 				size="85%"
 				withCloseButton={false}
+				lockScroll={!container}
+				portalProps={container ? { target: container } : undefined}
 				styles={{
+					// When contained in the preview frame, switch the overlay
+					// + positioning layer from `fixed` (viewport) to `absolute`
+					// (the relative-positioned preview container).
+					...(container
+						? {
+								root: { position: "absolute", inset: 0 },
+								overlay: { position: "absolute" },
+								inner: { position: "absolute" },
+							}
+						: {}),
 					content: {
 						borderTopLeftRadius: radii.lg,
 						borderTopRightRadius: radii.lg,

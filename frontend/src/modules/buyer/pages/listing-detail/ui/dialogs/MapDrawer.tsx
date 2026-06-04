@@ -15,9 +15,17 @@ interface MapDrawerProps {
 	opened: boolean;
 	onClose: () => void;
 	listing: UnifiedListing;
+	/** See DescriptionDrawer.container — contains the drawer within the
+	 *  seller Stage-2 preview frame instead of the full viewport. */
+	container?: HTMLElement | null;
 }
 
-export const MapDrawer: FC<MapDrawerProps> = ({ opened, onClose, listing }) => {
+export const MapDrawer: FC<MapDrawerProps> = ({
+	opened,
+	onClose,
+	listing,
+	container,
+}) => {
 	const { t } = useTranslation("buyer");
 	const coords = getListingCoords(listing);
 	const locationText = [translateDistrict(listing.district, t), listing.address]
@@ -31,7 +39,16 @@ export const MapDrawer: FC<MapDrawerProps> = ({ opened, onClose, listing }) => {
 			position="bottom"
 			size="70%"
 			withCloseButton={false}
+			lockScroll={!container}
+			portalProps={container ? { target: container } : undefined}
 			styles={{
+				...(container
+					? {
+							root: { position: "absolute", inset: 0 },
+							overlay: { position: "absolute" },
+							inner: { position: "absolute" },
+						}
+					: {}),
 				content: { borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg },
 				body: {
 					padding: 0,
