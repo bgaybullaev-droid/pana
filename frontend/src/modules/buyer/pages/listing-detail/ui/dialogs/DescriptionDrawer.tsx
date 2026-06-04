@@ -10,27 +10,22 @@ import {
 	Avatar,
 	Button,
 	UnstyledButton,
-	SimpleGrid,
-	ThemeIcon,
 	Divider,
 } from "@mantine/core";
 import {
 	IconMapPin,
 	IconPhone,
 	IconUser,
-	IconHome,
-	IconBed,
-	IconStairs,
 	IconShieldCheck,
 	IconCalendar,
 	IconEye,
 	IconDroplet,
 	IconFlame,
-	IconTree,
 	IconBuilding,
 	IconBrandTelegram,
 	IconChevronRight,
 	IconMap2,
+	IconTrain,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -50,8 +45,6 @@ interface DescriptionDrawerProps {
 	onCommentAdded?: () => void;
 	container?: HTMLElement | null;
 }
-
-type ParamRow = { icon: typeof IconHome; value: string | number; label: string };
 
 // Apartment/house amenity codes → seller-namespace i18n keys.
 const AMENITY_I18N: Record<string, string> = {
@@ -315,42 +308,40 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		return key ? ts(key, a) : a;
 	};
 
-	// ── Area chips: total / living / kitchen / land / price-per-sqm ──────────
-	type AreaChip = { value: string; label: string };
-	const areaChips: AreaChip[] = [];
-	if (listing.area)
-		areaChips.push({ value: `${listing.area}`, label: "м² " + t("descriptionDrawer.areaTotal", "общая") });
-	if (listing.living_area)
-		areaChips.push({ value: `${listing.living_area}`, label: "м² " + t("descriptionDrawer.livingArea", "жилая") });
-	if (listing.kitchen_area)
-		areaChips.push({ value: `${listing.kitchen_area}`, label: "м² " + t("descriptionDrawer.kitchenArea", "кухня") });
-	if (listing.land_area)
-		areaChips.push({ value: `${listing.land_area}`, label: t("descriptionDrawer.landArea", "сот.") });
-	if (listing.price_per_sqm)
-		areaChips.push({ value: formatPrice(listing.price_per_sqm, listing.currency), label: t("descriptionDrawer.pricePerSqm", "за м²") });
-
-	// ── Layout params grid: rooms / floor / ceiling ───────────────────────────
-	const layoutParams: ParamRow[] = [];
+	// ── All params as unified chips: rooms / areas / floor / ceiling / price-per-sqm ──
+	type ParamChip = { value: string; label: string };
+	const paramChips: ParamChip[] = [];
 	if (listing.rooms)
-		layoutParams.push({ icon: IconBed, value: listing.rooms, label: t("listing.rooms") });
+		paramChips.push({ value: String(listing.rooms), label: t("listing.rooms") });
+	if (listing.area)
+		paramChips.push({ value: `${listing.area}`, label: "м² " + t("descriptionDrawer.areaTotal", "общая") });
+	if (listing.living_area)
+		paramChips.push({ value: `${listing.living_area}`, label: "м² " + t("descriptionDrawer.livingArea", "жилая") });
+	if (listing.kitchen_area)
+		paramChips.push({ value: `${listing.kitchen_area}`, label: "м² " + t("descriptionDrawer.kitchenArea", "кухня") });
 	if (listing.floor)
-		layoutParams.push({
-			icon: IconStairs,
-			value: `${listing.floor}/${listing.total_floors || "?"}`,
-			label: t("listing.floorLabel"),
-		});
+		paramChips.push({ value: `${listing.floor}/${listing.total_floors || "?"}`, label: t("listing.floorLabel") });
 	if (listing.ceiling_height)
-		layoutParams.push({
-			icon: IconBuilding,
-			value: `${listing.ceiling_height} м`,
-			label: t("descriptionDrawer.ceilingHeight"),
-		});
-	if (listing.land_area && !areaChips.length)
-		layoutParams.push({
-			icon: IconTree,
-			value: listing.land_area,
-			label: t("descriptionDrawer.landArea"),
-		});
+		paramChips.push({ value: `${listing.ceiling_height} м`, label: t("descriptionDrawer.ceilingHeight") });
+	if (listing.land_area)
+		paramChips.push({ value: `${listing.land_area}`, label: t("descriptionDrawer.landArea", "сот.") });
+	if (listing.price_per_sqm)
+		paramChips.push({ value: formatPrice(listing.price_per_sqm, listing.currency), label: t("descriptionDrawer.pricePerSqm", "за м²") });
+
+	// ── Location: one-line region/city/district dedup ────────────────────────
+	const translatedRegion = listing.region ? translateRegion(listing.region, t).toLowerCase() : "";
+	const cityLower = listing.city?.toLowerCase() ?? "";
+	const showCity =
+		cityLower !== (listing.region ?? "").toLowerCase() && cityLower !== translatedRegion;
+	const locationLine = [
+		listing.region ? translateRegion(listing.region, t) : null,
+		showCity && listing.city ? listing.city : null,
+		listing.district ? translateDistrict(listing.district, t) : null,
+		listing.microdistrict ?? null,
+	]
+		.filter(Boolean)
+		.join(", ");
+
 
 	// ── Characteristic rows: labeled key-value pairs ─────────────────────────
 	const yes = t("descriptionDrawer.yes", "Есть");
@@ -570,10 +561,10 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								</Text>
 							)}
 
-							{/* Area chips row */}
-							{areaChips.length > 0 && (
+							{/* Unified params chips: rooms / areas / floor / ceiling / price-per-sqm */}
+							{paramChips.length > 0 && (
 								<Group gap={8} wrap="wrap">
-									{areaChips.map((chip, i) => (
+									{paramChips.map((chip, i) => (
 										<Box
 											key={i}
 											px={12}
@@ -595,30 +586,6 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 										</Box>
 									))}
 								</Group>
-							)}
-
-							{/* Layout params grid: rooms / floor / ceiling */}
-							{layoutParams.length > 0 && (
-								<SimpleGrid cols={2} spacing="sm" verticalSpacing="sm">
-									{layoutParams.map((p, idx) => {
-										const ItemIcon = p.icon;
-										return (
-											<Group key={idx} gap={10} wrap="nowrap">
-												<ThemeIcon variant="light" color="blue" size={36} radius="md">
-													<ItemIcon size={18} />
-												</ThemeIcon>
-												<Box style={{ minWidth: 0 }}>
-													<Text fw={700} size="sm" lh={1.2} truncate>
-														{p.value}
-													</Text>
-													<Text size="xs" c="dimmed" lh={1.2} truncate>
-														{p.label}
-													</Text>
-												</Box>
-											</Group>
-										);
-									})}
-								</SimpleGrid>
 							)}
 
 							{/* Characteristics: labeled key-value grid */}
@@ -829,8 +796,8 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								listing.district ||
 								listing.latitude) && (
 								<Stack gap={4}>
-									{/* Region (translated) — city only if different from region key */}
-									{(listing.region || listing.city) && (
+									{/* Region / city / district — one combined line */}
+									{locationLine && (
 										<Group gap={6} wrap="nowrap">
 											<IconMapPin
 												size={14}
@@ -838,34 +805,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												style={{ flexShrink: 0 }}
 											/>
 											<Text size="sm" c="dimmed">
-												{[
-													listing.region ? translateRegion(listing.region, t) : null,
-													listing.city &&
-													listing.city.toLowerCase() !==
-														(listing.region ?? "").toLowerCase()
-														? listing.city
-														: null,
-												]
-													.filter(Boolean)
-													.join(", ")}
-											</Text>
-										</Group>
-									)}
-									{/* District / microdistrict (no raw geocoder address) */}
-									{(listing.district || listing.microdistrict) && (
-										<Group gap={6} align="flex-start" wrap="nowrap">
-											<IconMapPin
-												size={14}
-												color="var(--mantine-color-gray-6)"
-												style={{ marginTop: 2, flexShrink: 0 }}
-											/>
-											<Text size="sm" c="dimmed">
-												{[
-													translateDistrict(listing.district, t),
-													listing.microdistrict,
-												]
-													.filter(Boolean)
-													.join(", ")}
+												{locationLine}
 											</Text>
 										</Group>
 									)}
@@ -885,7 +825,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 									{/* Metro — translated via seller i18n keys */}
 									{listing.metro_station && (
 										<Group gap={6} wrap="nowrap">
-											<IconMapPin
+											<IconTrain
 												size={14}
 												color="var(--mantine-color-grape-6)"
 												style={{ flexShrink: 0 }}
@@ -1001,7 +941,10 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 							px="md"
 							py="sm"
 							style={{
-								borderTop: "1px solid var(--mantine-color-gray-2)",
+								background: "rgba(255, 255, 255, 0.65)",
+								backdropFilter: "blur(20px) saturate(180%)",
+								WebkitBackdropFilter: "blur(20px) saturate(180%)",
+								borderTop: "1px solid rgba(255, 255, 255, 0.5)",
 								flexShrink: 0,
 							}}
 						>

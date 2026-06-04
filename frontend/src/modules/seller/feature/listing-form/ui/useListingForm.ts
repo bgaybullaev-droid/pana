@@ -256,8 +256,7 @@ export function useListingForm(
 				values.property_type !== "land" && !value
 					? t("validation.furnishedRequired")
 					: null,
-			// S4 (T-009): commercial listings require commercial_type on
-			// CREATE only. Same legacy-safety reasoning as `city`.
+			// S4 (T-009): commercial listings require commercial_type on CREATE only.
 			commercial_type: (value, values) =>
 				mode === "create" && values.property_type === "commercial" && !value
 					? t("validation.commercialTypeRequired")
