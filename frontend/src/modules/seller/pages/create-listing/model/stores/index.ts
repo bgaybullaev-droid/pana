@@ -20,12 +20,11 @@ import {
 } from "@shared/state/listing/model";
 
 import {
-	dismissParamChangeBanner,
 	editDescription,
 	hydrateDraftPreview,
 	pollingTimedOut,
 	resetDraftFlow,
-	setCurrentParamSnapshot,
+	stageAdvance,
 	stageBackToParams,
 	startAiGeneration,
 } from "../events";
@@ -40,9 +39,9 @@ export type EditedDescriptions = {
 
 const EMPTY_EDITS: EditedDescriptions = { ru: "", uz: "", uz_cyrl: "" };
 
-/** Current Stage (1 = params, 2 = preview/publish). */
+/** Current Stage (1 = params + AI, 2 = preview/publish). */
 export const $stage = createStore<Stage>(1)
-	.on(createDraftListingFx.doneData, () => 2)
+	.on(stageAdvance, () => 2)
 	.on(stageBackToParams, () => 1)
 	.reset(resetDraftFlow);
 
@@ -54,26 +53,6 @@ export const $draftId = createStore<string | null>(null)
 /** The full form payload submitted in Stage 1 — used to build the preview listing. */
 export const $draftFormData = createStore<ListingCreateData | null>(null)
 	.on(createDraftListingFx.done, (_, { params }) => params)
-	.reset(resetDraftFlow);
-
-/** Snapshot of the listing's key params at the time of the most recent
- *  successful AI generation. Used by Stage 2 to detect drift. */
-export const $paramSnapshot = createStore<Record<string, unknown> | null>(
-	null,
-)
-	.on(fetchDraftPreviewFx.doneData, (prev, data) =>
-		data.last_ai_param_snapshot ?? prev,
-	)
-	.on(regenerateDraftFx.done, (state) => state /* updated by next poll */)
-	.reset(resetDraftFlow);
-
-/** Current key params on Stage 1 — fed by the form on every render so
- *  Stage 2 can compare against `$paramSnapshot` and surface the
- *  "Параметры изменились" banner. */
-export const $currentParamSnapshot = createStore<
-	Record<string, unknown> | null
->(null)
-	.on(setCurrentParamSnapshot, (_, value) => value)
 	.reset(resetDraftFlow);
 
 /** Full preview payload (poll target). */
@@ -125,14 +104,6 @@ export const $pollingTimedOut = createStore<boolean>(false)
 		data.ai_description_ru ? false : state,
 	)
 	.on(regenerateDraftFx.done, () => false)
-	.reset(resetDraftFlow);
-
-/** True while the seller dismissed the param-change banner — suppress
- *  the banner until the next genuine param change. */
-export const $paramChangeBannerDismissed = createStore<boolean>(false)
-	.on(dismissParamChangeBanner, () => true)
-	.on(setCurrentParamSnapshot, () => false) // reset on param edit
-	.on(regenerateDraftFx.done, () => true) // banner pointless right after regen
 	.reset(resetDraftFlow);
 
 /** Loading flags piped from shared effects for the UI. */

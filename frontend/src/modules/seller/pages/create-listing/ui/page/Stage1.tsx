@@ -1,39 +1,51 @@
 /**
  * Block F V2.0 (F1) — Stage 1 of two-step publish.
  *
- * Carries the legacy parameter / photo form from before F1; the only
- * substantive change is the submit handler: instead of POST /listings
- * (which immediately publishes), Stage 1 calls
- * createDraftListingFx → POST /listings/draft. On success the parent
- * Page.tsx wrapper flips $stage to 2 and Stage2.tsx mounts.
+ * Parameters + photos form, plus optional in-line AI description
+ * generation. User can generate AI text in three languages (RU/UZ/ЎЗ),
+ * edit the result, and then advance to Stage 2 (preview + publish).
+ * Advancing without generating is always allowed.
  */
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
-	Container,
-	Stack,
-	FileButton,
-	Image,
-	SimpleGrid,
+	Alert,
 	Box,
-	ActionIcon,
-	Text,
 	Button,
+	Container,
+	FileButton,
+	Group,
+	Image,
+	Loader,
 	LoadingOverlay,
 	Progress,
+	SimpleGrid,
+	Stack,
+	Tabs,
+	Text,
+	Textarea,
+	ThemeIcon,
 	Badge,
-	Group,
+	ActionIcon,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconX, IconCameraPlus } from "@tabler/icons-react";
+import {
+	IconCameraPlus,
+	IconInfoCircle,
+	IconRefresh,
+	IconRobot,
+	IconX,
+} from "@tabler/icons-react";
 
 import { InnerPage } from "@shared/ui/InnerPage";
 import { useTelegram } from "@app/providers/useTelegram";
 import { FormSection } from "@shared/ui/FormSection";
 import {
 	createDraftListingFx,
+	fetchDraftPreviewFx,
+	regenerateDraftFx,
 	resetCreateState,
 	type ListingCreateData,
 } from "@shared/state/listing/model";
@@ -45,16 +57,53 @@ import {
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
 import { radii } from "@app/styles/theme";
 
-import { $draftFormData, $isCreatingDraft } from "../../model/stores";
-import { setCurrentParamSnapshot } from "../../model/events";
+import {
+	$draftFormData,
+	$draftId,
+	$editedDescriptions,
+	$isCreatingDraft,
+	$isPolling,
+	$isRegenerating,
+	$pollingTimedOut,
+} from "../../model/stores";
+import {
+	editDescription,
+	pollingTimedOut,
+	stageAdvance,
+	startAiGeneration,
+} from "../../model/events";
+
+const POLL_INTERVAL_MS = 2000;
+const POLL_MAX_ITERATIONS = 15;
+
+type Lang = "ru" | "uz" | "uz_cyrl";
+
+const LANG_TABS: Array<{ value: Lang; label: string }> = [
+	{ value: "ru", label: "RU" },
+	{ value: "uz", label: "UZ" },
+	{ value: "uz_cyrl", label: "ЎЗ" },
+];
 
 function Stage1() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
-	const isCreatingDraft = useUnit($isCreatingDraft);
-	const draftFormData = useUnit($draftFormData);
+	const [draftId, draftFormData, isCreatingDraft, edits, isPolling, pollTimedOut, isRegenerating] =
+		useUnit([
+			$draftId,
+			$draftFormData,
+			$isCreatingDraft,
+			$editedDescriptions,
+			$isPolling,
+			$pollingTimedOut,
+			$isRegenerating,
+		]);
+
 	const photoSectionRef = useRef<HTMLDivElement>(null);
 	const [imageError, setImageError] = useState(false);
+	const [wishes, setWishes] = useState("");
+	const [activeTab, setActiveTab] = useState<Lang>("ru");
+	const pollIterations = useRef(0);
+	const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Compute pre-fill values exactly once on mount.
 	// Priority: $draftFormData (Stage2 → Stage1 back) > localStorage (accidental leave).
@@ -77,8 +126,7 @@ function Stage1() {
 		t,
 	} = useListingForm("create", prefill);
 
-	// Reset legacy create-state on Stage 1 leave (Page wrapper resets the
-	// F1 draft flow on full page unmount).
+	// Reset legacy create-state on Stage 1 leave.
 	useEffect(() => {
 		return () => {
 			resetCreateState();
@@ -91,32 +139,48 @@ function Stage1() {
 		}
 	}, [images.length, imageError]);
 
-	// Block F F1 — emit the current key params on every form change so
-	// Stage 2 can detect drift against the snapshot taken at last
-	// successful generation.
+	// AI polling loop — runs while $isPolling is true
 	useEffect(() => {
-		const v = form.values;
-		setCurrentParamSnapshot({
-			type: v.type ?? null,
-			district: v.district ?? null,
-			price: v.price ?? null,
-			area: v.area ?? null,
-			rooms: v.rooms ?? null,
-		});
-	}, [
-		form.values.type,
-		form.values.district,
-		form.values.price,
-		form.values.area,
-		form.values.rooms,
-	]);
+		if (!isPolling || !draftId) {
+			if (pollTimer.current) {
+				clearTimeout(pollTimer.current);
+				pollTimer.current = null;
+			}
+			return;
+		}
+		pollIterations.current = 0;
+
+		const tick = async () => {
+			if (!draftId) return;
+			pollIterations.current += 1;
+			try {
+				const data = await fetchDraftPreviewFx(draftId);
+				if (data.ai_description_ru) return;
+			} catch {
+				// Network blip — keep polling
+			}
+			if (pollIterations.current >= POLL_MAX_ITERATIONS) {
+				pollingTimedOut();
+				return;
+			}
+			pollTimer.current = setTimeout(tick, POLL_INTERVAL_MS);
+		};
+
+		pollTimer.current = setTimeout(tick, POLL_INTERVAL_MS);
+
+		return () => {
+			if (pollTimer.current) {
+				clearTimeout(pollTimer.current);
+				pollTimer.current = null;
+			}
+		};
+	}, [isPolling, draftId]);
 
 	const hasMinimumParams = useMemo(() => {
 		const v = form.values;
 		if (!v.type || !v.property_type || !v.district || !v.price || !v.area) {
 			return false;
 		}
-		// rooms required only for residential property types
 		if (
 			(v.property_type === "apartment" || v.property_type === "house") &&
 			!v.rooms
@@ -134,10 +198,65 @@ function Stage1() {
 		images.length,
 	]);
 
+	const hasAi = edits.ru.length > 0;
+
 	const handleError = () => {
 		if (images.length === 0) {
 			setImageError(true);
 		}
+	};
+
+	const handleGenerate = async () => {
+		if (draftId) {
+			// Draft already exists (came back from Stage 2 or already generated)
+			try {
+				await regenerateDraftFx({ id: draftId, triggered_by: "manual_retry" });
+				webApp?.HapticFeedback.impactOccurred("light");
+			} catch {
+				notifications.show({
+					title: t("notifications.error"),
+					message: t(
+						"createListing.regenerateFailed",
+						"Не удалось перегенерировать. Попробуйте ещё раз.",
+					),
+					color: "red",
+				});
+			}
+			return;
+		}
+
+		if (images.length === 0) {
+			setImageError(true);
+			photoSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+			return;
+		}
+
+		const uploadedImages = await handleUploadImages();
+		const listingData: ListingCreateData = {
+			...buildListingData(form.values),
+			images: uploadedImages.length > 0 ? uploadedImages : undefined,
+		};
+
+		try {
+			await createDraftListingFx(listingData);
+			startAiGeneration();
+			webApp?.HapticFeedback.impactOccurred("light");
+		} catch (err: unknown) {
+			const message =
+				err && typeof err === "object" && "message" in err
+					? String((err as { message: unknown }).message)
+					: t("notifications.error");
+			notifications.show({
+				title: t("notifications.error"),
+				message,
+				color: "red",
+			});
+		}
+	};
+
+	const handleManualRefresh = () => {
+		if (!draftId) return;
+		void fetchDraftPreviewFx(draftId);
 	};
 
 	const handleSubmit = async (values: typeof form.values) => {
@@ -160,8 +279,7 @@ function Stage1() {
 		try {
 			await createDraftListingFx(listingData);
 			webApp?.HapticFeedback.notificationOccurred("success");
-			// $stage flips to 2 via the store reducer; Page.tsx routes
-			// to Stage2 on next render.
+			stageAdvance();
 		} catch (err: unknown) {
 			const message =
 				err && typeof err === "object" && "message" in err
@@ -179,8 +297,6 @@ function Stage1() {
 		Object.keys(form.errors).length +
 		(images.length === 0 && imageError ? 1 : 0);
 
-	// Pulse animation kicks in once min params are filled — gentle hint
-	// that the "next" action is available.
 	const generateButtonStyle = {
 		root: {
 			backgroundColor: hasMinimumParams
@@ -206,7 +322,7 @@ function Stage1() {
 				}
 			`}</style>
 			<Container px="md" pt="md" pb={160}>
-				<LoadingOverlay visible={isCreatingDraft} />
+				<LoadingOverlay visible={isCreatingDraft && !isPolling} />
 				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
 						{/* Section: Photos */}
@@ -244,8 +360,8 @@ function Stage1() {
 												style={{
 													height: 100,
 													borderRadius: radii.md,
-													border: "2px dashed #bae6fd",
-													backgroundColor: "#f0f9ff",
+													border: imageError ? "2px dashed #fca5a5" : "2px dashed #bae6fd",
+													backgroundColor: imageError ? "#fff5f5" : "#f0f9ff",
 													display: "flex",
 													flexDirection: "column",
 													alignItems: "center",
@@ -257,10 +373,10 @@ function Stage1() {
 											>
 												<IconCameraPlus
 													size={28}
-													color="#38bdf8"
+													color={imageError ? "#f87171" : "#38bdf8"}
 													stroke={1.5}
 												/>
-												<Text size="13px" fw={600} c="blue.6">
+												<Text size="13px" fw={600} c={imageError ? "red.5" : "blue.6"}>
 													{t("createListing.addPhotos")}
 												</Text>
 												<Text size="11px" c="dimmed">
@@ -365,6 +481,216 @@ function Stage1() {
 							districts={districts}
 							onRegionChange={handleRegionChange}
 						/>
+
+						{/* ── AI Description Block ── */}
+						<Box
+							style={{
+								borderRadius: 16,
+								border: hasAi ? "1.5px solid #86efac" : "1.5px solid #93c5fd",
+								backgroundColor: hasAi ? "#f0fdf4" : "#f8faff",
+								padding: 20,
+							}}
+						>
+							{/* Header */}
+							<Group gap={10} mb={12} wrap="nowrap">
+								<ThemeIcon
+									size={40}
+									radius="xl"
+									color={hasAi ? "green" : "blue"}
+									variant="light"
+									style={{ flexShrink: 0 }}
+								>
+									<IconRobot size={22} />
+								</ThemeIcon>
+								<Box>
+									<Text fw={700} size="sm" lh={1.3}>
+										{hasAi
+											? t("createListing.aiReadyTitle", "Описание сгенерировано")
+											: t("createListing.addAiDescription", "Добавьте описание с AI")}
+									</Text>
+									{!hasAi && (
+										<Text size="xs" c="dimmed" lh={1.4}>
+											{t(
+												"createListing.aiRecommend",
+												"Рекомендуем — обычно выходит убедительнее",
+											)}
+										</Text>
+									)}
+								</Box>
+							</Group>
+
+							{/* Language badges (shown when no AI text yet) */}
+							{!hasAi && !isPolling && !pollTimedOut && (
+								<>
+									<Text size="xs" c="dimmed" mb={6}>
+										{t("createListing.aiLanguagesLabel", "Текст сразу на трёх языках:")}
+									</Text>
+									<Group gap={6} mb={14}>
+										<Badge variant="light" color="blue" size="sm" radius="md">
+											🇷🇺 Русский
+										</Badge>
+										<Badge variant="light" color="green" size="sm" radius="md">
+											🇺🇿 O&apos;zbek
+										</Badge>
+										<Badge variant="light" color="teal" size="sm" radius="md">
+											Ўзбекча
+										</Badge>
+									</Group>
+								</>
+							)}
+
+							{/* Wishes field — always visible, used as hint for AI */}
+							{!hasAi && (
+								<Textarea
+									label={t("createListing.aiWishesLabel", "Пожелания для AI")}
+									placeholder={t(
+										"createListing.aiWishesPlaceholder",
+										"Укажите особенности, которые важно упомянуть…",
+									)}
+									value={wishes}
+									onChange={(e) => setWishes(e.currentTarget.value)}
+									minRows={2}
+									maxRows={4}
+									autosize
+									mb={12}
+									styles={{ input: { fontSize: 13 } }}
+								/>
+							)}
+
+							{/* State: idle */}
+							{!hasAi && !isPolling && !pollTimedOut && (
+								<>
+									<Button
+										fullWidth
+										radius="xl"
+										leftSection={<IconRobot size={16} />}
+										disabled={!hasMinimumParams}
+										loading={isCreatingDraft && !isPolling}
+										onClick={handleGenerate}
+									>
+										{t("createListing.generateAiButton", "Сгенерировать с AI")}
+									</Button>
+									{!hasMinimumParams && (
+										<Text size="xs" c="dimmed" ta="center" mt={6}>
+											{t(
+												"createListing.generateDisabledHint",
+												"Заполните основные параметры и добавьте фото",
+											)}
+										</Text>
+									)}
+									<Text size="xs" c="dimmed" ta="center" mt={hasMinimumParams ? 8 : 4}>
+										{t("createListing.aiEditableHint", "Результат можно отредактировать")}
+									</Text>
+								</>
+							)}
+
+							{/* State: polling */}
+							{!hasAi && isPolling && !pollTimedOut && (
+								<Box
+									style={{
+										padding: "16px 0 4px",
+										display: "flex",
+										flexDirection: "column",
+										alignItems: "center",
+										gap: 10,
+									}}
+								>
+									<Loader size="sm" color="blue" />
+									<Text fw={600} size="sm" c="#0369a1">
+										{t("createListing.generatingText", "AI готовит описание объявления…")}
+									</Text>
+								</Box>
+							)}
+
+							{/* State: timed out */}
+							{!hasAi && pollTimedOut && (
+								<Alert
+									icon={<IconInfoCircle size={16} />}
+									color="orange"
+									title={t(
+										"createListing.pollingTimedOutTitle",
+										"Генерация занимает дольше обычного",
+									)}
+								>
+									<Text size="sm" mb="sm">
+										{t(
+											"createListing.pollingTimedOutBody",
+											"Текст ещё не готов. Попробуйте обновить или сгенерировать заново.",
+										)}
+									</Text>
+									<Group gap="sm">
+										<Button
+											size="xs"
+											variant="light"
+											leftSection={<IconRefresh size={14} />}
+											onClick={handleManualRefresh}
+										>
+											{t("createListing.pollingRetry", "Обновить")}
+										</Button>
+										<Button
+											size="xs"
+											variant="subtle"
+											loading={isRegenerating}
+											onClick={handleGenerate}
+										>
+											{t("createListing.regenerateButton", "Сгенерировать заново")}
+										</Button>
+									</Group>
+								</Alert>
+							)}
+
+							{/* State: AI text ready — show 3-tab editor */}
+							{hasAi && (
+								<Box>
+									<Tabs
+										value={activeTab}
+										onChange={(v) => v && setActiveTab(v as Lang)}
+										radius="md"
+										variant="pills"
+										color="green"
+									>
+										<Tabs.List grow>
+											{LANG_TABS.map(({ value, label }) => (
+												<Tabs.Tab key={value} value={value}>
+													{label}
+												</Tabs.Tab>
+											))}
+										</Tabs.List>
+										{LANG_TABS.map(({ value }) => (
+											<Tabs.Panel key={value} value={value} pt="sm">
+												<Textarea
+													value={edits[value]}
+													onChange={(e) =>
+														editDescription({
+															lang: value,
+															value: e.currentTarget.value,
+														})
+													}
+													minRows={6}
+													maxRows={12}
+													autosize
+													placeholder={t(
+														"createListing.editPlaceholder",
+														"Текст объявления…",
+													)}
+												/>
+											</Tabs.Panel>
+										))}
+									</Tabs>
+
+									<Button
+										mt="sm"
+										size="xs"
+										variant="subtle"
+										leftSection={<IconRefresh size={14} />}
+										loading={isRegenerating}
+										onClick={handleGenerate}
+									>
+										{t("createListing.regenerateButton", "Сгенерировать заново")}
+									</Button>
+								</Box>
+							)}
+						</Box>
 					</Stack>
 				</form>
 
@@ -436,7 +762,6 @@ function Stage1() {
 								{t("createListing.cancel")}
 							</Button>
 							<Button
-								type="submit"
 								style={{ flex: 1 }}
 								h="100%"
 								radius={100}
@@ -444,8 +769,14 @@ function Stage1() {
 								fw={600}
 								fz={14}
 								disabled={!hasMinimumParams}
-								loading={isCreatingDraft || isUploading}
-								onClick={() => form.onSubmit(handleSubmit, handleError)()}
+								loading={(isCreatingDraft && !isPolling) || isUploading}
+								onClick={() => {
+									if (draftId) {
+										stageAdvance();
+									} else {
+										form.onSubmit(handleSubmit, handleError)();
+									}
+								}}
 								styles={generateButtonStyle}
 							>
 								{isUploading

@@ -1075,9 +1075,12 @@ export function ListingFormFields({
 					<Textarea
 						label={t("createListing.descriptionLabel")}
 						placeholder={t("createListing.descriptionPlaceholder")}
-						maxLength={100}
+						maxLength={500}
 						{...form.getInputProps("description")}
-						styles={{ input: { minHeight: 100 } }}
+						autosize
+						minRows={3}
+						maxRows={8}
+						styles={{ input: { minHeight: 80 } }}
 					/>
 					<Box
 						style={{
@@ -1090,20 +1093,20 @@ export function ListingFormFields({
 						<Text
 							size="xs"
 							c={
-								(form.values.description?.length ?? 0) >= 100
+								(form.values.description?.length ?? 0) >= 500
 									? "red"
 									: "transparent"
 							}
 						>
-							{t("createListing.charLimitReached", { count: 100 })}
+							{t("createListing.charLimitReached", { count: 500 })}
 						</Text>
 						<Text
 							size="xs"
 							c={
-								(form.values.description?.length ?? 0) >= 100 ? "red" : "dimmed"
+								(form.values.description?.length ?? 0) >= 500 ? "red" : "dimmed"
 							}
 						>
-							{form.values.description?.length ?? 0} / 100
+							{form.values.description?.length ?? 0} / 500
 						</Text>
 					</Box>
 				</Box>
