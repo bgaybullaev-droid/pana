@@ -14,7 +14,64 @@ vi.mock("@shared/state/listing/model", () => ({
 	$isCreating: { getState: () => false, "@@unitShape": () => false },
 	$createError: { getState: () => null, "@@unitShape": () => null },
 	resetCreateState: vi.fn(),
+	createDraftListingFx: {
+		pending: { getState: () => false, "@@unitShape": () => false },
+		doneData: { watch: vi.fn(() => vi.fn()) },
+		done: { watch: vi.fn(() => vi.fn()) },
+		fail: { watch: vi.fn(() => vi.fn()) },
+		failData: { watch: vi.fn(() => vi.fn()) },
+	},
+	fetchDraftPreviewFx: {
+		pending: { getState: () => false, "@@unitShape": () => false },
+		doneData: { watch: vi.fn(() => vi.fn()) },
+		done: { watch: vi.fn(() => vi.fn()) },
+		fail: { watch: vi.fn(() => vi.fn()) },
+	},
+	publishDraftFx: {
+		pending: { getState: () => false, "@@unitShape": () => false },
+		doneData: { watch: vi.fn(() => vi.fn()) },
+		done: { watch: vi.fn(() => vi.fn()) },
+		fail: { watch: vi.fn(() => vi.fn()) },
+	},
+	regenerateDraftFx: {
+		pending: { getState: () => false, "@@unitShape": () => false },
+		doneData: { watch: vi.fn(() => vi.fn()) },
+		done: { watch: vi.fn(() => vi.fn()) },
+		fail: { watch: vi.fn(() => vi.fn()) },
+	},
 }));
+
+// Mock the local create-listing model stores and events to prevent Effector
+// from executing store.on(createDraftListingFx.doneData, ...) with fake mocks.
+vi.mock("../model/stores", () => ({
+	$draftFormData: { getState: () => null, "@@unitShape": () => null },
+	$draftId: { getState: () => null, "@@unitShape": () => null },
+	$editedDescriptions: {
+		getState: () => ({ ru: "", uz: "", uz_cyrl: "" }),
+		"@@unitShape": () => ({ ru: "", uz: "", uz_cyrl: "" }),
+	},
+	$isCreatingDraft: { getState: () => false, "@@unitShape": () => false },
+	$isPolling: { getState: () => false, "@@unitShape": () => false },
+	$isRegenerating: { getState: () => false, "@@unitShape": () => false },
+	$pollingTimedOut: { getState: () => false, "@@unitShape": () => false },
+	$isPublishing: { getState: () => false, "@@unitShape": () => false },
+	$draftPreview: { getState: () => null, "@@unitShape": () => null },
+	$stage: { getState: () => 1, "@@unitShape": () => 1 },
+	$aiGenStatus: { getState: () => "idle", "@@unitShape": () => "idle" },
+}));
+
+vi.mock("../model/events", () => ({
+	stageAdvance: vi.fn(),
+	stageBackToParams: vi.fn(),
+	resetDraftFlow: vi.fn(),
+	startAiGeneration: vi.fn(),
+	editDescription: vi.fn(),
+	setAiGenStatus: vi.fn(),
+	pollingTimedOut: vi.fn(),
+}));
+
+// Prevent connections/index.ts (sample wiring) from executing with fake mocks.
+vi.mock("../model/connections", () => ({}));
 
 // Mock effector-react
 vi.mock("effector-react", () => ({
@@ -228,6 +285,6 @@ describe("CreateListingPage", () => {
 	it("should render submit/publish button", async () => {
 		const { CreateListing } = await import("../ui/page/Page");
 		renderPage(<CreateListing.Page />);
-		expect(screen.getByText("createListing.publish")).toBeTruthy();
+		expect(screen.getByText("createListing.nextButton")).toBeTruthy();
 	});
 });

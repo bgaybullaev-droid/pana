@@ -46,6 +46,7 @@ vi.mock("@shared/state/listing/model", () => ({
 	$isUpdating: { getState: () => false, "@@unitShape": () => false },
 	$editError: { getState: () => null, "@@unitShape": () => null },
 	resetEditState: vi.fn(),
+	fetchListingSourceTextFx: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock effector-react

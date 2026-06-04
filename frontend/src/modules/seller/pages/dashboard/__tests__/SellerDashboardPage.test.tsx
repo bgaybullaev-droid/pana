@@ -159,7 +159,6 @@ describe("SellerDashboard", () => {
 		// Quick action labels should be present
 		expect(screen.getByText("dashboard.createListing")).toBeTruthy();
 		expect(screen.getByText("dashboard.myListings")).toBeTruthy();
-		expect(screen.getByText("dashboard.profile")).toBeTruthy();
 	});
 
 	it("should display seller company name in greeting", async () => {

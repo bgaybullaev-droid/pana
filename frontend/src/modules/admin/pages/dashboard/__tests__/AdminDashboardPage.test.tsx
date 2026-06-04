@@ -87,6 +87,7 @@ vi.mock("effector-react", () => ({
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
+	initReactI18next: { type: "3rdParty", init: vi.fn() },
 	useTranslation: () => ({
 		t: (key: string, opts?: any) => {
 			const map: Record<string, string> = {

@@ -10,6 +10,7 @@ vi.mock("../model", () => ({
 	filtersChanged: vi.fn(),
 	applyFilters: vi.fn(),
 	clearFilters: vi.fn(),
+	tabChanged: vi.fn(),
 	$listings: { getState: () => [], "@@unitShape": () => [] },
 	$isLoading: { getState: () => false, "@@unitShape": () => false },
 	$hasMore: { getState: () => false, "@@unitShape": () => false },
@@ -17,6 +18,9 @@ vi.mock("../model", () => ({
 	$searchQuery: { getState: () => "", "@@unitShape": () => "" },
 	$filters: { getState: () => ({}), "@@unitShape": () => ({}) },
 	$favoritedIds: { getState: () => new Set(), "@@unitShape": () => new Set() },
+	$activeTab: { getState: () => "feed", "@@unitShape": () => "feed" },
+	$isSubscriptionsLoading: { getState: () => false, "@@unitShape": () => false },
+	$isRecommendedLoading: { getState: () => false, "@@unitShape": () => false },
 	fetchFeedFx: {
 		pending: { getState: () => false, "@@unitShape": () => false },
 	},
