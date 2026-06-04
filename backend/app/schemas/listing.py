@@ -487,6 +487,7 @@ class ListingListResponse(BaseModel):
     price: int
     currency: str
     title: Optional[str]
+    description: Optional[str] = None  # short snippet for card preview
     views_count: int
     favorites_count: int
     comments_count: int = 0

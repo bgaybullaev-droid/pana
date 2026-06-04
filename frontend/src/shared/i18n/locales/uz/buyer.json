@@ -357,6 +357,12 @@
   "settings.found": "Topilganlar",
   "descriptionDrawer.section.photoHeaderRe": "##\\s*Фото\\s*\\/\\s*Images\\s*",
   "descriptionDrawer.section.imageLineRe": "-\\s*Image\\s*\\d+:\\s*https?:\\/\\/\\S+",
+  "descriptionDrawer.section.paramsBlockRe": "## *Параметры[^]*?(?=## *Описани[ея]|$)",
+  "descriptionDrawer.section.priceLineRe": ".*Цена:.*",
+  "descriptionDrawer.section.descriptionHeaderRe": "## *Описани[ея] *",
+  "descriptionDrawer.amenities": "Qulayliklar",
+  "descriptionDrawer.seller": "Sotuvchi",
+  "descriptionDrawer.call": "Qo'ng'iroq qilish",
   "descriptionDrawer.section.imageHostRe": "https?:\\/\\/\\S*apollo\\.olxcdn\\.com\\S*",
   "descriptionDrawer.section.sellerTrailerRe": "\\*{0,2}Продавец:\\*{0,2}[\\s\\S]*$"
 }

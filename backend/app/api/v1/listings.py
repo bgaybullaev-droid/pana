@@ -35,7 +35,7 @@ from app.db.models import (
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import PaginatedResponse, text_snippet
 from app.schemas.listing import (
     DraftPreviewResponse,
     FacetBucket,
@@ -1339,6 +1339,7 @@ async def _postgres_listings_search(
                 price=listing.price,
                 currency=listing.currency.value,
                 title=_resolve_field(listing, "title", lang),
+                description=text_snippet(_resolve_field(listing, "description", lang)),
                 views_count=listing.views_count,
                 favorites_count=listing.favorites_count,
                 comments_count=listing.comments_count,
@@ -1837,6 +1838,9 @@ def _main_listing_to_unified(
         building_type=listing.building_type,
         condition=listing.condition,
         land_purpose=listing.land_purpose,
+        mortgage_ok=listing.mortgage_ok or False,
+        installment_ok=listing.installment_ok or False,
+        halol_ok=listing.halol_ok or False,
         original_language=listing.original_language,
         is_translated=_is_translated(listing, lang),
     )

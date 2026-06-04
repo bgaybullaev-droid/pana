@@ -194,6 +194,7 @@ export interface ListingListItem {
 	price: number;
 	currency: "USD" | "UZS";
 	title: string | null;
+	description?: string | null;
 	views_count: number;
 	favorites_count: number;
 	comments_count: number;
@@ -607,6 +608,16 @@ export interface UnifiedListing {
 	seller_name: string | null;
 	seller_avatar_url: string | null;
 	seller_verified: boolean;
+
+	// Property attributes
+	building_type: string | null;
+	condition: string | null;
+	land_purpose: string | null;
+
+	// Sale-finance flags (main listings only; crawled sources default false)
+	mortgage_ok: boolean;
+	installment_ok: boolean;
+	halol_ok: boolean;
 
 	// Crawler fields
 	amenities: string[] | null;

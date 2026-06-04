@@ -24,22 +24,10 @@
 Production VPS deploys are triggered by pushing to **`main`** on
 `hasanoff507/ucharmarket-frontend` via GitHub Actions (`.github/workflows/deploy.yml`).
 
-This repo (`bgaybullaev-droid/ucharmarket-frontend`) is the **mirror** used for
-development. After pushing here, sync to hasanoff507 to trigger the VPS deploy:
+`bgaybullaev-droid/ucharmarket-frontend` настроен как **автоматическое зеркало**:
+пуш в `main` здесь → автоматически синхронизируется в `hasanoff507/main` → триггерит деплой на VPS.
 
-```bash
-# On your local machine — sync mirror → main repo
-git remote add bgaybullaev https://github.com/bgaybullaev-droid/ucharmarket-frontend.git
-git fetch bgaybullaev main
-git merge bgaybullaev/main
-git push origin main   # origin = hasanoff507
-```
-
-Or, if hasanoff507 is in session scope, trigger `workflow_dispatch` directly:
-```
-mcp__github__actions_run_trigger(method=run_workflow, owner=hasanoff507,
-  repo=ucharmarket-frontend, workflow_id=deploy.yml, ref=main)
-```
+**Ручная синхронизация не нужна.** Достаточно запушить изменения в `main` этого репо.
 
 ## Key Files
 
