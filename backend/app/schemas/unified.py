@@ -55,15 +55,75 @@ class UnifiedListingResponse(BaseModel):
     # Property attributes
     building_type: Optional[str] = None  # new / secondary
     condition: Optional[str] = None  # euro / cosmetic / needs_repair / rough
-    land_purpose: Optional[str] = None  # private / industrial
+    land_purpose: Optional[str] = None
+    market_type: Optional[str] = None  # new / secondary
+    wall_material: Optional[str] = None
+    listing_subtype: Optional[str] = None
+    balcony: Optional[str] = None
+    house_type: Optional[str] = None
+    house_condition: Optional[List[str]] = None
+    location_type: Optional[List[str]] = None
+
+    # Extended area fields
+    living_area: Optional[float] = None
+    kitchen_area: Optional[float] = None
+    land_area: Optional[float] = None
+
+    # Finish & furniture
+    furniture: Optional[str] = None
+    is_furnished: Optional[bool] = None
+
+    # Extra property features
+    garage: Optional[bool] = None
+    basement: Optional[bool] = None
+    buildings_exist: Optional[bool] = None
+    fence: Optional[bool] = None
+    land_shape: Optional[str] = None
+    ceiling_height: Optional[float] = None
+
+    # Utilities (house / land)
+    water_supply: Optional[List[str]] = None
+    electricity: Optional[str] = None
+    heating: Optional[List[str]] = None
+    gas_supply: Optional[str] = None
+    sewage: Optional[str] = None
+
+    # Commercial attributes
+    commercial_type: Optional[str] = None
+    price_per_sqm: Optional[int] = None
+    entrance: Optional[str] = None
+    parking_comm: Optional[bool] = None
+    building_class: Optional[str] = None
+
+    # Deal conditions
+    is_negotiable: bool = False
+    deed_type: Optional[str] = None
+    urgent_flag: bool = False
+
+    # Rent-specific (rent listings only)
+    rent_period: Optional[str] = None  # long_term / daily
+    deposit: Optional[int] = None
+    utilities_incl: Optional[bool] = None
+    min_rent_months: Optional[int] = None
+    allowed_students: Optional[bool] = None
+    allowed_pets: Optional[bool] = None
+    rent_payment: Optional[List[str]] = None
 
     # Sale-finance flags (main listings only; crawled sources default False)
     mortgage_ok: bool = False
     installment_ok: bool = False
     halol_ok: bool = False
 
+    # Location extras
+    city: Optional[str] = None
+    microdistrict: Optional[str] = None
+    jk_name: Optional[str] = None
+    landmark: Optional[str] = None
+    metro_station: Optional[str] = None
+
     # Crawler-specific fields
     amenities: Optional[List[str]] = None
+    nearby_amenities: Optional[List[str]] = None
     confidence: Optional[float] = None
     source_url: Optional[str] = None  # OLX url or telegram source_channel
 

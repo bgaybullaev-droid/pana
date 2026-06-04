@@ -613,14 +613,74 @@ export interface UnifiedListing {
 	building_type: string | null;
 	condition: string | null;
 	land_purpose: string | null;
+	market_type: string | null;
+	wall_material: string | null;
+	listing_subtype: string | null;
+	balcony: string | null;
+	house_type: string | null;
+	house_condition: string[] | null;
+	location_type: string[] | null;
+
+	// Extended area fields
+	living_area: number | null;
+	kitchen_area: number | null;
+	land_area: number | null;
+
+	// Finish & furniture
+	furniture: string | null;
+	is_furnished: boolean | null;
+
+	// Extra property features
+	garage: boolean | null;
+	basement: boolean | null;
+	buildings_exist: boolean | null;
+	fence: boolean | null;
+	land_shape: string | null;
+	ceiling_height: number | null;
+
+	// Utilities
+	water_supply: string[] | null;
+	electricity: string | null;
+	heating: string[] | null;
+	gas_supply: string | null;
+	sewage: string | null;
+
+	// Commercial attributes
+	commercial_type: string | null;
+	price_per_sqm: number | null;
+	entrance: string | null;
+	parking_comm: boolean | null;
+	building_class: string | null;
+
+	// Deal conditions
+	is_negotiable: boolean;
+	deed_type: string | null;
+	urgent_flag: boolean;
+
+	// Rent-specific
+	rent_period: string | null;
+	deposit: number | null;
+	utilities_incl: boolean | null;
+	min_rent_months: number | null;
+	allowed_students: boolean | null;
+	allowed_pets: boolean | null;
+	rent_payment: string[] | null;
 
 	// Sale-finance flags (main listings only; crawled sources default false)
 	mortgage_ok: boolean;
 	installment_ok: boolean;
 	halol_ok: boolean;
 
+	// Location extras
+	city: string | null;
+	microdistrict: string | null;
+	jk_name: string | null;
+	landmark: string | null;
+	metro_station: string | null;
+
 	// Crawler fields
 	amenities: string[] | null;
+	nearby_amenities: string[] | null;
 	confidence: number | null;
 	source_url: string | null;
 
