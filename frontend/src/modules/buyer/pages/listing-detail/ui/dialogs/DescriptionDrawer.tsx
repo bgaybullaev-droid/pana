@@ -78,7 +78,7 @@ const NEARBY_I18N: Record<string, string> = {
 	hospital: "createListing.nearHospital",
 	playground: "createListing.nearPlayground",
 	kindergarten: "createListing.nearKindergarten",
-	bus: "createListing.nearBus",
+	bus_stop: "createListing.nearBus",
 	park: "createListing.nearPark",
 	entertainment: "createListing.nearEntertainment",
 	restaurant: "createListing.nearRestaurant",
@@ -89,6 +89,18 @@ const NEARBY_I18N: Record<string, string> = {
 
 // Enum value → seller-namespace key for single-value enum fields.
 const ENUM_VALUES: Record<string, Record<string, string>> = {
+	condition: {
+		euro: "createListing.condEuro",
+		cosmetic: "createListing.condCosmetic",
+		needs_repair: "createListing.condRepair",
+		rough: "createListing.condRough",
+		none: "createListing.condNone",
+		shell: "createListing.condShell",
+		medium: "createListing.condMedium",
+		designer: "createListing.condDesigner",
+		turnkey: "createListing.condTurnkey",
+		needs_repair_comm: "createListing.condNeedsRepairComm",
+	},
 	market_type: {
 		new: "createListing.marketTypeNew",
 		secondary: "createListing.marketTypeSecondary",
@@ -299,10 +311,25 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		return key ? ts(key, a) : a;
 	};
 
-	// Key parameters grid.
-	const params: ParamRow[] = [
-		{ icon: IconHome, value: propertyLabel, label: dealLabel },
-	];
+	// Strip postal codes, country names, and tokens already shown above from the
+	// reverse-geocoded address string (MapPicker fills it automatically).
+	const cleanedAddress = listing.address
+		? listing.address
+				.split(",")
+				.map((s) => s.trim())
+				.filter(
+					(s) =>
+						s.length > 0 &&
+						!/^\d{5,6}$/.test(s) &&
+						!/O'zbekiston|Uzbekistan|Ўзбекистон/i.test(s) &&
+						s.toLowerCase() !== (listing.region ?? "").toLowerCase() &&
+						s.toLowerCase() !== (listing.city ?? "").toLowerCase(),
+				)
+				.join(", ") || null
+		: null;
+
+	// Key parameters grid (measurable values only; property type goes to characteristicBadges).
+	const params: ParamRow[] = [];
 	if (listing.rooms)
 		params.push({ icon: IconBed, value: listing.rooms, label: t("listing.rooms") });
 	if (listing.area)
@@ -344,18 +371,16 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 			label: t("descriptionDrawer.pricePerSqm"),
 		});
 
-	// Characteristics badges.
-	const characteristicBadges: string[] = [];
+	// Characteristics badges (property type first, then building/condition/etc.).
+	const characteristicBadges: string[] = [propertyLabel];
 	if (listing.building_type)
 		characteristicBadges.push(
 			t(`listing.buildingType.${listing.building_type}`, listing.building_type),
 		);
 	const marketVal = enumVal("market_type", listing.market_type);
 	if (marketVal) characteristicBadges.push(marketVal);
-	if (listing.condition)
-		characteristicBadges.push(
-			t(`listing.condition.${listing.condition}`, listing.condition),
-		);
+	const conditionVal = enumVal("condition", listing.condition);
+	if (conditionVal) characteristicBadges.push(conditionVal);
 	const houseTypeVal = enumVal("house_type", listing.house_type);
 	if (houseTypeVal) characteristicBadges.push(houseTypeVal);
 	characteristicBadges.push(...arrayVals("house_condition", listing.house_condition));
@@ -418,7 +443,10 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 			: []),
 	];
 
-	const amenities = listing.amenities ?? [];
+	// Exclude "balcony" from amenities if it's already captured as a balcony-type characteristic.
+	const amenities = (listing.amenities ?? []).filter(
+		(a) => !(a === "balcony" && listing.balcony && listing.balcony !== "none"),
+	);
 	const nearbyAmenities = listing.nearby_amenities ?? [];
 
 	const hasSeller = Boolean(
@@ -757,9 +785,9 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								listing.microdistrict ||
 								listing.landmark ||
 								listing.district ||
-								listing.address) && (
+								cleanedAddress) && (
 								<Stack gap={4}>
-									{listing.region && (
+									{(listing.region || listing.city) && (
 										<Group gap={6} wrap="nowrap">
 											<IconMapPin
 												size={14}
@@ -767,20 +795,14 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												style={{ flexShrink: 0 }}
 											/>
 											<Text size="sm" c="dimmed">
-												{translateRegion(listing.region, t)}
-												{listing.city ? `, ${listing.city}` : ""}
-											</Text>
-										</Group>
-									)}
-									{!listing.region && listing.city && (
-										<Group gap={6} wrap="nowrap">
-											<IconMapPin
-												size={14}
-												color="var(--mantine-color-gray-6)"
-												style={{ flexShrink: 0 }}
-											/>
-											<Text size="sm" c="dimmed">
-												{listing.city}
+												{listing.region
+													? translateRegion(listing.region, t)
+													: ""}
+												{listing.city &&
+												listing.city.toLowerCase() !==
+													(listing.region ?? "").toLowerCase()
+													? `${listing.region ? ", " : ""}${listing.city}`
+													: ""}
 											</Text>
 										</Group>
 									)}
@@ -804,12 +826,14 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												style={{ flexShrink: 0 }}
 											/>
 											<Text size="sm" c="dimmed">
-												{t("descriptionDrawer.location.metro")}: {listing.metro_station}
+												{t("descriptionDrawer.location.metro")}:{" "}
+												{listing.metro_station.charAt(0).toUpperCase() +
+													listing.metro_station.slice(1)}
 											</Text>
 										</Group>
 									)}
 									{(listing.district ||
-										listing.address ||
+										cleanedAddress ||
 										listing.microdistrict) && (
 										<Group gap={6} align="flex-start">
 											<IconMapPin
@@ -821,7 +845,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												{[
 													translateDistrict(listing.district, t),
 													listing.microdistrict,
-													listing.address,
+													cleanedAddress,
 												]
 													.filter(Boolean)
 													.join(", ")}
