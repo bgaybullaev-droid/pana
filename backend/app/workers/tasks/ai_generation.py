@@ -37,6 +37,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.listing_i18n import (
+    localize_building_type,
+    localize_condition,
+    localize_deal_type,
+    localize_district,
+    localize_property_type,
+    localize_region,
+)
+from app.core.prompts import LISTING_DESCRIPTION_PROMPT
 from app.db.models import Listing, ListingStatus
 from app.workers.celery_app import celery_app
 
@@ -73,28 +82,123 @@ _LANGUAGE_INSTRUCTION = {
 }
 
 
+def _enum_value(v: Any) -> Any:
+    """Unwrap a SQLAlchemy/py enum to its raw string value."""
+    return v.value if hasattr(v, "value") else v
+
+
 def _params_block(listing: Listing) -> str:
-    """Render a compact bullet list of structured parameters for the prompt."""
-    pieces = []
+    """Render the structured-parameter block for the prompt.
+
+    Block F F1 — proper-noun-ish fields (property/deal type, district,
+    region, building type, condition) are stored as canonical keys and
+    are emitted localized to all three output locales, so the model writes
+    the correct language/script per locale instead of echoing a raw key
+    like ``olmazor`` in the Russian copy. Every other populated field is
+    included too (sizes, floor, location extras, finance terms, feature
+    flags, amenities) to give the copywriter prompt rich material; the
+    prompt instructs the model to render English attribute values in the
+    target language. Only populated fields are emitted.
+    """
+
+    def _trilingual(label: str, fn, key) -> str:
+        return (
+            f'- {label}: ru="{fn(key, "ru")}" | '
+            f'uz="{fn(key, "uz")}" | uz_cyrl="{fn(key, "uz_cyrl")}"'
+        )
+
+    def g(name: str):
+        return getattr(listing, name, None)
+
+    cur = _enum_value(listing.currency) if listing.currency else ""
+    p: list[str] = []
+
+    # — type & deal (localized) —
     if listing.property_type:
-        pieces.append(f"property_type: {listing.property_type.value if hasattr(listing.property_type, 'value') else listing.property_type}")
+        p.append(
+            _trilingual("property_type", localize_property_type, _enum_value(listing.property_type))
+        )
     if listing.type:
-        pieces.append(f"deal_type: {listing.type.value if hasattr(listing.type, 'value') else listing.type}")
+        p.append(_trilingual("deal_type", localize_deal_type, _enum_value(listing.type)))
+
+    # — layout & size —
     if listing.rooms is not None:
-        pieces.append(f"rooms: {listing.rooms}")
+        p.append(f"- rooms: {listing.rooms}")
     if listing.area is not None:
-        pieces.append(f"area_sqm: {listing.area}")
+        p.append(f"- area_sqm: {listing.area}")
+    if g("living_area") is not None:
+        p.append(f"- living_area_sqm: {listing.living_area}")
+    if g("kitchen_area") is not None:
+        p.append(f"- kitchen_area_sqm: {listing.kitchen_area}")
+    if g("land_area") is not None:
+        p.append(f"- land_area: {listing.land_area}")
     if listing.floor is not None and listing.total_floors is not None:
-        pieces.append(f"floor: {listing.floor}/{listing.total_floors}")
+        p.append(f"- floor: {listing.floor}/{listing.total_floors}")
     elif listing.floor is not None:
-        pieces.append(f"floor: {listing.floor}")
+        p.append(f"- floor: {listing.floor}")
+    if g("ceiling_height") is not None:
+        p.append(f"- ceiling_height_m: {listing.ceiling_height}")
+
+    # — build & condition (localized where the key is known) —
+    if g("building_type"):
+        p.append(_trilingual("building_type", localize_building_type, listing.building_type))
+    if g("condition"):
+        p.append(_trilingual("condition", localize_condition, listing.condition))
+    if g("wall_material"):
+        p.append(f"- wall_material: {listing.wall_material}")
+
+    # — location (localized district/region + free-text extras) —
     if listing.district:
-        pieces.append(f"district: {listing.district}")
+        p.append(_trilingual("district", localize_district, listing.district))
     if listing.region:
-        pieces.append(f"region: {listing.region}")
+        p.append(_trilingual("region", localize_region, listing.region))
+    for fld, label in (
+        ("city", "city"),
+        ("microdistrict", "microdistrict"),
+        ("jk_name", "residential_complex"),
+        ("landmark", "landmark"),
+        ("metro_station", "metro_station"),
+    ):
+        if g(fld):
+            p.append(f"- {label}: {g(fld)}")
+
+    # — price & finance —
     if listing.price:
-        pieces.append(f"price: {listing.price} {listing.currency}")
-    return "\n".join(f"- {p}" for p in pieces)
+        p.append(f"- price: {listing.price} {cur}")
+    if g("price_per_sqm"):
+        p.append(f"- price_per_sqm: {listing.price_per_sqm} {cur}")
+    if g("rent_period"):
+        p.append(f"- rent_period: {listing.rent_period}")
+    if g("deposit"):
+        p.append(f"- deposit: {listing.deposit} {cur}")
+    if g("min_rent_months"):
+        p.append(f"- min_rent_months: {listing.min_rent_months}")
+
+    # — boolean feature flags (emit only the ones that are set) —
+    flags = []
+    for attr, text in (
+        ("is_negotiable", "price negotiable"),
+        ("mortgage_ok", "mortgage available"),
+        ("installment_ok", "installment available"),
+        ("halol_ok", "halol financing"),
+        ("is_furnished", "furnished"),
+        ("utilities_incl", "utilities included"),
+        ("allowed_pets", "pets allowed"),
+        ("allowed_students", "students allowed"),
+        ("urgent_flag", "urgent"),
+    ):
+        if g(attr):
+            flags.append(text)
+    if flags:
+        p.append(f"- features: {', '.join(flags)}")
+
+    # — amenity lists —
+    if g("amenities"):
+        p.append(f"- amenities: {', '.join(listing.amenities)}")
+    if g("nearby_amenities"):
+        p.append(f"- nearby: {', '.join(listing.nearby_amenities)}")
+
+    return "\n".join(p)
 
 
 def _scrub_pii(text: str) -> tuple[str, int, int]:
@@ -136,9 +240,9 @@ def _build_prompt(listing: Listing, *, template_body: Optional[str] = None) -> s
     Block F F5: when ``template_body`` is supplied (loaded from the
     DB-stored ``prompt_templates`` via the registry), the placeholders
     ``{params_block}`` and ``{raw_text}`` are substituted into the
-    template. When ``template_body`` is None we fall back to the
-    historical hard-coded prompt — keeps the worker resilient when
-    the seed row is missing.
+    template. When ``template_body`` is None we fall back to the shared
+    ``LISTING_DESCRIPTION_PROMPT`` constant — keeps the worker resilient
+    when the active prompt row is missing (fresh deploy before migrate).
 
     Returns a string the model is expected to answer with strict JSON of
     ``{"ru": "...", "uz": "...", "uz_cyrl": "..."}``.
@@ -155,75 +259,52 @@ def _build_prompt(listing: Listing, *, template_body: Optional[str] = None) -> s
     raw = _truncate_raw_text(raw_scrubbed)
     params = _params_block(listing)
 
-    if template_body is not None:
-        # DB-stored prompt: do narrow placeholder substitution only.
-        # We deliberately use ``str.replace`` not ``.format`` so braces
-        # inside the prompt body (e.g. JSON examples) don't trip a
-        # KeyError.
-        return (
-            template_body.replace("{params_block}", params).replace(
-                "{raw_text}", raw
-            )
-        )
-
-    # Hard-coded fallback — preserved verbatim from the historical
-    # implementation. Used only when the prompt_templates row is
-    # missing (e.g. fresh deployment before seeding).
-    return (
-        "You are a real-estate copywriter for UcharMarket (Tashkent, Uzbekistan).\n"
-        "Write a clean, professional 2–4 sentence listing description for a buyer feed.\n"
-        "Rules:\n"
-        "- Tone: factual, calm, professional. No exclamation marks. No CAPS.\n"
-        "- No phone numbers, no agent name, no calls-to-action.\n"
-        "- Do not invent facts. If a parameter is missing, omit it instead of guessing.\n"
-        "- 350 characters max per locale.\n"
-        "- Output STRICT JSON: {\"ru\":\"…\",\"uz\":\"…\",\"uz_cyrl\":\"…\"}.\n"
-        "  ru = Russian (Cyrillic). uz = Uzbek Latin. uz_cyrl = Uzbek Cyrillic.\n"
-        "  No markdown, no surrounding prose, just JSON.\n"
-        "\n"
-        "Structured parameters:\n"
-        f"{params}\n"
-        "\n"
-        "Original source text from realtor (use as context, do NOT copy verbatim):\n"
-        f"{raw}\n"
-    )
+    # The DB-stored prompt is production's source of truth; the shared
+    # constant is the fallback used only when no active prompt_templates
+    # row exists yet (fresh deploy before the migration/seed runs). Both
+    # carry the same {params_block}/{raw_text} placeholders. We use
+    # ``str.replace`` not ``.format`` so the literal JSON braces in the
+    # body don't trip a KeyError.
+    body = template_body if template_body is not None else LISTING_DESCRIPTION_PROMPT
+    return body.replace("{params_block}", params).replace("{raw_text}", raw)
 
 
 def _template_fallback(listing: Listing, lang: str) -> str:
-    """Best-effort template description from structured params only.
+    """Best-effort description from structured params only (localized).
 
-    Used when F1 fails permanently. Mirrors the spec edge-case text
-    "3-комн квартира в Чиланзаре, 65 м²".
+    Used when F1 generation fails permanently. Every text-valued param is
+    localized to ``lang`` (ru / uz / uz_cyrl) via the listing_i18n mirror,
+    so the fallback never leaks a raw storage key like "olmazor" into the
+    Russian copy. Reads e.g. "1-комн. квартира, Алмазарский р-н, 40 м²".
     """
-    parts = []
+    rooms_suffix = {"ru": "-комн.", "uz": " xonali", "uz_cyrl": " хонали"}
+
+    lead_bits = []
     if listing.rooms:
-        if lang == "ru":
-            parts.append(f"{listing.rooms}-комн.")
-        elif lang in ("uz", "uz_cyrl"):
-            parts.append(f"{listing.rooms} xonali" if lang == "uz" else f"{listing.rooms} хонали")
-    pt = listing.property_type
-    pt_val = pt.value if hasattr(pt, "value") else pt
-    pt_map = {
-        "ru": {"apartment": "квартира", "house": "дом", "commercial": "коммерческое помещение", "land": "участок"},
-        "uz": {"apartment": "kvartira", "house": "uy", "commercial": "tijorat ob'ekti", "land": "yer uchastkasi"},
-        "uz_cyrl": {"apartment": "квартира", "house": "уй", "commercial": "тижорат объекти", "land": "ер участкаси"},
-    }
-    if pt_val and pt_val in pt_map[lang]:
-        parts.append(pt_map[lang][pt_val])
+        lead_bits.append(f"{listing.rooms}{rooms_suffix[lang]}")
+    pt_name = localize_property_type(_enum_value(listing.property_type), lang)
+    if pt_name:
+        # Lowercase the type so it reads naturally mid-phrase; district
+        # stays as-is (it's a proper place name).
+        lead_bits.append(pt_name.lower())
+
+    segments = []
+    lead = " ".join(lead_bits).strip()
+    if lead:
+        segments.append(lead)
     if listing.district:
-        if lang == "ru":
-            parts.append(f"в районе {listing.district}")
-        elif lang == "uz":
-            parts.append(f"{listing.district} tumanida")
-        else:
-            parts.append(f"{listing.district} туманида")
+        segments.append(localize_district(listing.district, lang))
     if listing.area:
-        parts.append(f"{int(listing.area)} м²" if lang == "ru" else f"{int(listing.area)} m²")
-    return " ".join(parts) or {
-        "ru": "Объявление о недвижимости.",
-        "uz": "Ko'chmas mulk e'loni.",
-        "uz_cyrl": "Кўчмас мулк эълони.",
-    }[lang]
+        unit = "м²" if lang == "ru" else "m²"
+        segments.append(f"{int(listing.area)} {unit}")
+
+    if not segments:
+        return {
+            "ru": "Объявление о недвижимости.",
+            "uz": "Ko'chmas mulk e'loni.",
+            "uz_cyrl": "Кўчмас мулк эълони.",
+        }[lang]
+    return ", ".join(segments)
 
 
 # ── OpenAI call ───────────────────────────────────────────────────────
@@ -255,8 +336,12 @@ async def _call_openai(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            temperature=0.4,
-            max_tokens=600,
+            # Block F F1 — long-form selling copy across three locales.
+            # 0.6 gives warmer, more varied prose while the prompt's strict
+            # "do not invent" rules keep it grounded; the higher token cap
+            # fits ~400-800 chars × 3 locales (the old 600 truncated them).
+            temperature=0.6,
+            max_tokens=2000,
         )
     except Exception as e:  # noqa: BLE001 — surfaced via logs
         logger.warning("OpenAI request failed: %s", e)

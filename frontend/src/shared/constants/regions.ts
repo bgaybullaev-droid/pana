@@ -8,7 +8,7 @@ export const REGIONS: Record<string, string[]> = {
   toshkent_shahri: [
     'bektemir', 'chilonzor', 'mirzo_ulugbek', 'mirobod',
     'olmazor', 'sergeli', 'shayxontohur', 'uchtepa',
-    'yakkasaroy', 'yashnobod', 'yunusobod',
+    'yakkasaroy', 'yashnobod', 'yunusobod', 'yangihayot',
   ],
   toshkent_viloyati: [
     'nurafshon', 'olmaliq', 'angren', 'bekobod',
