@@ -224,6 +224,7 @@ REGIONS: dict[str, list[str]] = {
         "yakkasaroy",
         "yashnobod",
         "yunusobod",
+        "yangihayot",
     ],
 }
 
@@ -277,6 +278,9 @@ _DISTRICT_ALIASES: dict[str, str] = {
     "мирабадский": "mirobod",
     "olmazor": "olmazor",
     "алмазарский": "olmazor",
+    "yangihayot": "yangihayot",
+    "yangixayot": "yangihayot",
+    "янгихаётский": "yangihayot",
     "sergeli": "sergeli",
     "sergili": "sergeli",
     "сергелийский": "sergeli",

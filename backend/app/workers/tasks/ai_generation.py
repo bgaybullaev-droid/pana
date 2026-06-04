@@ -37,6 +37,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.listing_i18n import (
+    localize_deal_type,
+    localize_district,
+    localize_property_type,
+    localize_region,
+)
 from app.db.models import Listing, ListingStatus
 from app.workers.celery_app import celery_app
 
@@ -73,28 +79,49 @@ _LANGUAGE_INSTRUCTION = {
 }
 
 
+def _enum_value(v: Any) -> Any:
+    """Unwrap a SQLAlchemy/py enum to its raw string value."""
+    return v.value if hasattr(v, "value") else v
+
+
 def _params_block(listing: Listing) -> str:
-    """Render a compact bullet list of structured parameters for the prompt."""
+    """Render a compact bullet list of structured parameters for the prompt.
+
+    Block F F1 — text-valued parameters (property/deal type, district,
+    region) are stored as canonical Latin keys (e.g. ``olmazor``). We
+    localize them to all three output locales here so the model writes the
+    correct language/script per locale instead of echoing the raw key in,
+    say, the Russian copy. Numeric/locale-neutral fields pass through as-is.
+    """
+
+    def _trilingual(label: str, fn, key) -> str:
+        return (
+            f'- {label}: ru="{fn(key, "ru")}" | '
+            f'uz="{fn(key, "uz")}" | uz_cyrl="{fn(key, "uz_cyrl")}"'
+        )
+
     pieces = []
     if listing.property_type:
-        pieces.append(f"property_type: {listing.property_type.value if hasattr(listing.property_type, 'value') else listing.property_type}")
+        pieces.append(
+            _trilingual("property_type", localize_property_type, _enum_value(listing.property_type))
+        )
     if listing.type:
-        pieces.append(f"deal_type: {listing.type.value if hasattr(listing.type, 'value') else listing.type}")
+        pieces.append(_trilingual("deal_type", localize_deal_type, _enum_value(listing.type)))
     if listing.rooms is not None:
-        pieces.append(f"rooms: {listing.rooms}")
+        pieces.append(f"- rooms: {listing.rooms}")
     if listing.area is not None:
-        pieces.append(f"area_sqm: {listing.area}")
+        pieces.append(f"- area_sqm: {listing.area}")
     if listing.floor is not None and listing.total_floors is not None:
-        pieces.append(f"floor: {listing.floor}/{listing.total_floors}")
+        pieces.append(f"- floor: {listing.floor}/{listing.total_floors}")
     elif listing.floor is not None:
-        pieces.append(f"floor: {listing.floor}")
+        pieces.append(f"- floor: {listing.floor}")
     if listing.district:
-        pieces.append(f"district: {listing.district}")
+        pieces.append(_trilingual("district", localize_district, listing.district))
     if listing.region:
-        pieces.append(f"region: {listing.region}")
+        pieces.append(_trilingual("region", localize_region, listing.region))
     if listing.price:
-        pieces.append(f"price: {listing.price} {listing.currency}")
-    return "\n".join(f"- {p}" for p in pieces)
+        pieces.append(f"- price: {listing.price} {_enum_value(listing.currency)}")
+    return "\n".join(pieces)
 
 
 def _scrub_pii(text: str) -> tuple[str, int, int]:
@@ -190,40 +217,41 @@ def _build_prompt(listing: Listing, *, template_body: Optional[str] = None) -> s
 
 
 def _template_fallback(listing: Listing, lang: str) -> str:
-    """Best-effort template description from structured params only.
+    """Best-effort description from structured params only (localized).
 
-    Used when F1 fails permanently. Mirrors the spec edge-case text
-    "3-комн квартира в Чиланзаре, 65 м²".
+    Used when F1 generation fails permanently. Every text-valued param is
+    localized to ``lang`` (ru / uz / uz_cyrl) via the listing_i18n mirror,
+    so the fallback never leaks a raw storage key like "olmazor" into the
+    Russian copy. Reads e.g. "1-комн. квартира, Алмазарский р-н, 40 м²".
     """
-    parts = []
+    rooms_suffix = {"ru": "-комн.", "uz": " xonali", "uz_cyrl": " хонали"}
+
+    lead_bits = []
     if listing.rooms:
-        if lang == "ru":
-            parts.append(f"{listing.rooms}-комн.")
-        elif lang in ("uz", "uz_cyrl"):
-            parts.append(f"{listing.rooms} xonali" if lang == "uz" else f"{listing.rooms} хонали")
-    pt = listing.property_type
-    pt_val = pt.value if hasattr(pt, "value") else pt
-    pt_map = {
-        "ru": {"apartment": "квартира", "house": "дом", "commercial": "коммерческое помещение", "land": "участок"},
-        "uz": {"apartment": "kvartira", "house": "uy", "commercial": "tijorat ob'ekti", "land": "yer uchastkasi"},
-        "uz_cyrl": {"apartment": "квартира", "house": "уй", "commercial": "тижорат объекти", "land": "ер участкаси"},
-    }
-    if pt_val and pt_val in pt_map[lang]:
-        parts.append(pt_map[lang][pt_val])
+        lead_bits.append(f"{listing.rooms}{rooms_suffix[lang]}")
+    pt_name = localize_property_type(_enum_value(listing.property_type), lang)
+    if pt_name:
+        # Lowercase the type so it reads naturally mid-phrase; district
+        # stays as-is (it's a proper place name).
+        lead_bits.append(pt_name.lower())
+
+    segments = []
+    lead = " ".join(lead_bits).strip()
+    if lead:
+        segments.append(lead)
     if listing.district:
-        if lang == "ru":
-            parts.append(f"в районе {listing.district}")
-        elif lang == "uz":
-            parts.append(f"{listing.district} tumanida")
-        else:
-            parts.append(f"{listing.district} туманида")
+        segments.append(localize_district(listing.district, lang))
     if listing.area:
-        parts.append(f"{int(listing.area)} м²" if lang == "ru" else f"{int(listing.area)} m²")
-    return " ".join(parts) or {
-        "ru": "Объявление о недвижимости.",
-        "uz": "Ko'chmas mulk e'loni.",
-        "uz_cyrl": "Кўчмас мулк эълони.",
-    }[lang]
+        unit = "м²" if lang == "ru" else "m²"
+        segments.append(f"{int(listing.area)} {unit}")
+
+    if not segments:
+        return {
+            "ru": "Объявление о недвижимости.",
+            "uz": "Ko'chmas mulk e'loni.",
+            "uz_cyrl": "Кўчмас мулк эълони.",
+        }[lang]
+    return ", ".join(segments)
 
 
 # ── OpenAI call ───────────────────────────────────────────────────────
