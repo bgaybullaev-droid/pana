@@ -254,6 +254,7 @@ function Page() {
 				deed_type: editingListing.deed_type || undefined,
 				// Sprint 3 — cross-cutting location (T-001)
 				urgent_flag: editingListing.urgent_flag ?? false,
+				city: editingListing.city || "",
 				microdistrict: editingListing.microdistrict || undefined,
 				jk_name: editingListing.jk_name || undefined,
 				landmark: editingListing.landmark || undefined,
