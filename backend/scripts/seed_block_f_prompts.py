@@ -26,30 +26,15 @@ load_dotenv()
 
 from sqlalchemy import select  # noqa: E402
 
+from app.core.prompts import LISTING_DESCRIPTION_PROMPT  # noqa: E402
 from app.db.database import async_session_maker  # noqa: E402
 from app.db.models import PromptTemplate  # noqa: E402
 
 
-# Body matches the historical hard-coded prompt exactly so existing
-# generation behaviour is unchanged after PR-F5a deploys.
-LISTING_DESCRIPTION_BODY = (
-    "You are a real-estate copywriter for UcharMarket (Tashkent, Uzbekistan).\n"
-    "Write a clean, professional 2–4 sentence listing description for a buyer feed.\n"
-    "Rules:\n"
-    "- Tone: factual, calm, professional. No exclamation marks. No CAPS.\n"
-    "- No phone numbers, no agent name, no calls-to-action.\n"
-    "- Do not invent facts. If a parameter is missing, omit it instead of guessing.\n"
-    "- 350 characters max per locale.\n"
-    '- Output STRICT JSON: {"ru":"…","uz":"…","uz_cyrl":"…"}.\n'
-    "  ru = Russian (Cyrillic). uz = Uzbek Latin. uz_cyrl = Uzbek Cyrillic.\n"
-    "  No markdown, no surrounding prose, just JSON.\n"
-    "\n"
-    "Structured parameters:\n"
-    "{params_block}\n"
-    "\n"
-    "Original source text from realtor (use as context, do NOT copy verbatim):\n"
-    "{raw_text}\n"
-)
+# Shared with the worker fallback and the activating migration. The
+# migration is what flips production onto this body; this seed only fires
+# on a fresh DB with no active prompt yet.
+LISTING_DESCRIPTION_BODY = LISTING_DESCRIPTION_PROMPT
 
 
 async def main() -> int:
@@ -78,8 +63,8 @@ async def main() -> int:
             model_hint="gpt-4o-mini",
             is_active=True,
             notes=(
-                "Block F PR-F5a — initial seed matching the historical "
-                "inline prompt verbatim."
+                "Block F — long-form selling copy (4-7 sentences, "
+                "~400-800 chars/locale). Mirrors app/core/prompts."
             ),
         )
         db.add(row)
