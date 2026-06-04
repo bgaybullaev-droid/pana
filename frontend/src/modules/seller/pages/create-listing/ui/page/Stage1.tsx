@@ -474,12 +474,148 @@ function Stage1() {
 							</FormSection>
 						</div>
 
-						{/* Shared form fields */}
+						{/* Shared form fields + AI block injected into Description section */}
 						<ListingFormFields
 							form={form}
 							regions={regions}
 							districts={districts}
 							onRegionChange={handleRegionChange}
+							afterDescriptionContent={
+								<Box>
+									{/* AI section header */}
+									<Group gap={8} mb={10} wrap="nowrap">
+										<ThemeIcon
+											size={34}
+											radius="xl"
+											color={hasAi ? "green" : "blue"}
+											variant="light"
+											style={{ flexShrink: 0 }}
+										>
+											<IconRobot size={18} />
+										</ThemeIcon>
+										<Box>
+											<Text fw={700} size="sm" lh={1.3}>
+												{hasAi
+													? t("createListing.aiReadyTitle", "Описание сгенерировано")
+													: t("createListing.addAiDescription", "Добавьте описание с AI")}
+											</Text>
+											{!hasAi && (
+												<Text size="xs" c="dimmed" lh={1.4}>
+													{t("createListing.aiRecommend", "Рекомендуем — обычно выходит убедительнее")}
+												</Text>
+											)}
+										</Box>
+									</Group>
+
+									{/* Language badges (idle state) */}
+									{!hasAi && !isPolling && !pollTimedOut && (
+										<>
+											<Text size="xs" c="dimmed" mb={6}>
+												{t("createListing.aiLanguagesLabel", "Текст сразу на трёх языках:")}
+											</Text>
+											<Group gap={6} mb={14}>
+												<Badge variant="light" color="blue" size="sm" radius="md">🇷🇺 Русский</Badge>
+												<Badge variant="light" color="green" size="sm" radius="md">🇺🇿 O&apos;zbek</Badge>
+												<Badge variant="light" color="teal" size="sm" radius="md">Ўзбекча</Badge>
+											</Group>
+										</>
+									)}
+
+									{/* Wishes field — optional hint for AI */}
+									{!hasAi && (
+										<Textarea
+											label={t("createListing.aiWishesLabel", "Пожелания для AI (необязательно)")}
+											placeholder={t("createListing.aiWishesPlaceholder", "Укажите особенности, которые важно упомянуть…")}
+											value={wishes}
+											onChange={(e) => setWishes(e.currentTarget.value)}
+											minRows={2}
+											maxRows={4}
+											autosize
+											mb={12}
+											styles={{ input: { fontSize: 13 } }}
+										/>
+									)}
+
+									{/* State: idle */}
+									{!hasAi && !isPolling && !pollTimedOut && (
+										<>
+											<Button
+												fullWidth
+												radius="xl"
+												leftSection={<IconRobot size={16} />}
+												disabled={!hasMinimumParams}
+												loading={isCreatingDraft && !isPolling}
+												onClick={handleGenerate}
+											>
+												{t("createListing.generateAiButton", "Сгенерировать с AI")}
+											</Button>
+											{!hasMinimumParams && (
+												<Text size="xs" c="dimmed" ta="center" mt={6}>
+													{t("createListing.generateDisabledHint", "Заполните основные параметры и добавьте фото")}
+												</Text>
+											)}
+											<Text size="xs" c="dimmed" ta="center" mt={hasMinimumParams ? 8 : 4}>
+												{t("createListing.aiEditableHint", "Результат можно отредактировать")}
+											</Text>
+										</>
+									)}
+
+									{/* State: polling */}
+									{!hasAi && isPolling && !pollTimedOut && (
+										<Box style={{ padding: "16px 0 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+											<Loader size="sm" color="blue" />
+											<Text fw={600} size="sm" c="#0369a1">
+												{t("createListing.generatingText", "AI готовит описание объявления…")}
+											</Text>
+										</Box>
+									)}
+
+									{/* State: timed out */}
+									{!hasAi && pollTimedOut && (
+										<Alert icon={<IconInfoCircle size={16} />} color="orange" title={t("createListing.pollingTimedOutTitle", "Генерация занимает дольше обычного")}>
+											<Text size="sm" mb="sm">
+												{t("createListing.pollingTimedOutBody", "Текст ещё не готов. Попробуйте обновить или сгенерировать заново.")}
+											</Text>
+											<Group gap="sm">
+												<Button size="xs" variant="light" leftSection={<IconRefresh size={14} />} onClick={handleManualRefresh}>
+													{t("createListing.pollingRetry", "Обновить")}
+												</Button>
+												<Button size="xs" variant="subtle" loading={isRegenerating} onClick={handleGenerate}>
+													{t("createListing.regenerateButton", "Сгенерировать заново")}
+												</Button>
+											</Group>
+										</Alert>
+									)}
+
+									{/* State: AI text ready */}
+									{hasAi && (
+										<Box>
+											<Tabs value={activeTab} onChange={(v) => v && setActiveTab(v as Lang)} radius="md" variant="pills" color="green">
+												<Tabs.List grow>
+													{LANG_TABS.map(({ value, label }) => (
+														<Tabs.Tab key={value} value={value}>{label}</Tabs.Tab>
+													))}
+												</Tabs.List>
+												{LANG_TABS.map(({ value }) => (
+													<Tabs.Panel key={value} value={value} pt="sm">
+														<Textarea
+															value={edits[value]}
+															onChange={(e) => editDescription({ lang: value, value: e.currentTarget.value })}
+															minRows={6}
+															maxRows={12}
+															autosize
+															placeholder={t("createListing.editPlaceholder", "Текст объявления…")}
+														/>
+													</Tabs.Panel>
+												))}
+											</Tabs>
+											<Button mt="sm" size="xs" variant="subtle" leftSection={<IconRefresh size={14} />} loading={isRegenerating} onClick={handleGenerate}>
+												{t("createListing.regenerateButton", "Сгенерировать заново")}
+											</Button>
+										</Box>
+									)}
+								</Box>
+							}
 						/>
 
 						{/* ── AI Description Block ── */}

@@ -1,3 +1,4 @@
+import type React from "react";
 import {
 	Textarea,
 	NumberInput,
@@ -39,6 +40,7 @@ interface ListingFormFieldsProps {
 	districts: { value: string; label: string }[];
 	onRegionChange: (value: string) => void;
 	sectionBg?: string;
+	afterDescriptionContent?: React.ReactNode;
 }
 
 export function ListingFormFields({
@@ -47,6 +49,7 @@ export function ListingFormFields({
 	districts,
 	onRegionChange,
 	sectionBg,
+	afterDescriptionContent,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
 	const pt = form.values.property_type;
@@ -1058,11 +1061,10 @@ export function ListingFormFields({
 				/>
 			</FormSection>
 
-			{/* ── Additional Info + Seller Type ── */}
+			{/* ── Description + optional AI block ── */}
 			<FormSection title={t("createListing.additionalInfo")} bg={sectionBg}>
 				<Box>
 					<Textarea
-						label={t("createListing.descriptionLabel")}
 						placeholder={t("createListing.descriptionPlaceholder")}
 						maxLength={500}
 						{...form.getInputProps("description")}
@@ -1099,6 +1101,7 @@ export function ListingFormFields({
 						</Text>
 					</Box>
 				</Box>
+				{afterDescriptionContent}
 			</FormSection>
 
 			{/* ── Price ── */}

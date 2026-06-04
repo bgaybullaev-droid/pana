@@ -61,7 +61,6 @@ export interface ListingFormValues {
 	deed_type: string | undefined;
 	// ── Sprint 3 (T-001) — cross-cutting location ──
 	urgent_flag: boolean;
-	city: string;
 	microdistrict: string | undefined;
 	jk_name: string | undefined;
 	landmark: string | undefined;
@@ -160,7 +159,6 @@ export function useListingForm(
 			deed_type: undefined,
 			// Sprint 3 — cross-cutting location
 			urgent_flag: false,
-			city: "",
 			microdistrict: undefined,
 			jk_name: undefined,
 			landmark: undefined,
@@ -416,7 +414,6 @@ export function useListingForm(
 		deed_type: values.deed_type || undefined,
 		// Sprint 3 — cross-cutting location (T-001)
 		urgent_flag: values.urgent_flag,
-		city: values.city || undefined,
 		microdistrict: values.microdistrict || undefined,
 		jk_name: values.jk_name || undefined,
 		landmark: values.landmark || undefined,
