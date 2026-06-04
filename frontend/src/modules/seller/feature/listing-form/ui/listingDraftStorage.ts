@@ -72,7 +72,6 @@ export function draftDataToFormValues(data: ListingCreateData): Partial<ListingF
 		halol_ok: data.halol_ok ?? false,
 		deed_type: data.deed_type,
 		urgent_flag: data.urgent_flag ?? false,
-		city: data.city ?? "",
 		microdistrict: data.microdistrict,
 		jk_name: data.jk_name,
 		landmark: data.landmark,

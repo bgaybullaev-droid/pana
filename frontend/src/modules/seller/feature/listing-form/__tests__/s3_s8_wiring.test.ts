@@ -63,7 +63,6 @@ function baseValues(over: Partial<ListingFormValues> = {}): ListingFormValues {
 		halol_ok: false,
 		deed_type: undefined,
 		urgent_flag: false,
-		city: "Tashkent",
 		microdistrict: undefined,
 		jk_name: undefined,
 		landmark: undefined,
@@ -146,7 +145,6 @@ function buildPayload(values: ListingFormValues) {
 		halol_ok: values.halol_ok,
 		deed_type: values.deed_type || undefined,
 		urgent_flag: values.urgent_flag,
-		city: values.city || undefined,
 		microdistrict: values.microdistrict || undefined,
 		jk_name: values.jk_name || undefined,
 		landmark: values.landmark || undefined,
@@ -186,7 +184,6 @@ describe("S3–S8 payload wiring", () => {
 		const s3_to_s8 = [
 			// S3
 			"urgent_flag",
-			"city",
 			"microdistrict",
 			"jk_name",
 			"landmark",
@@ -227,9 +224,6 @@ describe("S3–S8 payload wiring", () => {
 		);
 	});
 
-	it("submits S3 city as string when populated", () => {
-		expect(buildPayload(baseValues()).city).toBe("Tashkent");
-	});
 
 	it("submits S4 commercial fields when populated", () => {
 		const payload = buildPayload(
