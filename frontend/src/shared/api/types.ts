@@ -608,6 +608,8 @@ export interface UnifiedListing {
 	seller_name: string | null;
 	seller_avatar_url: string | null;
 	seller_verified: boolean;
+	seller_type: string | null;
+	seller_telegram: string | null;
 
 	// Property attributes
 	building_type: string | null;

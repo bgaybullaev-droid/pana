@@ -391,5 +391,11 @@
   "descriptionDrawer.location.jk": "ТМ",
   "descriptionDrawer.location.metro": "Метро",
   "descriptionDrawer.location.micro": "Микрорайон",
-  "descriptionDrawer.location.landmark": "Мўлжал"
+  "descriptionDrawer.location.landmark": "Мўлжал",
+  "descriptionDrawer.location.city": "Шаҳар",
+  "descriptionDrawer.location.region": "Вилоят",
+  "descriptionDrawer.sellerType.owner": "Эгаси",
+  "descriptionDrawer.sellerType.realtor": "Риелтор",
+  "descriptionDrawer.sellerType.developer": "Қурувчи",
+  "descriptionDrawer.telegram": "Телеграмда ёзиш"
 }

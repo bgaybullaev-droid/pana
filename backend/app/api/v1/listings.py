@@ -1835,6 +1835,9 @@ def _main_listing_to_unified(
             else None
         ),
         seller_verified=listing.seller.is_verified if listing.seller else False,
+        seller_type=listing.seller_type,
+        seller_telegram=listing.seller_telegram,
+        amenities=listing.amenities,
         building_type=listing.building_type,
         condition=listing.condition,
         land_purpose=listing.land_purpose,

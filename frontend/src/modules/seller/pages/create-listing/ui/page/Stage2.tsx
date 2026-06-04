@@ -84,6 +84,8 @@ function buildPreviewListing(
 		seller_name: null,
 		seller_avatar_url: null,
 		seller_verified: false,
+		seller_type: data.seller_type ?? null,
+		seller_telegram: data.seller_telegram ?? null,
 		building_type: data.building_type ?? null,
 		condition: data.condition ?? null,
 		land_purpose: data.land_purpose ?? null,

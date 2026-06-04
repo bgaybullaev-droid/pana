@@ -51,6 +51,8 @@ class UnifiedListingResponse(BaseModel):
     seller_name: Optional[str] = None
     seller_avatar_url: Optional[str] = None
     seller_verified: bool = False
+    seller_type: Optional[str] = None  # owner / realtor / developer
+    seller_telegram: Optional[str] = None
 
     # Property attributes
     building_type: Optional[str] = None  # new / secondary

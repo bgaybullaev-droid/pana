@@ -391,5 +391,11 @@
   "descriptionDrawer.location.jk": "TM",
   "descriptionDrawer.location.metro": "Metro",
   "descriptionDrawer.location.micro": "Mikrorayon",
-  "descriptionDrawer.location.landmark": "Mo'ljal"
+  "descriptionDrawer.location.landmark": "Mo'ljal",
+  "descriptionDrawer.location.city": "Shahar",
+  "descriptionDrawer.location.region": "Viloyat",
+  "descriptionDrawer.sellerType.owner": "Egasi",
+  "descriptionDrawer.sellerType.realtor": "Rieltor",
+  "descriptionDrawer.sellerType.developer": "Quruvchi",
+  "descriptionDrawer.telegram": "Telegramda yozish"
 }

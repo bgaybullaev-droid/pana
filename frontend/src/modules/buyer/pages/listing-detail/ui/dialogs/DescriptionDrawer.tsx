@@ -28,11 +28,12 @@ import {
 	IconFlame,
 	IconTree,
 	IconBuilding,
+	IconBrandTelegram,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
-import { translateDistrict } from "@shared/lib/regions";
+import { translateDistrict, translateRegion } from "@shared/lib/regions";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { formatPhone } from "@shared/lib/formatPhone";
 import { trackContact } from "@shared/lib/viewTracking";
@@ -749,14 +750,40 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 							)}
 
 							{/* Location */}
-							{(listing.jk_name ||
+							{(listing.region ||
+								listing.city ||
+								listing.jk_name ||
 								listing.metro_station ||
 								listing.microdistrict ||
-								listing.city ||
 								listing.landmark ||
 								listing.district ||
 								listing.address) && (
 								<Stack gap={4}>
+									{listing.region && (
+										<Group gap={6} wrap="nowrap">
+											<IconMapPin
+												size={14}
+												color="var(--mantine-color-gray-6)"
+												style={{ flexShrink: 0 }}
+											/>
+											<Text size="sm" c="dimmed">
+												{translateRegion(listing.region, t)}
+												{listing.city ? `, ${listing.city}` : ""}
+											</Text>
+										</Group>
+									)}
+									{!listing.region && listing.city && (
+										<Group gap={6} wrap="nowrap">
+											<IconMapPin
+												size={14}
+												color="var(--mantine-color-gray-6)"
+												style={{ flexShrink: 0 }}
+											/>
+											<Text size="sm" c="dimmed">
+												{listing.city}
+											</Text>
+										</Group>
+									)}
 									{listing.jk_name && (
 										<Group gap={6} wrap="nowrap">
 											<IconBuilding
@@ -849,7 +876,9 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 												)}
 											</Group>
 											<Text size="xs" c="dimmed">
-												{t("descriptionDrawer.seller")}
+												{listing.seller_type
+													? t(`descriptionDrawer.sellerType.${listing.seller_type}`, listing.seller_type)
+													: t("descriptionDrawer.seller")}
 											</Text>
 										</Box>
 									</Group>
@@ -874,8 +903,8 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 						</Stack>
 					</ScrollArea>
 
-					{/* Sticky call CTA */}
-					{listing.contact_phone && (
+					{/* Sticky CTA */}
+					{(listing.contact_phone || listing.seller_telegram) && (
 						<Box
 							px="md"
 							py="sm"
@@ -884,20 +913,39 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								flexShrink: 0,
 							}}
 						>
-							<Button
-								fullWidth
-								size="md"
-								radius="md"
-								leftSection={<IconPhone size={18} />}
-								component="a"
-								href={`tel:${listing.contact_phone}`}
-								onClick={() => {
-									void trackContact(listing.id);
-								}}
-							>
-								{t("descriptionDrawer.call")} ·{" "}
-								{formatPhone(listing.contact_phone)}
-							</Button>
+							<Stack gap={8}>
+								{listing.contact_phone && (
+									<Button
+										fullWidth
+										size="md"
+										radius="md"
+										leftSection={<IconPhone size={18} />}
+										component="a"
+										href={`tel:${listing.contact_phone}`}
+										onClick={() => {
+											void trackContact(listing.id);
+										}}
+									>
+										{t("descriptionDrawer.call")} ·{" "}
+										{formatPhone(listing.contact_phone)}
+									</Button>
+								)}
+								{listing.seller_telegram && (
+									<Button
+										fullWidth
+										size="md"
+										radius="md"
+										variant="light"
+										color="blue"
+										leftSection={<IconBrandTelegram size={18} />}
+										component="a"
+										href={`https://t.me/${listing.seller_telegram.replace(/^@/, "")}`}
+										target="_blank"
+									>
+										{t("descriptionDrawer.telegram")}
+									</Button>
+								)}
+							</Stack>
 						</Box>
 					)}
 				</Box>

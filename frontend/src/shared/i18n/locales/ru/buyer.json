@@ -391,5 +391,11 @@
   "descriptionDrawer.location.jk": "ЖК",
   "descriptionDrawer.location.metro": "Метро",
   "descriptionDrawer.location.micro": "Микрорайон",
-  "descriptionDrawer.location.landmark": "Ориентир"
+  "descriptionDrawer.location.landmark": "Ориентир",
+  "descriptionDrawer.location.city": "Город",
+  "descriptionDrawer.location.region": "Область",
+  "descriptionDrawer.sellerType.owner": "Собственник",
+  "descriptionDrawer.sellerType.realtor": "Риелтор",
+  "descriptionDrawer.sellerType.developer": "Застройщик",
+  "descriptionDrawer.telegram": "Написать в Telegram"
 }
