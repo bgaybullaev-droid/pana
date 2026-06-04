@@ -232,9 +232,13 @@ function Stage1() {
 		}
 
 		const uploadedImages = await handleUploadImages();
+		if (uploadedImages.length === 0) {
+			// Upload failed (e.g. 401) — error toast already shown by handleUploadImages
+			return;
+		}
 		const listingData: ListingCreateData = {
 			...buildListingData(form.values),
-			images: uploadedImages.length > 0 ? uploadedImages : undefined,
+			images: uploadedImages,
 		};
 
 		try {
@@ -270,10 +274,13 @@ function Stage1() {
 		}
 
 		const uploadedImages = await handleUploadImages();
+		if (uploadedImages.length === 0) {
+			return;
+		}
 
 		const listingData: ListingCreateData = {
 			...buildListingData(values),
-			images: uploadedImages.length > 0 ? uploadedImages : undefined,
+			images: uploadedImages,
 		};
 
 		try {
