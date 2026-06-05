@@ -11,10 +11,8 @@ import {
 	Title,
 	Button,
 	Container,
-	UnstyledButton,
 } from "@mantine/core";
-import { IconArrowLeft, IconPhoto } from "@tabler/icons-react";
-import { shadows } from "@app/styles/theme";
+import { IconPhoto } from "@tabler/icons-react";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useAuth } from "@app/providers/useAuth";
 import { getListingShareUrl } from "@shared/lib/constants";
@@ -133,50 +131,6 @@ function Page() {
 				/>
 			)}
 
-			{/* Fixed back button — stays in place during swipe */}
-			<Box
-				style={{
-					position: "fixed",
-					bottom: 0,
-					left: 0,
-					right: 0,
-					paddingBottom: "env(safe-area-inset-bottom, 0px)",
-					zIndex: 10000,
-					pointerEvents: "none",
-				}}
-			>
-				<Box
-					style={{
-						maxWidth: 500,
-						margin: "0 auto",
-						position: "relative",
-						height: 72, // Match BottomNav height (4px top + 56px button + 12px bottom)
-					}}
-				>
-					<UnstyledButton
-						onClick={() => navigate(-1)}
-						style={{
-							position: "absolute",
-							bottom: 12,
-							right: 12,
-							width: 56,
-							height: 56,
-							borderRadius: "50%",
-							backgroundColor: "rgba(255, 255, 255, 0.65)",
-							backdropFilter: "blur(20px) saturate(180%)",
-							WebkitBackdropFilter: "blur(20px) saturate(180%)",
-							border: "1px solid rgba(255, 255, 255, 0.5)",
-							boxShadow: shadows.md,
-							pointerEvents: "auto",
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-					>
-						<IconArrowLeft size={24} stroke={1.8} color="#495057" />
-					</UnstyledButton>
-				</Box>
-			</Box>
 		</Box>
 	);
 }
