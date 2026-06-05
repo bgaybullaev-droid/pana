@@ -635,6 +635,7 @@
 	},
 	"createListing.generateButton": "Эълонни яратиш",
 	"createListing.generateDisabledHint": "Асосий параметрларни тўлдиринг ва расм қўшинг",
+	"createListing.fillRequiredFields": "Барча мажбурий майдонларни тўлдиринг",
 	"createListing.previewTitle": "Эълонни кўриб чиқиш",
 	"createListing.generatingText": "AI эълон тавсифини тайёрламоқда…",
 	"createListing.pollingTimedOutTitle": "Яратиш одатдагидан кўпроқ вақт олмоқда",

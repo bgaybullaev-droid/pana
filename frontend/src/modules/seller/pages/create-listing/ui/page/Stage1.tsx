@@ -232,6 +232,24 @@ function Stage1() {
 			return;
 		}
 
+		// The backend draft endpoint requires the FULL set of structured
+		// fields (floor, total_floors, market_type, condition, furniture,
+		// map location, …), not just the minimum gate. Validate the whole
+		// form first so we surface missing fields inline instead of 400ing.
+		const { hasErrors } = form.validate();
+		if (hasErrors) {
+			handleError();
+			notifications.show({
+				title: t("notifications.error"),
+				message: t(
+					"createListing.fillRequiredFields",
+					"Заполните все обязательные поля",
+				),
+				color: "red",
+			});
+			return;
+		}
+
 		if (images.length === 0) {
 			setImageError(true);
 			photoSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

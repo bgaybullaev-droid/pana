@@ -636,6 +636,7 @@
 	"createListing.generateButton": "Сгенерировать объявление",
 	"createListing.nextButton": "Далее →",
 	"createListing.generateDisabledHint": "Заполните основные параметры и добавьте фото",
+	"createListing.fillRequiredFields": "Заполните все обязательные поля",
 	"createListing.previewTitle": "Просмотр объявления",
 	"createListing.previewPageTitle": "Ваше объявление",
 	"createListing.previewSubtitle": "Посмотрите, как будет выглядеть для покупателей",

@@ -12,6 +12,25 @@ import {
 } from "@shared/constants/regions";
 import { saveDraft } from "./listingDraftStorage";
 
+// Derives a human-readable city name from the region key for the backend `city` field.
+// City is not shown in the UI but is required by the backend on CREATE.
+const REGION_TO_CITY: Record<string, string> = {
+	toshkent_shahri:   "Toshkent",
+	toshkent_viloyati: "Toshkent viloyati",
+	samarqand:         "Samarqand",
+	buxoro:            "Buxoro",
+	andijon:           "Andijon",
+	fargona:           "Farg'ona",
+	namangan:          "Namangan",
+	qashqadaryo:       "Qarshi",
+	surxondaryo:       "Termiz",
+	jizzax:            "Jizzax",
+	sirdaryo:          "Guliston",
+	navoiy:            "Navoiy",
+	xorazm:            "Urganch",
+	qoraqalpogiston:   "Nukus",
+};
+
 export type ImageItem =
 	| { kind: "uploaded"; data: ListingImageCreateData }
 	| { kind: "pending"; file: File; previewUrl: string };
@@ -264,7 +283,8 @@ export function useListingForm(
 				values.property_type !== "land" && !value
 					? t("validation.furnishedRequired")
 					: null,
-			// S4 (T-009): commercial listings require commercial_type on CREATE only.
+			// S4 (T-009): commercial listings require commercial_type on
+			// CREATE only. Same legacy-safety reasoning as `city`.
 			commercial_type: (value, values) =>
 				mode === "create" && values.property_type === "commercial" && !value
 					? t("validation.commercialTypeRequired")
@@ -478,6 +498,7 @@ export function useListingForm(
 		jk_id: values.jk_id || undefined,
 		region: values.region,
 		district: values.district,
+		city: REGION_TO_CITY[values.region] || values.region || undefined,
 		address: values.address || undefined,
 		latitude: values.latitude,
 		longitude: values.longitude,

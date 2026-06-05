@@ -629,6 +629,7 @@
 	},
 	"createListing.generateButton": "E'lonni yaratish",
 	"createListing.generateDisabledHint": "Asosiy parametrlarni to'ldiring va rasm qo'shing",
+	"createListing.fillRequiredFields": "Barcha majburiy maydonlarni to'ldiring",
 	"createListing.previewTitle": "E'lonni ko'rib chiqish",
 	"createListing.generatingText": "AI e'lon matnini tayyorlamoqda…",
 	"createListing.pollingTimedOutTitle": "Generatsiya odatdagidan ko'proq vaqt olmoqda",
