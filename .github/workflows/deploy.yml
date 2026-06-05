@@ -57,12 +57,22 @@ jobs:
             # Sync db (SQL dumps / schema snapshots)
             rsync -av --delete _repo/db/ db/
 
-            # Inject secrets from GitHub into backend/.env (idempotent)
+            # Inject secrets from GitHub into backend/.env (idempotent).
+            # Track whether the file actually changed: docker compose does NOT
+            # recreate a container when only env_file *content* changes, so we
+            # force a recreate below only when the key was added/updated.
+            ENV_CHANGED=0
             if [ -n "$OPENAI_API_KEY" ]; then
-              if grep -q "^OPENAI_API_KEY=" backend/.env 2>/dev/null; then
-                sed -i "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$OPENAI_API_KEY|" backend/.env
+              if grep -Fqx "OPENAI_API_KEY=$OPENAI_API_KEY" backend/.env 2>/dev/null; then
+                : # already present with the correct value — nothing to do
               else
-                echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> backend/.env
+                # Drop any stale line, then append the current value. Using
+                # grep -v + echo (not sed) avoids issues with special chars
+                # in the key; cp-over preserves the original file permissions.
+                grep -v "^OPENAI_API_KEY=" backend/.env > backend/.env.tmp 2>/dev/null || true
+                echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> backend/.env.tmp
+                cp backend/.env.tmp backend/.env && rm -f backend/.env.tmp
+                ENV_CHANGED=1
               fi
             fi
 
@@ -74,6 +84,12 @@ jobs:
 
             # Rebuild and restart all services
             docker compose up -d --build --remove-orphans
+
+            # If backend/.env changed, force a recreate so running containers
+            # re-read the updated env_file (a plain `up -d` would skip them).
+            if [ "$ENV_CHANGED" = "1" ]; then
+              docker compose up -d --force-recreate
+            fi
 
             # Apply database migrations
             docker compose run --rm api alembic upgrade head
