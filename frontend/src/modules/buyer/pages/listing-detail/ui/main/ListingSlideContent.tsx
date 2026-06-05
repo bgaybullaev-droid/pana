@@ -79,11 +79,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 	const handleImageError = (index: number) => {
 		setFailedImages((prev) => [...prev, index]);
 	};
-	const handleTitleTap = () => {
-		setDescriptionOpen(true);
-	};
-
-	const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
+const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 
 	// Explicit keyboard support for horizontal swiping
 	useEffect(() => {
@@ -426,7 +422,8 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 							</Group>
 
 							{/* Badges row 1 — property type, listing type, area, rooms, floor */}
-							<Group gap={4} wrap="wrap">
+							<Box onClick={() => setDescriptionOpen(true)} style={{ cursor: "pointer" }}>
+								<Group gap={4} wrap="wrap">
 								<Badge
 									size="xs"
 									variant="filled"
@@ -525,9 +522,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 								fw={500}
 								c="white"
 								lineClamp={3}
-								onClick={handleTitleTap}
 								style={{
-									cursor: "pointer",
 									zIndex: 20,
 									textShadow: shadow,
 									lineHeight: 1.5,
@@ -547,6 +542,7 @@ export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 							>
 								{formattedPrice}
 							</Text>
+							</Box>
 						</Stack>
 					)}
 				</Transition>
