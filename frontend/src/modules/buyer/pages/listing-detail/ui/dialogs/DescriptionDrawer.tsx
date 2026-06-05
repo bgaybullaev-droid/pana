@@ -316,11 +316,11 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 	if (listing.floor)
 		paramChips.push({ value: `${listing.floor}/${listing.total_floors || "?"}`, label: t("listing.floorLabel") });
 	if (listing.area)
-		paramChips.push({ value: `${listing.area}`, label: "м² " + t("descriptionDrawer.areaTotal", "общая") });
+		paramChips.push({ value: `${listing.area} м²`, label: t("descriptionDrawer.areaTotal", "общая") });
 	if (listing.living_area)
-		paramChips.push({ value: `${listing.living_area}`, label: "м² " + t("descriptionDrawer.livingArea", "жилая") });
+		paramChips.push({ value: `${listing.living_area} м²`, label: t("descriptionDrawer.livingArea", "жилая") });
 	if (listing.kitchen_area)
-		paramChips.push({ value: `${listing.kitchen_area}`, label: "м² " + t("descriptionDrawer.kitchenArea", "кухня") });
+		paramChips.push({ value: `${listing.kitchen_area} м²`, label: t("descriptionDrawer.kitchenArea", "кухня") });
 	if (listing.ceiling_height)
 		paramChips.push({ value: `${listing.ceiling_height} м`, label: t("descriptionDrawer.ceilingHeight") });
 	if (listing.land_area)
