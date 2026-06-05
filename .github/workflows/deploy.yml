@@ -20,10 +20,13 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: OPENAI_API_KEY
           command_timeout: 30m
           script: |
             set -e
@@ -53,6 +56,15 @@ jobs:
 
             # Sync db (SQL dumps / schema snapshots)
             rsync -av --delete _repo/db/ db/
+
+            # Inject secrets from GitHub into backend/.env (idempotent)
+            if [ -n "$OPENAI_API_KEY" ]; then
+              if grep -q "^OPENAI_API_KEY=" backend/.env 2>/dev/null; then
+                sed -i "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$OPENAI_API_KEY|" backend/.env
+              else
+                echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> backend/.env
+              fi
+            fi
 
             # Drop any zombie containers left by a previous failed recreate
             # (docker renames the old one to "<hash>_demo-X" when conflict hits)
