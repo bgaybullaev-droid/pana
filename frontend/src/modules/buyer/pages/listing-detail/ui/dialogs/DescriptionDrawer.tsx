@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict, translateRegion, normalizeLocationKey } from "@shared/lib/regions";
+import { localizeMicrodistrict } from "@shared/constants/microdistricts";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { trackContact } from "@shared/lib/viewTracking";
 import { CommentsDrawer } from "./CommentsDrawer";
@@ -326,7 +327,9 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		listing.region ? translateRegion(listing.region, t) : null,
 		showCity && listing.city ? listing.city : null,
 		listing.district ? translateDistrict(listing.district, t) : null,
-		listing.microdistrict ?? null,
+		listing.microdistrict
+			? localizeMicrodistrict(listing.microdistrict, i18n.language)
+			: null,
 	]
 		.filter(Boolean)
 		.join(", ");

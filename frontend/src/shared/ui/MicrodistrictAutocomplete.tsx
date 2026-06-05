@@ -9,8 +9,9 @@
  *   - Suggestions are scoped to the район→микрорайон cascade: when a `district`
  *     is selected, only that district's entries are offered; if no district is
  *     set (or it has no tagged entries) the field stays free-text with no hints.
- *   - Typing filters the scoped list by case-insensitive substring.
- *   - Picking a suggestion → `onChange(<name>)`.
+ *   - Names render in the active UI language (ru / uz-latn / uz-cyrl); typing
+ *     filters across all locale variants so any script matches.
+ *   - Picking a suggestion → `onChange(<localized name>)`.
  *   - Free-text is allowed: any value the user types is emitted as-is, so a
  *     name missing from the registry is still accepted.
  *   - Empty input → `onChange(undefined)`.
@@ -18,7 +19,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Paper, Text, TextInput } from "@mantine/core";
-import { MICRODISTRICTS } from "@shared/constants/microdistricts";
+import { useTranslation } from "react-i18next";
+import {
+	MICRODISTRICTS,
+	microdistrictName,
+} from "@shared/constants/microdistricts";
 
 export interface MicrodistrictAutocompleteProps {
 	value: string | undefined;
@@ -41,6 +46,8 @@ export function MicrodistrictAutocomplete({
 	district,
 	disabled,
 }: MicrodistrictAutocompleteProps) {
+	const { i18n } = useTranslation();
+	const lang = i18n.language;
 	const [text, setText] = useState<string>(value ?? "");
 	const [open, setOpen] = useState(false);
 	const boxRef = useRef<HTMLDivElement>(null);
@@ -62,7 +69,8 @@ export function MicrodistrictAutocomplete({
 		return () => document.removeEventListener("mousedown", handleClick);
 	}, []);
 
-	// Scope to the selected district, then filter by substring. Without a
+	// Scope to the selected district, then filter by substring across all
+	// locale variants (so the seller can type in any script). Without a
 	// district there is nothing meaningful to suggest, so the list stays empty
 	// and the field behaves as plain free-text input.
 	const results = useMemo(() => {
@@ -70,7 +78,11 @@ export function MicrodistrictAutocomplete({
 		const scoped = MICRODISTRICTS.filter((m) => m.district === district);
 		const q = text.trim().toLowerCase();
 		const matched = q
-			? scoped.filter((m) => m.name.toLowerCase().includes(q))
+			? scoped.filter((m) =>
+					[m.name, m.nameUzLatn, m.nameUzCyrl].some((n) =>
+						n.toLowerCase().includes(q),
+					),
+				)
 			: scoped;
 		return matched.slice(0, MAX_RESULTS);
 	}, [district, text]);
@@ -114,27 +126,30 @@ export function MicrodistrictAutocomplete({
 						overflowY: "auto",
 					}}
 				>
-					{results.map((item) => (
-						<Box
-							key={`${item.district}:${item.name}`}
-							onClick={() => handlePick(item.name)}
-							style={{
-								padding: "8px 12px",
-								cursor: "pointer",
-							}}
-							onMouseEnter={(e) => {
-								(e.currentTarget as HTMLElement).style.backgroundColor =
-									"#f1f3f5";
-							}}
-							onMouseLeave={(e) => {
-								(e.currentTarget as HTMLElement).style.backgroundColor = "";
-							}}
-						>
-							<Text size="sm" fw={500}>
-								{item.name}
-							</Text>
-						</Box>
-					))}
+					{results.map((item) => {
+						const display = microdistrictName(item, lang);
+						return (
+							<Box
+								key={`${item.district}:${item.name}`}
+								onClick={() => handlePick(display)}
+								style={{
+									padding: "8px 12px",
+									cursor: "pointer",
+								}}
+								onMouseEnter={(e) => {
+									(e.currentTarget as HTMLElement).style.backgroundColor =
+										"#f1f3f5";
+								}}
+								onMouseLeave={(e) => {
+									(e.currentTarget as HTMLElement).style.backgroundColor = "";
+								}}
+							>
+								<Text size="sm" fw={500}>
+									{display}
+								</Text>
+							</Box>
+						);
+					})}
 				</Paper>
 			)}
 		</Box>

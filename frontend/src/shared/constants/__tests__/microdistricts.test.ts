@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { MICRODISTRICTS } from "../microdistricts";
+import {
+	MICRODISTRICTS,
+	microdistrictName,
+	localizeMicrodistrict,
+} from "../microdistricts";
 import { REGIONS } from "../regions";
 
 // Every district key used by a microdistrict must exist in the canonical
@@ -25,17 +29,18 @@ describe("MICRODISTRICTS registry", () => {
 		const regions = new Set(
 			MICRODISTRICTS.map((m) => keyToRegion.get(m.district)),
 		);
-		// Sanity floor: data should span well beyond a single region.
 		expect(regions.size).toBeGreaterThan(5);
 	});
 
-	it("has a non-empty name for every entry", () => {
+	it("has all three locale name variants for every entry", () => {
 		for (const m of MICRODISTRICTS) {
 			expect(m.name.trim().length).toBeGreaterThan(0);
+			expect(m.nameUzLatn.trim().length).toBeGreaterThan(0);
+			expect(m.nameUzCyrl.trim().length).toBeGreaterThan(0);
 		}
 	});
 
-	it("has no duplicate name within a district", () => {
+	it("has no duplicate Russian name within a district", () => {
 		const seen = new Set<string>();
 		for (const m of MICRODISTRICTS) {
 			const key = `${m.district}:${m.name.toLowerCase()}`;
@@ -51,5 +56,39 @@ describe("MICRODISTRICTS registry", () => {
 			expect(m.lng).toBeGreaterThan(55);
 			expect(m.lng).toBeLessThan(74);
 		}
+	});
+});
+
+describe("microdistrictName", () => {
+	const sample = MICRODISTRICTS[0];
+
+	it("picks the variant matching the language", () => {
+		expect(microdistrictName(sample, "ru")).toBe(sample.name);
+		expect(microdistrictName(sample, "uz-latn")).toBe(sample.nameUzLatn);
+		expect(microdistrictName(sample, "uz")).toBe(sample.nameUzLatn);
+		expect(microdistrictName(sample, "uz-cyrl")).toBe(sample.nameUzCyrl);
+	});
+
+	it("defaults to Russian for unknown languages", () => {
+		expect(microdistrictName(sample, "en")).toBe(sample.name);
+	});
+});
+
+describe("localizeMicrodistrict", () => {
+	const sample = MICRODISTRICTS[0];
+
+	it("resolves a stored value across locale variants", () => {
+		// A value saved in one locale renders in the requested one.
+		expect(localizeMicrodistrict(sample.name, "uz-cyrl")).toBe(
+			sample.nameUzCyrl,
+		);
+		expect(localizeMicrodistrict(sample.nameUzLatn, "ru")).toBe(sample.name);
+	});
+
+	it("returns free-text values unchanged", () => {
+		expect(localizeMicrodistrict("Моя махалля 42", "uz-latn")).toBe(
+			"Моя махалля 42",
+		);
+		expect(localizeMicrodistrict("", "ru")).toBe("");
 	});
 });
