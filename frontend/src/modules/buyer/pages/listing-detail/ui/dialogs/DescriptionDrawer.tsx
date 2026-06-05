@@ -32,7 +32,6 @@ import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict, translateRegion, normalizeLocationKey } from "@shared/lib/regions";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
-import { formatPhone } from "@shared/lib/formatPhone";
 import { trackContact } from "@shared/lib/viewTracking";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { MapDrawer } from "./MapDrawer";
@@ -939,7 +938,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 						</Stack>
 					</ScrollArea>
 
-					{/* Sticky CTA — always visible; «Назад» closes drawer */}
+					{/* Sticky CTA — Позвонить + Написать в Telegram */}
 					<Box
 						style={{
 							flexShrink: 0,
@@ -947,179 +946,69 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 							paddingBottom: "max(12px, env(safe-area-inset-bottom, 12px))",
 						}}
 					>
-						{/* Call + Telegram row (when both exist) */}
-						{listing.contact_phone && listing.seller_telegram && (
-							<Box style={{ display: "flex", gap: 10, height: 56, marginBottom: 10 }}>
-								<Button
-									component="a"
-									href={`tel:${listing.contact_phone}`}
-									onClick={() => void trackContact(listing.id)}
-									style={{ flex: 1 }}
-									h="100%"
-									radius={100}
-									c="white"
-									fw={600}
-									fz={14}
-									leftSection={<IconPhone size={16} />}
-									styles={{
-										root: {
-											backgroundColor: "rgba(64, 167, 227, 0.85)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)",
-											border: "1px solid rgba(255, 255, 255, 0.2)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.call")}
-								</Button>
-								<Button
-									component="a"
-									href={`https://t.me/${listing.seller_telegram.replace(/^@/, "")}`}
-									target="_blank"
-									style={{ flex: 1 }}
-									h="100%"
-									radius={100}
-									c="white"
-									fw={600}
-									fz={14}
-									leftSection={<IconBrandTelegram size={16} />}
-									styles={{
-										root: {
-											backgroundColor: "rgba(41, 182, 246, 0.85)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											boxShadow: "0 4px 15px rgba(41, 182, 246, 0.4)",
-											border: "1px solid rgba(255, 255, 255, 0.2)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.telegram")}
-								</Button>
-							</Box>
-						)}
+						<Box style={{ display: "flex", gap: 10, height: 56 }}>
+							{/* Позвонить — активна только если есть телефон */}
+							<Button
+								component={listing.contact_phone ? "a" : "button"}
+								href={listing.contact_phone ? `tel:${listing.contact_phone}` : undefined}
+								onClick={listing.contact_phone ? () => void trackContact(listing.id) : undefined}
+								disabled={!listing.contact_phone}
+								style={{ flex: 1 }}
+								h="100%"
+								radius={100}
+								c="white"
+								fw={600}
+								fz={14}
+								leftSection={<IconPhone size={16} />}
+								styles={{
+									root: {
+										backgroundColor: listing.contact_phone
+											? "rgba(64, 167, 227, 0.85)"
+											: "rgba(64, 167, 227, 0.35)",
+										backdropFilter: "blur(20px) saturate(180%)",
+										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+										boxShadow: listing.contact_phone
+											? "0 4px 15px rgba(64, 167, 227, 0.4)"
+											: "none",
+										border: "1px solid rgba(255, 255, 255, 0.2)",
+									},
+								}}
+							>
+								{t("descriptionDrawer.call")}
+							</Button>
 
-						{/* Single contact row — phone only or telegram only */}
-						{(listing.contact_phone && !listing.seller_telegram) && (
-							<Box style={{ display: "flex", gap: 10, height: 56, marginBottom: 10 }}>
-								<Button
-									component="a"
-									href={`tel:${listing.contact_phone}`}
-									onClick={() => void trackContact(listing.id)}
-									style={{ flex: 1 }}
-									h="100%"
-									radius={100}
-									c="white"
-									fw={600}
-									fz={14}
-									leftSection={<IconPhone size={16} />}
-									styles={{
-										root: {
-											backgroundColor: "rgba(64, 167, 227, 0.85)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)",
-											border: "1px solid rgba(255, 255, 255, 0.2)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.call")} · {formatPhone(listing.contact_phone)}
-								</Button>
-								<Button
-									style={{ flex: 1 }}
-									h="100%"
-									radius={100}
-									c="#495057"
-									fw={600}
-									fz={14}
-									onClick={onClose}
-									styles={{
-										root: {
-											backgroundColor: "rgba(255, 255, 255, 0.55)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											border: "1px solid rgba(0, 0, 0, 0.12)",
-											boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.back", "Назад")}
-								</Button>
-							</Box>
-						)}
-						{(!listing.contact_phone && listing.seller_telegram) && (
-							<Box style={{ display: "flex", gap: 10, height: 56, marginBottom: 10 }}>
-								<Button
-									component="a"
-									href={`https://t.me/${listing.seller_telegram.replace(/^@/, "")}`}
-									target="_blank"
-									style={{ flex: 1 }}
-									h="100%"
-									radius={100}
-									c="white"
-									fw={600}
-									fz={14}
-									leftSection={<IconBrandTelegram size={16} />}
-									styles={{
-										root: {
-											backgroundColor: "rgba(41, 182, 246, 0.85)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											boxShadow: "0 4px 15px rgba(41, 182, 246, 0.4)",
-											border: "1px solid rgba(255, 255, 255, 0.2)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.telegram")}
-								</Button>
-								<Button
-									style={{ flex: 1 }}
-									h="100%"
-									radius={100}
-									c="#495057"
-									fw={600}
-									fz={14}
-									onClick={onClose}
-									styles={{
-										root: {
-											backgroundColor: "rgba(255, 255, 255, 0.55)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											border: "1px solid rgba(0, 0, 0, 0.12)",
-											boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.back", "Назад")}
-								</Button>
-							</Box>
-						)}
-
-						{/* «Назад» — always shown when both contacts present, or standalone when no contacts */}
-						{(listing.contact_phone && listing.seller_telegram) || (!listing.contact_phone && !listing.seller_telegram) ? (
-							<Box style={{ height: 56 }}>
-								<Button
-									fullWidth
-									h="100%"
-									radius={100}
-									c="#495057"
-									fw={600}
-									fz={14}
-									onClick={onClose}
-									styles={{
-										root: {
-											backgroundColor: "rgba(255, 255, 255, 0.55)",
-											backdropFilter: "blur(20px) saturate(180%)",
-											WebkitBackdropFilter: "blur(20px) saturate(180%)",
-											border: "1px solid rgba(0, 0, 0, 0.12)",
-											boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-										},
-									}}
-								>
-									{t("descriptionDrawer.back", "Назад")}
-								</Button>
-							</Box>
-						) : null}
+							{/* Написать в Telegram — мокап: всегда виден */}
+							<Button
+								component={listing.seller_telegram ? "a" : "button"}
+								href={listing.seller_telegram
+									? `https://t.me/${listing.seller_telegram.replace(/^@/, "")}`
+									: undefined}
+								target={listing.seller_telegram ? "_blank" : undefined}
+								disabled={!listing.seller_telegram}
+								style={{ flex: 1 }}
+								h="100%"
+								radius={100}
+								c="white"
+								fw={600}
+								fz={14}
+								leftSection={<IconBrandTelegram size={16} />}
+								styles={{
+									root: {
+										backgroundColor: listing.seller_telegram
+											? "rgba(41, 182, 246, 0.85)"
+											: "rgba(41, 182, 246, 0.35)",
+										backdropFilter: "blur(20px) saturate(180%)",
+										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+										boxShadow: listing.seller_telegram
+											? "0 4px 15px rgba(41, 182, 246, 0.4)"
+											: "none",
+										border: "1px solid rgba(255, 255, 255, 0.2)",
+									},
+								}}
+							>
+								{t("descriptionDrawer.telegram")}
+							</Button>
+						</Box>
 					</Box>
 				</Box>
 			</Drawer>
