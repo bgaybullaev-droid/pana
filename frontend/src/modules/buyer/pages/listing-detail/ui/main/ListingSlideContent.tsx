@@ -14,13 +14,13 @@ import { Pagination } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
 import {
 	IconHeart,
-	IconMessageCircle,
 	IconShare,
 	IconUser,
 
 	IconEye,
 	IconMapPin,
 	IconPhone,
+	IconBrandTelegram,
 	IconCheck,
 	IconTrash,
 	IconPhoto,
@@ -299,9 +299,6 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 									style={{ filter: `drop-shadow(${shadow})` }}
 								/>
 							</ActionIcon>
-							<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
-								{listing.favorites_count || 0}
-							</Text>
 						</Stack>
 					) : (
 						<Stack gap={18} align="center">
@@ -340,24 +337,7 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 						</Stack>
 					)}
 
-
-					{mode === "buyer" && (
-						<Stack gap={1} align="center">
-							<ActionIcon
-								variant="transparent"
-								size={36}
-								onClick={() => setDescriptionOpen(true)}
-							>
-								<IconMessageCircle
-									size={30}
-									color="white"
-									style={{ filter: `drop-shadow(${shadow})` }}
-								/>
-							</ActionIcon>
-						</Stack>
-					)}
-
-					{/* Views — count + tap toggles info overlay */}
+					{/* Views — eye toggles the info overlay; count shown only in crawled preview */}
 					<Stack gap={1} align="center">
 						<ActionIcon
 							variant="transparent"
@@ -370,9 +350,11 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 								style={{ filter: `drop-shadow(${shadow})` }}
 							/>
 						</ActionIcon>
-						<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
-							{listing.views_count || 0}
-						</Text>
+						{mode !== "buyer" && (
+							<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
+								{listing.views_count || 0}
+							</Text>
+						)}
 					</Stack>
 
 					{/* Map */}
@@ -390,8 +372,8 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 						</ActionIcon>
 					</Stack>
 
-					{/* Phone */}
-					{listing.contact_phone && (
+					{/* Phone — crawled preview keeps the plain icon; buyer uses the CTA block below */}
+					{mode !== "buyer" && listing.contact_phone && (
 						<Stack gap={1} align="center">
 							<ActionIcon
 								variant="transparent"
@@ -427,6 +409,56 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 									style={{ filter: `drop-shadow(${shadow})` }}
 								/>
 							</ActionIcon>
+						</Stack>
+					)}
+
+					{/* ── Call-to-action — contact the realtor (call + write in Telegram) ── */}
+					{mode === "buyer" &&
+						(listing.contact_phone || listing.seller_telegram) && (
+						<Stack gap={6} align="center" mt={6}>
+							{listing.contact_phone && (
+								<Stack gap={3} align="center">
+									<ActionIcon
+										variant="filled"
+										color="green"
+										radius="xl"
+										size={46}
+										aria-label={t("descriptionDrawer.call")}
+										onClick={() => {
+											void trackContact(listing.id);
+											window.location.href = `tel:${listing.contact_phone}`;
+										}}
+										style={{ boxShadow: "0 4px 14px rgba(64,192,87,0.55)" }}
+									>
+										<IconPhone size={24} color="white" />
+									</ActionIcon>
+									<Text size="10px" fw={700} c="white" style={{ textShadow: shadow }}>
+										{t("descriptionDrawer.call")}
+									</Text>
+								</Stack>
+							)}
+							{listing.seller_telegram && (
+								<Stack gap={3} align="center">
+									<ActionIcon
+										component="a"
+										href={`https://t.me/${listing.seller_telegram.replace(/^@/, "")}`}
+										target="_blank"
+										rel="noopener noreferrer"
+										variant="filled"
+										color="blue"
+										radius="xl"
+										size={46}
+										aria-label={t("descriptionDrawer.telegram")}
+										onClick={() => void trackContact(listing.id)}
+										style={{ boxShadow: "0 4px 14px rgba(34,139,230,0.55)" }}
+									>
+										<IconBrandTelegram size={24} color="white" />
+									</ActionIcon>
+									<Text size="10px" fw={700} c="white" style={{ textShadow: shadow }}>
+										{t("descriptionDrawer.telegram")}
+									</Text>
+								</Stack>
+							)}
 						</Stack>
 					)}
 				</Stack>
