@@ -29,7 +29,7 @@ import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "@app/styles/theme";
-import { translateDistrict } from "@shared/lib/regions";
+import { translateDistrict, translateRegion } from "@shared/lib/regions";
 import { trackContact } from "@shared/lib/viewTracking";
 import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
 import { MapDrawer } from "../dialogs/MapDrawer";
@@ -123,6 +123,7 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 	const formattedPrice = formatPrice(listing.price, listing.currency);
 	const districtLabel =
 		translateDistrict(listing.district, t) || t("listing.defaultDistrict");
+	const regionLabel = listing.region ? translateRegion(listing.region, t) : null;
 	const sellerDisplayName = listing.seller_name || null;
 
 	return (
@@ -422,7 +423,7 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 							</Group>
 
 							{/* Badges row 1 — property type, listing type, area, rooms, floor */}
-							<Box onClick={() => setDescriptionOpen(true)} style={{ cursor: "pointer" }}>
+							<Box onClick={() => setDescriptionOpen(true)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 6 }}>
 								<Group gap={4} wrap="wrap">
 								<Badge
 									size="xs"
@@ -504,16 +505,16 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 								</Group>
 							)}
 
-							{/* Badges row 2 — location */}
+							{/* Badges row 2 — location: region + district */}
 							<Group gap={4}>
+								{regionLabel && (
+									<Badge size="xs" variant="filled" color="gray" radius="sm">
+										{regionLabel.toUpperCase()}
+									</Badge>
+								)}
 								<Badge size="xs" variant="filled" color="gray" radius="sm">
 									{districtLabel.toUpperCase()}
 								</Badge>
-								{listing.address && (
-									<Badge size="xs" variant="filled" color="gray" radius="sm">
-										{listing.address.toUpperCase()}
-									</Badge>
-								)}
 							</Group>
 
 							{/* Description text */}
