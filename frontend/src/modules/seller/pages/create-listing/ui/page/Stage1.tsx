@@ -26,7 +26,6 @@ import {
 	Tabs,
 	Text,
 	Textarea,
-	ThemeIcon,
 	Badge,
 	ActionIcon,
 } from "@mantine/core";
