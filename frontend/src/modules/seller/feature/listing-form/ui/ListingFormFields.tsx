@@ -45,7 +45,10 @@ interface ListingFormFieldsProps {
 	districts: { value: string; label: string }[];
 	onRegionChange: (value: string) => void;
 	sectionBg?: string;
+	beforeDescriptionContent?: React.ReactNode;
 	afterDescriptionContent?: React.ReactNode;
+	descriptionValueOverride?: string;
+	onDescriptionChangeOverride?: (val: string) => void;
 }
 
 export function ListingFormFields({
@@ -54,7 +57,10 @@ export function ListingFormFields({
 	districts,
 	onRegionChange,
 	sectionBg,
+	beforeDescriptionContent,
 	afterDescriptionContent,
+	descriptionValueOverride,
+	onDescriptionChangeOverride,
 }: ListingFormFieldsProps) {
 	const { t, i18n } = useTranslation("seller");
 	const pt = form.values.property_type;
@@ -1096,43 +1102,60 @@ export function ListingFormFields({
 
 			{/* ── Description + optional AI block ── */}
 			<FormSection title={t("createListing.additionalInfo")} bg={sectionBg}>
+				{beforeDescriptionContent}
 				<Box>
 					<Textarea
 						placeholder={t("createListing.descriptionPlaceholder")}
-						maxLength={500}
-						{...form.getInputProps("description")}
+						maxLength={descriptionValueOverride !== undefined ? undefined : 500}
+						value={
+							descriptionValueOverride !== undefined
+								? descriptionValueOverride
+								: (form.values.description ?? "")
+						}
+						onChange={(e) => {
+							if (onDescriptionChangeOverride) {
+								onDescriptionChangeOverride(e.currentTarget.value);
+							} else {
+								form.getInputProps("description").onChange(e);
+							}
+						}}
+						onBlur={form.getInputProps("description").onBlur}
+						error={form.errors.description as string | undefined}
 						autosize
 						minRows={3}
-						maxRows={8}
 						styles={{ input: { minHeight: 80 } }}
 					/>
-					<Box
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							marginTop: 4,
-						}}
-					>
-						<Text
-							size="xs"
-							c={
-								(form.values.description?.length ?? 0) >= 500
-									? "red"
-									: "transparent"
-							}
+					{descriptionValueOverride === undefined && (
+						<Box
+							style={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								marginTop: 4,
+							}}
 						>
-							{t("createListing.charLimitReached", { count: 500 })}
-						</Text>
-						<Text
-							size="xs"
-							c={
-								(form.values.description?.length ?? 0) >= 500 ? "red" : "dimmed"
-							}
-						>
-							{form.values.description?.length ?? 0} / 500
-						</Text>
-					</Box>
+							<Text
+								size="xs"
+								c={
+									(form.values.description?.length ?? 0) >= 500
+										? "red"
+										: "transparent"
+								}
+							>
+								{t("createListing.charLimitReached", { count: 500 })}
+							</Text>
+							<Text
+								size="xs"
+								c={
+									(form.values.description?.length ?? 0) >= 500
+										? "red"
+										: "dimmed"
+								}
+							>
+								{form.values.description?.length ?? 0} / 500
+							</Text>
+						</Box>
+					)}
 				</Box>
 				{afterDescriptionContent}
 			</FormSection>
