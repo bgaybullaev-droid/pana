@@ -705,7 +705,7 @@ function Page() {
 										</Badge>
 									</Group>
 									<SimpleGrid cols={3} spacing="xs">
-										{images.map((file, index) => (
+										{images.map((item, index) => (
 											<Box
 												key={index}
 												style={{
@@ -716,8 +716,13 @@ function Page() {
 													border: "1px solid #f1f5f9",
 												}}
 											>
+												{item.kind === "pending" && (
+													<Box style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)", zIndex: 1 }}>
+														<Loader size="xs" color="white" />
+													</Box>
+												)}
 												<Image
-													src={URL.createObjectURL(file)}
+													src={item.kind === "uploaded" ? item.data.thumbnail_url : item.previewUrl}
 													alt=""
 													fit="cover"
 													h="100%"

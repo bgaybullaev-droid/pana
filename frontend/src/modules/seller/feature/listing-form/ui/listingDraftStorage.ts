@@ -1,27 +1,32 @@
-import type { ListingCreateData } from "@shared/state/listing/model";
+import type { ListingCreateData, ListingImageCreateData } from "@shared/state/listing/model";
 import type { ListingFormValues } from "./useListingForm";
 
-const DRAFT_KEY = "listing_draft_stage1_v1";
+const DRAFT_KEY = "listing_draft_stage1_v2";
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 h
 
-export function saveDraft(values: ListingFormValues): void {
+export interface DraftData {
+	values: Partial<ListingFormValues>;
+	images: ListingImageCreateData[];
+}
+
+export function saveDraft(values: ListingFormValues, images: ListingImageCreateData[] = []): void {
 	try {
-		localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, savedAt: Date.now() }));
+		localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, images, savedAt: Date.now() }));
 	} catch {
 		// Ignore quota errors
 	}
 }
 
-export function loadDraft(): Partial<ListingFormValues> | null {
+export function loadDraft(): DraftData | null {
 	try {
 		const raw = localStorage.getItem(DRAFT_KEY);
 		if (!raw) return null;
-		const parsed = JSON.parse(raw) as { values: ListingFormValues; savedAt: number };
+		const parsed = JSON.parse(raw) as { values: ListingFormValues; images?: ListingImageCreateData[]; savedAt: number };
 		if (Date.now() - parsed.savedAt > EXPIRY_MS) {
 			clearDraft();
 			return null;
 		}
-		return parsed.values;
+		return { values: parsed.values, images: parsed.images ?? [] };
 	} catch {
 		return null;
 	}

@@ -107,9 +107,13 @@ function Stage1() {
 
 	// Compute pre-fill values exactly once on mount.
 	// Priority: $draftFormData (Stage2 → Stage1 back) > localStorage (accidental leave).
-	const [prefill] = useState(() =>
-		draftFormData ? draftDataToFormValues(draftFormData) : (loadDraft() ?? undefined),
-	);
+	const [initialData] = useState(() => {
+		if (draftFormData) {
+			return { prefill: draftDataToFormValues(draftFormData), draftImages: [] as import("@shared/state/listing/model").ListingImageCreateData[] };
+		}
+		const draft = loadDraft();
+		return { prefill: draft?.values ?? undefined, draftImages: draft?.images ?? [] };
+	});
 
 	const {
 		form,
@@ -124,7 +128,7 @@ function Stage1() {
 		handleUploadImages,
 		buildListingData,
 		t,
-	} = useListingForm("create", prefill);
+	} = useListingForm("create", initialData.prefill, initialData.draftImages);
 
 	// Reset legacy create-state on Stage 1 leave.
 	useEffect(() => {
@@ -183,11 +187,12 @@ function Stage1() {
 		}
 		if (
 			(v.property_type === "apartment" || v.property_type === "house") &&
-			!v.rooms
+			v.rooms === undefined &&
+			v.listing_subtype !== "studio"
 		) {
 			return false;
 		}
-		return images.length > 0;
+		return images.length > 0 && !isUploading;
 	}, [
 		form.values.type,
 		form.values.property_type,
@@ -195,7 +200,9 @@ function Stage1() {
 		form.values.price,
 		form.values.area,
 		form.values.rooms,
+		form.values.listing_subtype,
 		images.length,
+		isUploading,
 	]);
 
 	const hasAi = edits.ru.length > 0;
@@ -403,7 +410,7 @@ function Stage1() {
 											</Badge>
 										</Group>
 										<SimpleGrid cols={3} spacing="xs">
-											{images.map((file, index) => (
+											{images.map((item, index) => (
 												<Box
 													key={index}
 													style={{
@@ -413,8 +420,13 @@ function Stage1() {
 														aspectRatio: "1",
 													}}
 												>
+													{item.kind === "pending" && (
+														<Box style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)", zIndex: 1 }}>
+															<Loader size="xs" color="white" />
+														</Box>
+													)}
 													<Image
-														src={URL.createObjectURL(file)}
+														src={item.kind === "uploaded" ? item.data.thumbnail_url : item.previewUrl}
 														alt={`photo-${index}`}
 														fit="cover"
 														style={{ width: "100%", height: "100%" }}
@@ -625,215 +637,6 @@ function Stage1() {
 							}
 						/>
 
-						{/* ── AI Description Block ── */}
-						<Box
-							style={{
-								borderRadius: 16,
-								border: hasAi ? "1.5px solid #86efac" : "1.5px solid #93c5fd",
-								backgroundColor: hasAi ? "#f0fdf4" : "#f8faff",
-								padding: 20,
-							}}
-						>
-							{/* Header */}
-							<Group gap={10} mb={12} wrap="nowrap">
-								<ThemeIcon
-									size={40}
-									radius="xl"
-									color={hasAi ? "green" : "blue"}
-									variant="light"
-									style={{ flexShrink: 0 }}
-								>
-									<IconRobot size={22} />
-								</ThemeIcon>
-								<Box>
-									<Text fw={700} size="sm" lh={1.3}>
-										{hasAi
-											? t("createListing.aiReadyTitle", "Описание сгенерировано")
-											: t("createListing.addAiDescription", "Добавьте описание с AI")}
-									</Text>
-									{!hasAi && (
-										<Text size="xs" c="dimmed" lh={1.4}>
-											{t(
-												"createListing.aiRecommend",
-												"Рекомендуем — обычно выходит убедительнее",
-											)}
-										</Text>
-									)}
-								</Box>
-							</Group>
-
-							{/* Language badges (shown when no AI text yet) */}
-							{!hasAi && !isPolling && !pollTimedOut && (
-								<>
-									<Text size="xs" c="dimmed" mb={6}>
-										{t("createListing.aiLanguagesLabel", "Текст сразу на трёх языках:")}
-									</Text>
-									<Group gap={6} mb={14}>
-										<Badge variant="light" color="blue" size="sm" radius="md">
-											🇷🇺 Русский
-										</Badge>
-										<Badge variant="light" color="green" size="sm" radius="md">
-											🇺🇿 O&apos;zbek
-										</Badge>
-										<Badge variant="light" color="teal" size="sm" radius="md">
-											Ўзбекча
-										</Badge>
-									</Group>
-								</>
-							)}
-
-							{/* Wishes field — always visible, used as hint for AI */}
-							{!hasAi && (
-								<Textarea
-									label={t("createListing.aiWishesLabel", "Пожелания для AI")}
-									placeholder={t(
-										"createListing.aiWishesPlaceholder",
-										"Укажите особенности, которые важно упомянуть…",
-									)}
-									value={wishes}
-									onChange={(e) => setWishes(e.currentTarget.value)}
-									minRows={2}
-									maxRows={4}
-									autosize
-									mb={12}
-									styles={{ input: { fontSize: 13 } }}
-								/>
-							)}
-
-							{/* State: idle */}
-							{!hasAi && !isPolling && !pollTimedOut && (
-								<>
-									<Button
-										fullWidth
-										radius="xl"
-										leftSection={<IconRobot size={16} />}
-										disabled={!hasMinimumParams}
-										loading={isCreatingDraft && !isPolling}
-										onClick={handleGenerate}
-									>
-										{t("createListing.generateAiButton", "Сгенерировать с AI")}
-									</Button>
-									{!hasMinimumParams && (
-										<Text size="xs" c="dimmed" ta="center" mt={6}>
-											{t(
-												"createListing.generateDisabledHint",
-												"Заполните основные параметры и добавьте фото",
-											)}
-										</Text>
-									)}
-									<Text size="xs" c="dimmed" ta="center" mt={hasMinimumParams ? 8 : 4}>
-										{t("createListing.aiEditableHint", "Результат можно отредактировать")}
-									</Text>
-								</>
-							)}
-
-							{/* State: polling */}
-							{!hasAi && isPolling && !pollTimedOut && (
-								<Box
-									style={{
-										padding: "16px 0 4px",
-										display: "flex",
-										flexDirection: "column",
-										alignItems: "center",
-										gap: 10,
-									}}
-								>
-									<Loader size="sm" color="blue" />
-									<Text fw={600} size="sm" c="#0369a1">
-										{t("createListing.generatingText", "AI готовит описание объявления…")}
-									</Text>
-								</Box>
-							)}
-
-							{/* State: timed out */}
-							{!hasAi && pollTimedOut && (
-								<Alert
-									icon={<IconInfoCircle size={16} />}
-									color="orange"
-									title={t(
-										"createListing.pollingTimedOutTitle",
-										"Генерация занимает дольше обычного",
-									)}
-								>
-									<Text size="sm" mb="sm">
-										{t(
-											"createListing.pollingTimedOutBody",
-											"Текст ещё не готов. Попробуйте обновить или сгенерировать заново.",
-										)}
-									</Text>
-									<Group gap="sm">
-										<Button
-											size="xs"
-											variant="light"
-											leftSection={<IconRefresh size={14} />}
-											onClick={handleManualRefresh}
-										>
-											{t("createListing.pollingRetry", "Обновить")}
-										</Button>
-										<Button
-											size="xs"
-											variant="subtle"
-											loading={isRegenerating}
-											onClick={handleGenerate}
-										>
-											{t("createListing.regenerateButton", "Сгенерировать заново")}
-										</Button>
-									</Group>
-								</Alert>
-							)}
-
-							{/* State: AI text ready — show 3-tab editor */}
-							{hasAi && (
-								<Box>
-									<Tabs
-										value={activeTab}
-										onChange={(v) => v && setActiveTab(v as Lang)}
-										radius="md"
-										variant="pills"
-										color="green"
-									>
-										<Tabs.List grow>
-											{LANG_TABS.map(({ value, label }) => (
-												<Tabs.Tab key={value} value={value}>
-													{label}
-												</Tabs.Tab>
-											))}
-										</Tabs.List>
-										{LANG_TABS.map(({ value }) => (
-											<Tabs.Panel key={value} value={value} pt="sm">
-												<Textarea
-													value={edits[value]}
-													onChange={(e) =>
-														editDescription({
-															lang: value,
-															value: e.currentTarget.value,
-														})
-													}
-													minRows={6}
-													maxRows={12}
-													autosize
-													placeholder={t(
-														"createListing.editPlaceholder",
-														"Текст объявления…",
-													)}
-												/>
-											</Tabs.Panel>
-										))}
-									</Tabs>
-
-									<Button
-										mt="sm"
-										size="xs"
-										variant="subtle"
-										leftSection={<IconRefresh size={14} />}
-										loading={isRegenerating}
-										onClick={handleGenerate}
-									>
-										{t("createListing.regenerateButton", "Сгенерировать заново")}
-									</Button>
-								</Box>
-							)}
-						</Box>
 					</Stack>
 				</form>
 

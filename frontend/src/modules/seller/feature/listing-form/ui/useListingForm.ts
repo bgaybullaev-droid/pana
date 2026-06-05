@@ -12,6 +12,10 @@ import {
 } from "@shared/constants/regions";
 import { saveDraft } from "./listingDraftStorage";
 
+export type ImageItem =
+	| { kind: "uploaded"; data: ListingImageCreateData }
+	| { kind: "pending"; file: File; previewUrl: string };
+
 export interface ListingFormValues {
 	type: "sell" | "rent";
 	property_type: "apartment" | "house" | "commercial" | "land";
@@ -106,10 +110,14 @@ export type ListingFormMode = "create" | "edit";
 export function useListingForm(
 	mode: ListingFormMode = "create",
 	initialOverrides?: Partial<ListingFormValues>,
+	initialImages?: ListingImageCreateData[],
 ) {
 	const { t } = useTranslation("seller");
-	const [images, setImages] = useState<File[]>([]);
-	const [isUploading, setIsUploading] = useState(false);
+	const [images, setImages] = useState<ImageItem[]>(() =>
+		(initialImages ?? []).map(data => ({ kind: "uploaded" as const, data })),
+	);
+	const [uploadingCount, setUploadingCount] = useState(0);
+	const isUploading = uploadingCount > 0;
 	const [uploadProgress, setUploadProgress] = useState(0);
 
 	const regions = getRegionOptions(t);
@@ -207,7 +215,7 @@ export function useListingForm(
 			rooms: (value, values) => {
 				const isApt = values.property_type === "apartment";
 				const isHouse = values.property_type === "house";
-				if ((isApt || isHouse) && value === undefined) {
+				if ((isApt || isHouse) && value === undefined && values.listing_subtype !== "studio") {
 					return t("validation.roomsRequired");
 				}
 				return null;
@@ -285,75 +293,103 @@ export function useListingForm(
 		[form.values.region, t],
 	);
 
-	// Auto-save form values to localStorage while filling Stage 1 (create mode only).
-	// Debounced 800 ms to avoid excessive writes.
+	// Auto-save form values + uploaded images to localStorage (create mode, debounced 800 ms).
 	const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 	useEffect(() => {
 		if (mode !== "create") return;
+		const uploadedImageData = images
+			.filter((i): i is Extract<ImageItem, { kind: "uploaded" }> => i.kind === "uploaded")
+			.map(i => i.data);
 		clearTimeout(saveTimerRef.current);
-		saveTimerRef.current = setTimeout(() => saveDraft(form.values), 800);
+		saveTimerRef.current = setTimeout(() => saveDraft(form.values, uploadedImageData), 800);
 		return () => clearTimeout(saveTimerRef.current);
-	// form.values is a new reference on every field change — intentional dep.
+	// form.values and images are new references on each change — intentional deps.
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [form.values, mode]);
+	}, [form.values, images, mode]);
 
 	const handleRegionChange = (value: string) => {
 		form.setFieldValue("region", value);
 		form.setFieldValue("district", "");
 	};
 
-	const handleAddImages = (files: File[]) => {
-		setImages((prev) => [...prev, ...files].slice(0, 10));
+	const handleAddImages = async (newFiles: File[]) => {
+		const slots = 10 - images.length;
+		if (slots <= 0) return;
+		const files = newFiles.slice(0, slots);
+
+		const pendingItems: ImageItem[] = files.map(f => ({
+			kind: "pending" as const,
+			file: f,
+			previewUrl: URL.createObjectURL(f),
+		}));
+
+		setImages(prev => [...prev, ...pendingItems]);
+		setUploadingCount(c => c + files.length);
+		setUploadProgress(0);
+
+		let doneCount = 0;
+		for (const pendingItem of pendingItems) {
+			if (pendingItem.kind !== "pending") continue;
+			try {
+				const result = await uploadImageFx(pendingItem.file);
+				const uploadedItem: ImageItem = {
+					kind: "uploaded",
+					data: {
+						original_url: result.original_url,
+						thumbnail_url: result.thumbnail_url,
+						medium_url: result.medium_url,
+						large_url: result.large_url,
+						position: 0,
+						is_primary: false,
+					},
+				};
+				setImages(prev => {
+					const idx = prev.indexOf(pendingItem);
+					if (idx === -1) return prev;
+					const next = [...prev];
+					next[idx] = uploadedItem;
+					let pos = 0;
+					return next.map(item =>
+						item.kind === "uploaded"
+							? { ...item, data: { ...item.data, position: pos++, is_primary: pos === 1 } }
+							: item,
+					);
+				});
+			} catch {
+				setImages(prev => {
+					const it = prev.find(i => i === pendingItem);
+					if (it?.kind === "pending") URL.revokeObjectURL(it.previewUrl);
+					return prev.filter(i => i !== pendingItem);
+				});
+				notifications.show({
+					title: t("notifications.warning"),
+					message: t("notifications.imageUploadFailed"),
+					color: "yellow",
+				});
+			}
+			doneCount++;
+			setUploadingCount(c => c - 1);
+			setUploadProgress(Math.round((doneCount / files.length) * 100));
+		}
 	};
 
 	const handleRemoveImage = (index: number) => {
-		setImages((prev) => prev.filter((_, i) => i !== index));
+		setImages(prev => {
+			const item = prev[index];
+			if (item?.kind === "pending") URL.revokeObjectURL(item.previewUrl);
+			return prev.filter((_, i) => i !== index);
+		});
 	};
 
-	const uploadImages = async (
-		files: File[],
-		positionOffset = 0,
-	): Promise<ListingImageCreateData[]> => {
-		const uploadedImages: ListingImageCreateData[] = [];
-		for (let i = 0; i < files.length; i++) {
-			setUploadProgress(Math.round((i / files.length) * 100));
-			try {
-				const uploadResult = await uploadImageFx(files[i]);
-				uploadedImages.push({
-					original_url: uploadResult.original_url,
-					thumbnail_url: uploadResult.thumbnail_url,
-					medium_url: uploadResult.medium_url,
-					large_url: uploadResult.large_url,
-					position: positionOffset + i,
-					is_primary: positionOffset === 0 && i === 0,
-				});
-			} catch (error) {
-				console.error(`Failed to upload image ${i + 1}:`, error);
-			}
-		}
-		setUploadProgress(100);
-		return uploadedImages;
-	};
-
-	const handleUploadImages = async (
-		positionOffset = 0,
-	): Promise<ListingImageCreateData[]> => {
-		if (images.length === 0) return [];
-		setIsUploading(true);
-		setUploadProgress(0);
-		try {
-			return await uploadImages(images, positionOffset);
-		} catch (error) {
-			console.error("Image upload failed:", error);
-			notifications.show({
-				title: t("notifications.warning"),
-				message: t("notifications.imageUploadFailed"),
-				color: "yellow",
-			});
-			return [];
-		} finally {
-			setIsUploading(false);
-		}
+	// Images are pre-uploaded via handleAddImages; just return the uploaded ones.
+	const handleUploadImages = async (positionOffset = 0): Promise<ListingImageCreateData[]> => {
+		return images
+			.filter((i): i is Extract<ImageItem, { kind: "uploaded" }> => i.kind === "uploaded")
+			.map((item, idx) => ({
+				...item.data,
+				position: positionOffset + idx,
+				is_primary: positionOffset === 0 && idx === 0,
+			}));
 	};
 
 	// Dual-read submit rule (Sprint 5 — T-006, T-008):
@@ -371,7 +407,7 @@ export function useListingForm(
 		price: values.is_negotiable ? 0 : values.price!,
 		currency: values.currency,
 		is_negotiable: values.is_negotiable,
-		rooms: values.rooms,
+		rooms: values.listing_subtype === "studio" ? 0 : values.rooms,
 		area: values.area,
 		living_area: values.living_area,
 		kitchen_area: values.kitchen_area,
