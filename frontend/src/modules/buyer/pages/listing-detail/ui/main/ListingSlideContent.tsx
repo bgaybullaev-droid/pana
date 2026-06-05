@@ -24,8 +24,10 @@ import {
 	IconCheck,
 	IconTrash,
 	IconPhoto,
+	IconShieldCheck,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "@app/styles/theme";
@@ -55,6 +57,37 @@ interface ListingSlideContentProps {
 }
 
 const shadow = "0 1px 4px rgba(0,0,0,0.6)";
+
+// market_type value → seller-namespace i18n key.
+const MARKET_TYPE_KEY: Record<string, string> = {
+	new: "createListing.marketTypeNew",
+	secondary: "createListing.marketTypeSecondary",
+};
+
+// condition value → seller-namespace i18n key.
+const CONDITION_KEY: Record<string, string> = {
+	euro: "createListing.condEuro",
+	cosmetic: "createListing.condCosmetic",
+	needs_repair: "createListing.condRepair",
+	rough: "createListing.condRough",
+	none: "createListing.condNone",
+	shell: "createListing.condShell",
+	medium: "createListing.condMedium",
+	designer: "createListing.condDesigner",
+	turnkey: "createListing.condTurnkey",
+	needs_repair_comm: "createListing.condNeedsRepairComm",
+};
+
+// Compact relative "published N days ago" label for the card.
+function formatRelativeDate(iso: string, t: TFunction): string {
+	const diffMs = Date.now() - new Date(iso).getTime();
+	const days = Math.floor(diffMs / 86_400_000);
+	if (days <= 0) return t("listing.today");
+	if (days === 1) return t("listing.yesterday");
+	if (days < 30) return t("listing.daysAgoShort", { count: days });
+	if (days < 365) return t("listing.monthsAgoShort", { count: Math.floor(days / 30) });
+	return t("listing.yearsAgoShort", { count: Math.floor(days / 365) });
+}
 
 export const ListingSlideContent: FC<ListingSlideContentProps> = ({
 	listing,
@@ -125,6 +158,29 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 		translateDistrict(listing.district, t) || t("listing.defaultDistrict");
 	const regionLabel = listing.region ? translateRegion(listing.region, t) : null;
 	const sellerDisplayName = listing.seller_name || null;
+
+	// Seller-namespace translation (enum labels live in the seller bundle).
+	const ts = (key: string, fallback?: string) =>
+		t(key, { ns: "seller", defaultValue: fallback ?? key });
+
+	const sellerTypeLabel = listing.seller_type
+		? t(`descriptionDrawer.sellerType.${listing.seller_type}`, listing.seller_type)
+		: null;
+	const dateLabel = formatRelativeDate(listing.created_at, t);
+	const marketTypeLabel =
+		listing.market_type && MARKET_TYPE_KEY[listing.market_type]
+			? ts(MARKET_TYPE_KEY[listing.market_type], listing.market_type)
+			: null;
+	const conditionLabel =
+		listing.condition && CONDITION_KEY[listing.condition]
+			? ts(CONDITION_KEY[listing.condition], listing.condition)
+			: null;
+	// Price per m² — prefer the explicit field, else derive from price / area.
+	const pricePerSqm =
+		listing.price_per_sqm ??
+		(listing.area && listing.area > 0
+			? Math.round(listing.price / listing.area)
+			: null);
 
 	return (
 		<Box
@@ -301,7 +357,7 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 						</Stack>
 					)}
 
-					{/* Views */}
+					{/* Views — count + tap toggles info overlay */}
 					<Stack gap={1} align="center">
 						<ActionIcon
 							variant="transparent"
@@ -314,6 +370,9 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 								style={{ filter: `drop-shadow(${shadow})` }}
 							/>
 						</ActionIcon>
+						<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
+							{listing.views_count || 0}
+						</Text>
 					</Stack>
 
 					{/* Map */}
@@ -385,10 +444,11 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 				<Transition mounted={showInfo} transition="fade" duration={300}>
 					{(styles) => (
 						<Stack gap={6} style={styles}>
-							{/* Seller avatar + name row */}
+							{/* Seller avatar + name + verified + type · date */}
 							<Group
 								gap={8}
 								align="center"
+								wrap="nowrap"
 								style={{ cursor: listing.seller_id ? "pointer" : "default" }}
 								onClick={() => {
 									if (listing.seller_id)
@@ -410,139 +470,195 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 								>
 									<IconUser size={18} color="white" />
 								</Avatar>
-								{sellerDisplayName && (
-									<Text
-										size="sm"
-										fw={700}
-										c="white"
-										style={{ textShadow: shadow }}
+								<Box style={{ minWidth: 0 }}>
+									<Group gap={4} wrap="nowrap" align="center">
+										{sellerDisplayName && (
+											<Text
+												size="sm"
+												fw={700}
+												c="white"
+												truncate
+												style={{ textShadow: shadow }}
+											>
+												@{sellerDisplayName}
+											</Text>
+										)}
+										{listing.seller_verified && (
+											<IconShieldCheck
+												size={15}
+												color="#4dabf7"
+												style={{
+													flexShrink: 0,
+													filter: `drop-shadow(${shadow})`,
+												}}
+											/>
+										)}
+									</Group>
+									{(sellerTypeLabel || dateLabel) && (
+										<Text
+											size="11px"
+											c="rgba(255,255,255,0.85)"
+											truncate
+											style={{ textShadow: shadow }}
+										>
+											{[sellerTypeLabel, dateLabel]
+												.filter(Boolean)
+												.join(" · ")}
+										</Text>
+									)}
+								</Box>
+							</Group>
+
+							{/* Tappable info block — opens the description drawer */}
+							<Box
+								onClick={() => setDescriptionOpen(true)}
+								style={{
+									cursor: "pointer",
+									display: "flex",
+									flexDirection: "column",
+									gap: 6,
+								}}
+							>
+								{/* Row 1 — primary params */}
+								<Group gap={4} wrap="wrap">
+									{listing.urgent_flag && (
+										<Badge size="xs" variant="filled" color="red" radius="sm">
+											{t("listing.badges.urgent").toUpperCase()}
+										</Badge>
+									)}
+									<Badge
+										size="xs"
+										variant="filled"
+										color={listing.type === "sell" ? "blue" : "green"}
+										radius="sm"
 									>
-										@{sellerDisplayName}
-									</Text>
-								)}
-							</Group>
-
-							{/* Badges row 1 — property type, listing type, area, rooms, floor */}
-							<Box onClick={() => setDescriptionOpen(true)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 6 }}>
-								<Group gap={4} wrap="wrap">
-								<Badge
-									size="xs"
-									variant="filled"
-									color={listing.type === "sell" ? "blue" : "green"}
-									radius="sm"
-								>
-									{listing.property_type === "apartment"
-										? t("card.propertyType.apartment").toUpperCase()
-										: listing.property_type === "house"
-											? t("card.propertyType.house").toUpperCase()
-											: listing.property_type === "commercial"
-												? t("card.propertyType.commercial").toUpperCase()
-												: t("card.propertyType.land").toUpperCase()}
-								</Badge>
-								<Badge
-									size="xs"
-									variant="filled"
-									color={listing.type === "sell" ? "blue" : "green"}
-									radius="sm"
-								>
-									{listing.type === "sell"
-										? t("listing.typeSell").toUpperCase()
-										: t("listing.typeRent").toUpperCase()}
-								</Badge>
-								{listing.area != null && (
-									<Badge size="xs" variant="filled" color="gray" radius="sm">
-										{listing.area} {t("listing.area")}
+										{listing.property_type === "apartment"
+											? t("card.propertyType.apartment").toUpperCase()
+											: listing.property_type === "house"
+												? t("card.propertyType.house").toUpperCase()
+												: listing.property_type === "commercial"
+													? t("card.propertyType.commercial").toUpperCase()
+													: t("card.propertyType.land").toUpperCase()}
 									</Badge>
-								)}
-								{listing.rooms != null && (
-									<Badge size="xs" variant="filled" color="gray" radius="sm">
-										{listing.rooms} {t("listing.rooms")}
+									<Badge
+										size="xs"
+										variant="filled"
+										color={listing.type === "sell" ? "blue" : "green"}
+										radius="sm"
+									>
+										{listing.type === "sell"
+											? t("listing.typeSell").toUpperCase()
+											: t("listing.typeRent").toUpperCase()}
 									</Badge>
-								)}
-								{listing.floor != null && (
-									<Badge size="xs" variant="filled" color="gray" radius="sm">
-										{listing.floor}/{listing.total_floors || "?"}
-									</Badge>
-								)}
-							</Group>
-
-							{/* Finance perks — mortgage / installment / halal.
-							    Main listings only; crawled sources default false. */}
-							{(listing.mortgage_ok ||
-								listing.installment_ok ||
-								listing.halol_ok) && (
-								<Group gap={4} wrap="wrap">
-									{listing.mortgage_ok && (
-										<Badge
-											size="xs"
-											variant="filled"
-											color="teal"
-											radius="sm"
-										>
-											{t("listing.badges.mortgage")}
+									{listing.area != null && (
+										<Badge size="xs" variant="filled" color="gray" radius="sm">
+											{listing.area} {t("listing.area")}
 										</Badge>
 									)}
-									{listing.installment_ok && (
-										<Badge
-											size="xs"
-											variant="filled"
-											color="teal"
-											radius="sm"
-										>
-											{t("listing.badges.installment")}
+									{listing.rooms != null && (
+										<Badge size="xs" variant="filled" color="gray" radius="sm">
+											{listing.rooms} {t("listing.rooms")}
 										</Badge>
 									)}
-									{listing.halol_ok && (
-										<Badge
-											size="xs"
-											variant="filled"
-											color="teal"
-											radius="sm"
-										>
-											{t("listing.badges.halol")}
+									{listing.floor != null && (
+										<Badge size="xs" variant="filled" color="gray" radius="sm">
+											{listing.floor}/{listing.total_floors || "?"}
 										</Badge>
 									)}
 								</Group>
-							)}
 
-							{/* Badges row 2 — location: region + district */}
-							<Group gap={4}>
-								{regionLabel && (
-									<Badge size="xs" variant="filled" color="gray" radius="sm">
-										{regionLabel.toUpperCase()}
-									</Badge>
+								{/* Row 2 — qualitative: market type, condition, metro, ЖК */}
+								{(marketTypeLabel ||
+									conditionLabel ||
+									listing.metro_station ||
+									listing.jk_name) && (
+									<Group gap={4} wrap="wrap">
+										{marketTypeLabel && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												{marketTypeLabel.toUpperCase()}
+											</Badge>
+										)}
+										{conditionLabel && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												{conditionLabel.toUpperCase()}
+											</Badge>
+										)}
+										{listing.metro_station && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												м. {listing.metro_station}
+											</Badge>
+										)}
+										{listing.jk_name && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												{listing.jk_name}
+											</Badge>
+										)}
+									</Group>
 								)}
-								<Badge size="xs" variant="filled" color="gray" radius="sm">
-									{districtLabel.toUpperCase()}
-								</Badge>
-							</Group>
 
-							{/* Description text */}
-							<Text
-								size="sm"
-								fw={500}
-								c="white"
-								lineClamp={3}
-								style={{
-									zIndex: 20,
-									textShadow: shadow,
-									lineHeight: 1.5,
-								}}
-							>
-								{listing.description?.slice(0, 400) ||
-									listing.title ||
-									`${listing.property_type}, ${districtLabel}`}
-							</Text>
+								{/* Finance perks — mortgage / installment / halal.
+								    Main listings only; crawled sources default false. */}
+								{(listing.mortgage_ok ||
+									listing.installment_ok ||
+									listing.halol_ok) && (
+									<Group gap={4} wrap="wrap">
+										{listing.mortgage_ok && (
+											<Badge size="xs" variant="filled" color="teal" radius="sm">
+												{t("listing.badges.mortgage")}
+											</Badge>
+										)}
+										{listing.installment_ok && (
+											<Badge size="xs" variant="filled" color="teal" radius="sm">
+												{t("listing.badges.installment")}
+											</Badge>
+										)}
+										{listing.halol_ok && (
+											<Badge size="xs" variant="filled" color="teal" radius="sm">
+												{t("listing.badges.halol")}
+											</Badge>
+										)}
+									</Group>
+								)}
 
-							{/* Price */}
-							<Text
-								size="xl"
-								fw={800}
-								c="white"
-								style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
-							>
-								{formattedPrice}
-							</Text>
+								{/* Location — region + district */}
+								<Group gap={4}>
+									{regionLabel && (
+										<Badge size="xs" variant="filled" color="gray" radius="sm">
+											{regionLabel.toUpperCase()}
+										</Badge>
+									)}
+									<Badge size="xs" variant="filled" color="gray" radius="sm">
+										{districtLabel.toUpperCase()}
+									</Badge>
+								</Group>
+
+								{/* Price + price per m² + negotiable */}
+								<Group gap={8} align="baseline" wrap="wrap">
+									<Text
+										size="xl"
+										fw={800}
+										c="white"
+										style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
+									>
+										{formattedPrice}
+									</Text>
+									{pricePerSqm != null && (
+										<Text
+											size="xs"
+											fw={600}
+											c="rgba(255,255,255,0.9)"
+											style={{ textShadow: shadow }}
+										>
+											{formatPrice(pricePerSqm, listing.currency)}/
+											{t("listing.area")}
+										</Text>
+									)}
+									{listing.is_negotiable && (
+										<Badge size="xs" variant="filled" color="green" radius="sm">
+											{t("listing.badges.negotiable")}
+										</Badge>
+									)}
+								</Group>
 							</Box>
 						</Stack>
 					)}
