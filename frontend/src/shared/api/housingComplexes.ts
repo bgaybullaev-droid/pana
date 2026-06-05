@@ -19,16 +19,28 @@ import { apiClient } from "./client";
 export interface HousingComplexListItem {
 	id: string;
 	name: string;
+	name_uz_latn?: string | null;
+	name_uz_cyrl?: string | null;
 	region: string | null;
 	district: string | null;
+	microdistrict?: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
 }
 
 export interface HousingComplexDetail {
 	id: string;
 	name: string;
+	name_uz_latn?: string | null;
+	name_uz_cyrl?: string | null;
 	developer_id: string | null;
 	region: string | null;
 	district: string | null;
+	microdistrict?: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
+	osm_id?: string | null;
+	source?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -36,6 +48,7 @@ export interface HousingComplexDetail {
 export interface HousingComplexSearchParams {
 	q?: string;
 	region?: string;
+	district?: string;
 	limit?: number;
 }
 

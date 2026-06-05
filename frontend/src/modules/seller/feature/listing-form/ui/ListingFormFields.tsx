@@ -15,6 +15,7 @@ import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
+import { LandmarkAutocomplete } from "@shared/ui/LandmarkAutocomplete";
 import { MicrodistrictAutocomplete } from "@shared/ui/MicrodistrictAutocomplete";
 import { MetroStationAutocomplete } from "@shared/ui/MetroStationAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
@@ -1013,12 +1014,16 @@ export function ListingFormFields({
 						onChange={(key) => set("metro_station", key)}
 					/>
 				)}
-				{/* S3 — always-visible landmark */}
-				<TextInput
+				{/* S3 — landmark / PR-G — catalog hints (район→ориентир cascade).
+				    Free-text is always accepted; landmark_id wiring is a
+				    follow-up, so the form still submits the free-text name. */}
+				<LandmarkAutocomplete
 					label={t("createListing.landmarkLabel")}
 					placeholder={t("createListing.landmarkPlaceholder")}
-					value={form.values.landmark || ""}
-					onChange={(e) => set("landmark", e.currentTarget.value || undefined)}
+					region={form.values.region || undefined}
+					district={form.values.district || undefined}
+					value={{ landmark_id: undefined, landmark: form.values.landmark }}
+					onChange={({ landmark }) => set("landmark", landmark)}
 				/>
 				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house) */}
 				{show.jkName && (
@@ -1026,6 +1031,7 @@ export function ListingFormFields({
 						label={t("createListing.jkNameLabel")}
 						placeholder={t("createListing.jkNamePlaceholder")}
 						region={form.values.region || undefined}
+						district={form.values.district || undefined}
 						value={{
 							jk_id: form.values.jk_id,
 							jk_name: form.values.jk_name,

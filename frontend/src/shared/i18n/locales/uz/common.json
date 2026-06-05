@@ -23,6 +23,9 @@
   "housingComplex": {
     "linked": "✓ turar-joy majmuasi bilan bog'langan"
   },
+  "landmark": {
+    "linked": "✓ ma'lumotnomadan mo'ljal tanlandi"
+  },
   "locations": {
     "region": {
       "qoraqalpogiston": "Qoraqalpog'iston",

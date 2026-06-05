@@ -37,6 +37,8 @@ export interface HousingComplexAutocompleteProps {
 	/** Narrow the suggestion list to a specific region slug. Optional;
 	 *  omit for a global catalog lookup. */
 	region?: string | undefined;
+	/** Narrow further by district slug (район→ЖК cascade). */
+	district?: string | undefined;
 	disabled?: boolean;
 }
 
@@ -50,6 +52,7 @@ export function HousingComplexAutocomplete({
 	label,
 	placeholder,
 	region,
+	district,
 	disabled,
 }: HousingComplexAutocompleteProps) {
 	const { t } = useTranslation("common");
@@ -93,6 +96,7 @@ export function HousingComplexAutocomplete({
 			const list = await searchHousingComplexes({
 				q,
 				region,
+				district,
 				limit: MAX_RESULTS,
 			});
 			setResults(list);

@@ -500,6 +500,14 @@ class Listing(Base):
         nullable=True,
     )
 
+    # ── PR-G: Optional FK to the landmark catalog. Coexists with the
+    # free-text `landmark` column (dual-column, mirrors jk_id / jk_name).
+    landmark_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("landmarks.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # ── Sprint 8: SEO slug (T-023) ────────────────────────────────────
     slug: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True, unique=False
@@ -675,7 +683,12 @@ class Listing(Base):
 
 class HousingComplex(Base):
     """Sprint 7 — Housing complexes (T-027). Coexists with the free-text
-    `Listing.jk_name` from Sprint 3 (T-001); FK is optional."""
+    `Listing.jk_name` from Sprint 3 (T-001); FK is optional.
+
+    Extended (PR-G) into a geo-aware reference catalog: multilingual names,
+    a `microdistrict` pin and WGS-84 coordinates, plus `osm_id`/`source`
+    provenance so the OSM seed and the listing-name dedup stay idempotent.
+    """
 
     __tablename__ = "housing_complexes"
 
@@ -683,6 +696,11 @@ class HousingComplex(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
+    # Localized names (i18n parity with the microdistrict registry). `name`
+    # stays the canonical/display value (usually ru); the Uzbek variants are
+    # optional and may be machine-transliterated for OSM-sourced rows.
+    name_uz_latn: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    name_uz_cyrl: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     developer_id: Mapped[Optional[UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("sellers.id", ondelete="SET NULL"),
@@ -690,6 +708,52 @@ class HousingComplex(Base):
     )
     region: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     district: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    microdistrict: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    # WGS-84 point — enables map pins + nearest-microdistrict assignment.
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # Provenance: OSM element id ('way/123') for idempotent re-seeding, and
+    # the data source ('osm' | 'listing' | 'manual').
+    osm_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    source: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="osm"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Landmark(Base):
+    """PR-G — Landmark reference catalog (markets, malls, universities,
+    parks, stations, …) used as an optional address hint on a listing.
+
+    Mirrors the HousingComplex shape: a flat row pinned to a `district` key
+    from REGIONS, with multilingual names and a WGS-84 point. Seeded from
+    OpenStreetMap (Overpass). The listing keeps a free-text `landmark`
+    column plus an optional `landmark_id` FK — the same dual-column pattern
+    as jk_name / jk_id, so a seller can pick a known landmark or type a
+    free-text one."""
+
+    __tablename__ = "landmarks"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    name_uz_latn: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    name_uz_cyrl: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # Coarse type: 'market' | 'mall' | 'university' | 'park' | 'station' | …
+    category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    region: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    district: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    microdistrict: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    osm_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    source: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="osm"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

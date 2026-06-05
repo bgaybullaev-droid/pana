@@ -27,7 +27,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import get_current_user
@@ -47,8 +47,13 @@ class HousingComplexListItem(BaseModel):
 
     id: UUID
     name: str
+    name_uz_latn: Optional[str] = None
+    name_uz_cyrl: Optional[str] = None
     region: Optional[str] = None
     district: Optional[str] = None
+    microdistrict: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     model_config = {"from_attributes": True}
 
@@ -58,9 +63,16 @@ class HousingComplexResponse(BaseModel):
 
     id: UUID
     name: str
+    name_uz_latn: Optional[str] = None
+    name_uz_cyrl: Optional[str] = None
     developer_id: Optional[UUID] = None
     region: Optional[str] = None
     district: Optional[str] = None
+    microdistrict: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    osm_id: Optional[str] = None
+    source: Optional[str] = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
 
@@ -71,24 +83,33 @@ class HousingComplexResponse(BaseModel):
 async def search_housing_complexes(
     q: Optional[str] = Query(None, max_length=200),
     region: Optional[str] = Query(None, max_length=100),
+    district: Optional[str] = Query(None, max_length=100),
     limit: int = Query(20, ge=1, le=_MAX_LIMIT),
     _current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Prefix-search housing complexes by name, optionally narrowed by
-    region. Returns at most `limit` rows (hard cap 50). Empty `q` returns
-    the most-recent complexes — useful for the initial dropdown state.
+    region and/or district (район→ЖК cascade). Returns at most `limit`
+    rows (hard cap 50). Empty `q` returns the first complexes by name —
+    useful for the initial dropdown state once a district is picked.
     """
     query = select(HousingComplex)
     predicates = []
     if q and q.strip():
-        # Case-insensitive substring match. Use PG ILIKE for predicate
-        # stability; no fancy full-text ranking needed for autocomplete.
+        # Case-insensitive substring match across all name locales. Use PG
+        # ILIKE for predicate stability; no full-text ranking needed here.
+        needle = f"%{q.lower().strip()}%"
         predicates.append(
-            func.lower(HousingComplex.name).like(f"%{q.lower().strip()}%")
+            or_(
+                func.lower(HousingComplex.name).like(needle),
+                func.lower(HousingComplex.name_uz_latn).like(needle),
+                func.lower(HousingComplex.name_uz_cyrl).like(needle),
+            )
         )
     if region and region.strip():
         predicates.append(HousingComplex.region == region.strip())
+    if district and district.strip():
+        predicates.append(HousingComplex.district == district.strip())
     if predicates:
         query = query.where(and_(*predicates))
     query = query.order_by(HousingComplex.name.asc()).limit(limit)

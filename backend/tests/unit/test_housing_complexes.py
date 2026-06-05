@@ -57,6 +57,21 @@ class TestListItemProjection:
         assert out.region is None
         assert out.district is None
 
+    def test_geo_and_locale_fields_pass_through(self):
+        row = _mk(
+            name_uz_latn="Boulevard",
+            name_uz_cyrl="Бульвар",
+            microdistrict="Yunusobod-19",
+            latitude=41.366,
+            longitude=69.289,
+        )
+        out = HousingComplexListItem.model_validate(row)
+        assert out.name_uz_latn == "Boulevard"
+        assert out.name_uz_cyrl == "Бульвар"
+        assert out.microdistrict == "Yunusobod-19"
+        assert out.latitude == 41.366
+        assert out.longitude == 69.289
+
 
 class TestFullResponseProjection:
     def test_all_fields_preserved(self):
@@ -74,6 +89,11 @@ class TestFullResponseProjection:
     def test_null_developer_id_allowed(self):
         out = HousingComplexResponse.model_validate(_mk(developer_id=None))
         assert out.developer_id is None
+
+    def test_provenance_fields_preserved(self):
+        out = HousingComplexResponse.model_validate(_mk(osm_id="way/42", source="osm"))
+        assert out.osm_id == "way/42"
+        assert out.source == "osm"
 
     def test_timestamps_present(self):
         out = HousingComplexResponse.model_validate(_mk())

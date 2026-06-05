@@ -23,6 +23,9 @@
   "housingComplex": {
     "linked": "✓ турар-жой мажмуаси билан боғланган"
   },
+  "landmark": {
+    "linked": "✓ маълумотномадан мўлжал танланди"
+  },
   "locations": {
     "region": {
       "qoraqalpogiston": "Қорақалпоғистон",

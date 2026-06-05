@@ -26,6 +26,7 @@ from app.api.v1 import (
     deep_links,
     favorites,
     housing_complexes,
+    landmarks,
     listings,
     notification_settings,
     notifications,
@@ -74,6 +75,11 @@ router.include_router(
     housing_complexes.router,
     prefix="/housing-complexes",
     tags=["Housing Complexes"],
+)
+router.include_router(
+    landmarks.router,
+    prefix="/landmarks",
+    tags=["Landmarks"],
 )
 router.include_router(
     activity_log.router,

@@ -23,6 +23,9 @@
   "housingComplex": {
     "linked": "✓ связан с жилым комплексом"
   },
+  "landmark": {
+    "linked": "✓ выбран ориентир из справочника"
+  },
   "locations": {
     "region": {
       "qoraqalpogiston": "Каракалпакстан",
