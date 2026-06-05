@@ -15,6 +15,7 @@ import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
+import { MicrodistrictAutocomplete } from "@shared/ui/MicrodistrictAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import { METRO_STATIONS } from "@shared/constants/metroStations";
 import { apiClient } from "@shared/api/client";
@@ -988,14 +989,20 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
-				{/* S3 — always-visible microdistrict */}
-				<TextInput
+				{/* S3 — always-visible microdistrict. Autocomplete hints come from
+				    the Tashkent registry, scoped by the район→микрорайон cascade
+				    (form.values.district). Free-text is always accepted; outside
+				    Tashkent the field degrades to a plain input (no hints). */}
+				<MicrodistrictAutocomplete
 					label={t("createListing.microdistrictLabel")}
 					placeholder={t("createListing.microdistrictPlaceholder")}
-					value={form.values.microdistrict || ""}
-					onChange={(e) =>
-						set("microdistrict", e.currentTarget.value || undefined)
+					district={
+						form.values.region === TASHKENT_REGION
+							? form.values.district
+							: undefined
 					}
+					value={form.values.microdistrict || undefined}
+					onChange={(val) => set("microdistrict", val)}
 				/>
 				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house).
 				    Autocomplete resolves to jk_id on pick; free-text keeps jk_id
