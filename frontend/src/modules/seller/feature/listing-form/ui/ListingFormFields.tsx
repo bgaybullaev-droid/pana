@@ -15,12 +15,9 @@ import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
+import { MicrodistrictAutocomplete } from "@shared/ui/MicrodistrictAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import { METRO_STATIONS } from "@shared/constants/metroStations";
-import {
-	MICRODISTRICTS,
-	microdistrictName,
-} from "@shared/constants/microdistricts";
 import { apiClient } from "@shared/api/client";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
@@ -62,7 +59,7 @@ export function ListingFormFields({
 	descriptionValueOverride,
 	onDescriptionChangeOverride,
 }: ListingFormFieldsProps) {
-	const { t, i18n } = useTranslation("seller");
+	const { t } = useTranslation("seller");
 	const pt = form.values.property_type;
 	const dt = form.values.type;
 
@@ -397,10 +394,12 @@ export function ListingFormFields({
 	// full list is shown. Chips wrap to a new row at each line boundary so
 	// the lines read as visually distinct groups.
 	const metroDistrict =
-		form.values.region === TASHKENT_REGION ? form.values.district : undefined;
+		form.values.region === TASHKENT_REGION && form.values.district
+			? form.values.district
+			: undefined;
 	const metroStations = metroDistrict
 		? METRO_STATIONS.filter((s) => s.district === metroDistrict)
-		: METRO_STATIONS;
+		: [];
 	const metroStationOpts = metroStations.map((station, i) => {
 		const next = metroStations[i + 1];
 		return {
@@ -409,16 +408,6 @@ export function ListingFormFields({
 			breakAfter: next != null && next.line !== station.line,
 		};
 	});
-
-	const microdistrictOpts = useMemo(() => {
-		if (!form.values.district) return [];
-		return MICRODISTRICTS.filter((m) => m.district === form.values.district).map(
-			(m) => {
-				const name = microdistrictName(m, i18n.language);
-				return { value: name, label: name };
-			},
-		);
-	}, [form.values.district, i18n.language]);
 
 	// Apartment amenities
 	const aptAmenityOpts = [
@@ -430,7 +419,6 @@ export function ListingFormFields({
 		{ value: "cable_tv", label: t("createListing.amenCable") },
 		{ value: "washing_machine", label: t("createListing.amenWashing") },
 		{ value: "kitchen_set", label: t("createListing.amenKitchen") },
-		{ value: "balcony", label: t("createListing.amenBalcony") },
 	];
 
 	// House amenities (different set)
@@ -1008,23 +996,13 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
-				{microdistrictOpts.length > 0 ? (
-					<ChipSelect
-						label={t("createListing.microdistrictLabel")}
-						options={microdistrictOpts}
-						value={form.values.microdistrict}
-						onChange={(val) => set("microdistrict", val as string | undefined)}
-					/>
-				) : (
-					<TextInput
-						label={t("createListing.microdistrictLabel")}
-						placeholder={t("createListing.microdistrictPlaceholder")}
-						value={form.values.microdistrict || ""}
-						onChange={(e) =>
-							set("microdistrict", e.currentTarget.value || undefined)
-						}
-					/>
-				)}
+				<MicrodistrictAutocomplete
+					label={t("createListing.microdistrictLabel")}
+					placeholder={t("createListing.microdistrictPlaceholder")}
+					district={form.values.district || undefined}
+					value={form.values.microdistrict || undefined}
+					onChange={(val) => set("microdistrict", val)}
+				/>
 				{/* S3 — metro_station (matrix + P5 region sub-gate + район→метро cascade).
 				    Hidden when the chosen district has no metro stations. */}
 				{show.metroStation && metroStationOpts.length > 0 && (
@@ -1088,16 +1066,16 @@ export function ListingFormFields({
 						</Text>
 					)}
 				</Box>
-				<Textarea
-					label={t("createListing.addressLabel")}
-					placeholder={t("createListing.addressPlaceholder")}
-					readOnly
-					autosize
-					minRows={2}
-					maxRows={4}
-					value={form.values.address || ""}
-					styles={{ input: { backgroundColor: "#f8f9fa", cursor: "default" } }}
-				/>
+				{form.values.address ? (
+					<Box>
+						<Text size="sm" fw={500} mb={4} c="dimmed">
+							{t("createListing.addressLabel")}
+						</Text>
+						<Text size="sm" c="dimmed" lh={1.5}>
+							{form.values.address}
+						</Text>
+					</Box>
+				) : null}
 			</FormSection>
 
 			{/* ── Description + optional AI block ── */}

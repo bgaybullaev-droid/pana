@@ -361,7 +361,7 @@ function Stage1() {
 					100% { transform: scale(1); }
 				}
 			`}</style>
-			<Container px="md" pt="md" pb={160}>
+			<Container px="md" pt="md" pb={80}>
 				<LoadingOverlay visible={isCreatingDraft && !isPolling} />
 				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">

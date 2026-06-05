@@ -226,7 +226,7 @@ function Stage2() {
 			title={t("createListing.previewPageTitle", "Ваше объявление")}
 			noPadding
 		>
-			<Container px={0} pt="sm" pb={180}>
+			<Container px={0} pt="sm" pb={100}>
 				<Stack gap="md">
 					{/* Subtitle */}
 					<Text size="xs" c="dimmed" ta="center" px="md">
@@ -249,6 +249,9 @@ function Stage2() {
 									"0 8px 40px rgba(0,0,0,0.18), 0 2px 12px rgba(0,0,0,0.1)",
 								border: "2.5px solid #fff",
 								position: "relative",
+								// transform creates a new containing block for position:fixed
+								// elements portaled inside, keeping drawers within the frame
+								transform: "translateZ(0)",
 							}}
 						>
 							<ListingSlideContent

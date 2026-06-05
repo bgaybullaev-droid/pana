@@ -35,7 +35,6 @@ export const getAptAmenityOpts = (t: any) => [
 	{ value: "cable_tv", label: t("seller:createListing.amenCable") },
 	{ value: "washing_machine", label: t("seller:createListing.amenWashing") },
 	{ value: "kitchen_set", label: t("seller:createListing.amenKitchen") },
-	{ value: "balcony", label: t("seller:createListing.amenBalcony") },
 ];
 
 export const getHouseAmenityOpts = (t: any) => [
