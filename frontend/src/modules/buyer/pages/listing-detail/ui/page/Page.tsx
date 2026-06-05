@@ -94,6 +94,44 @@ function Page() {
 		[webApp],
 	);
 
+	// Long-press the back button → toggle "clean mode": hide the info plate +
+	// side rail across all mounted slides (a short tap still navigates back).
+	// Reuses the shared "slide_show_info" flag + "slide-show-info" event that
+	// every ListingSlideContent listens to.
+	const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const longPressFired = useRef(false);
+
+	const toggleCleanMode = useCallback(() => {
+		const shown = sessionStorage.getItem("slide_show_info") !== "false";
+		const next = !shown;
+		sessionStorage.setItem("slide_show_info", String(next));
+		window.dispatchEvent(new CustomEvent("slide-show-info", { detail: next }));
+		webApp?.HapticFeedback.impactOccurred("medium");
+	}, [webApp]);
+
+	const startBackPress = useCallback(() => {
+		longPressFired.current = false;
+		longPressTimer.current = setTimeout(() => {
+			longPressFired.current = true;
+			toggleCleanMode();
+		}, 450);
+	}, [toggleCleanMode]);
+
+	const cancelBackPress = useCallback(() => {
+		if (longPressTimer.current) {
+			clearTimeout(longPressTimer.current);
+			longPressTimer.current = null;
+		}
+	}, []);
+
+	const handleBack = useCallback(() => {
+		if (longPressFired.current) {
+			longPressFired.current = false;
+			return;
+		}
+		navigate(-1);
+	}, [navigate]);
+
 	if (isLoading && slideIds.length === 0) {
 		return <LoadingOverlay visible />;
 	}
@@ -154,7 +192,13 @@ function Page() {
 					}}
 				>
 					<UnstyledButton
-						onClick={() => navigate(-1)}
+						onClick={handleBack}
+						onPointerDown={startBackPress}
+						onPointerUp={cancelBackPress}
+						onPointerLeave={cancelBackPress}
+						onPointerCancel={cancelBackPress}
+						onContextMenu={(e) => e.preventDefault()}
+						aria-label={t("descriptionDrawer.back")}
 						style={{
 							position: "absolute",
 							bottom: 12,
@@ -168,6 +212,8 @@ function Page() {
 							border: "1px solid rgba(255, 255, 255, 0.5)",
 							boxShadow: shadows.md,
 							pointerEvents: "auto",
+							userSelect: "none",
+							touchAction: "manipulation",
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",

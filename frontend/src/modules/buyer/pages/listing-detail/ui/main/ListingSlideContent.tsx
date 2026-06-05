@@ -1,4 +1,4 @@
-import { FC, RefObject, useState, useCallback, useEffect } from "react";
+import { FC, RefObject, useState, useEffect } from "react";
 import {
 	Box,
 	Text,
@@ -57,6 +57,11 @@ interface ListingSlideContentProps {
 }
 
 const shadow = "0 1px 4px rgba(0,0,0,0.6)";
+
+// Mockup phase: force the call + Telegram CTA buttons onto EVERY listing even
+// when it has no phone / no seller_telegram (those render inert). Flip to
+// false to gate each button on real data again.
+const CTA_MOCKUP = true;
 
 // market_type value → seller-namespace i18n key.
 const MARKET_TYPE_KEY: Record<string, string> = {
@@ -140,17 +145,6 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 		const handler = (e: Event) => setShowInfo((e as CustomEvent).detail);
 		window.addEventListener("slide-show-info", handler);
 		return () => window.removeEventListener("slide-show-info", handler);
-	}, []);
-
-	const toggleShowInfo = useCallback(() => {
-		setShowInfo((prev) => {
-			const next = !prev;
-			sessionStorage.setItem("slide_show_info", String(next));
-			window.dispatchEvent(
-				new CustomEvent("slide-show-info", { detail: next }),
-			);
-			return next;
-		});
 	}, []);
 
 	const formattedPrice = formatPrice(listing.price, listing.currency);
@@ -274,7 +268,8 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 				)}
 			</Transition>
 
-			{/* ── Right side action buttons (TikTok-style) ── */}
+			{/* ── Right side action buttons (TikTok-style) — fade out together with
+			     the info plate in "clean mode" (long-press the back button). ── */}
 			<Box
 				style={{
 					zIndex: 50,
@@ -282,6 +277,9 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 					bottom: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
 					right: 12,
 					width: 56,
+					opacity: showInfo ? 1 : 0,
+					pointerEvents: showInfo ? "auto" : "none",
+					transition: "opacity 300ms ease",
 				}}
 			>
 				<Stack gap={18} align="center">
@@ -336,26 +334,6 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 							</Stack>
 						</Stack>
 					)}
-
-					{/* Views — eye toggles the info overlay; count shown only in crawled preview */}
-					<Stack gap={1} align="center">
-						<ActionIcon
-							variant="transparent"
-							size={36}
-							onClick={toggleShowInfo}
-						>
-							<IconEye
-								size={30}
-								color="white"
-								style={{ filter: `drop-shadow(${shadow})` }}
-							/>
-						</ActionIcon>
-						{mode !== "buyer" && (
-							<Text size="xs" fw={700} c="white" style={{ textShadow: shadow }}>
-								{listing.views_count || 0}
-							</Text>
-						)}
-					</Stack>
 
 					{/* Map */}
 					<Stack gap={1} align="center">
@@ -412,52 +390,55 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 						</Stack>
 					)}
 
-					{/* ── Call-to-action — contact the realtor (call + write in Telegram) ── */}
-					{mode === "buyer" &&
-						(listing.contact_phone || listing.seller_telegram) && (
-						<Stack gap={6} align="center" mt={6}>
-							{listing.contact_phone && (
-								<Stack gap={3} align="center">
-									<ActionIcon
-										variant="filled"
-										color="green"
-										radius="xl"
-										size={46}
-										aria-label={t("descriptionDrawer.call")}
-										onClick={() => {
-											void trackContact(listing.id);
-											window.location.href = `tel:${listing.contact_phone}`;
-										}}
-										style={{ boxShadow: "0 4px 14px rgba(64,192,87,0.55)" }}
-									>
-										<IconPhone size={24} color="white" />
-									</ActionIcon>
-									<Text size="10px" fw={700} c="white" style={{ textShadow: shadow }}>
-										{t("descriptionDrawer.call")}
-									</Text>
-								</Stack>
+					{/* ── Call-to-action — contact the realtor (call + write in Telegram).
+					     Mockup phase: both buttons appear on every listing and render
+					     inert when there is no phone / Telegram (see CTA_MOCKUP). No labels. ── */}
+					{mode === "buyer" && (
+						<Stack gap={10} align="center" mt={6}>
+							{(listing.contact_phone || CTA_MOCKUP) && (
+								<ActionIcon
+									variant="filled"
+									color="green"
+									radius="xl"
+									size={46}
+									aria-label={t("descriptionDrawer.call")}
+									onClick={
+										listing.contact_phone
+											? () => {
+												void trackContact(listing.id);
+												window.location.href = `tel:${listing.contact_phone}`;
+											}
+											: undefined
+									}
+									style={{ boxShadow: "0 4px 14px rgba(64,192,87,0.55)" }}
+								>
+									<IconPhone size={24} color="white" />
+								</ActionIcon>
 							)}
-							{listing.seller_telegram && (
-								<Stack gap={3} align="center">
-									<ActionIcon
-										component="a"
-										href={`https://t.me/${listing.seller_telegram.replace(/^@/, "")}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										variant="filled"
-										color="blue"
-										radius="xl"
-										size={46}
-										aria-label={t("descriptionDrawer.telegram")}
-										onClick={() => void trackContact(listing.id)}
-										style={{ boxShadow: "0 4px 14px rgba(34,139,230,0.55)" }}
-									>
-										<IconBrandTelegram size={24} color="white" />
-									</ActionIcon>
-									<Text size="10px" fw={700} c="white" style={{ textShadow: shadow }}>
-										{t("descriptionDrawer.telegram")}
-									</Text>
-								</Stack>
+							{(listing.seller_telegram || CTA_MOCKUP) && (
+								<ActionIcon
+									component={listing.seller_telegram ? "a" : "button"}
+									href={
+										listing.seller_telegram
+											? `https://t.me/${listing.seller_telegram.replace(/^@/, "")}`
+											: undefined
+									}
+									target={listing.seller_telegram ? "_blank" : undefined}
+									rel={listing.seller_telegram ? "noopener noreferrer" : undefined}
+									variant="filled"
+									color="blue"
+									radius="xl"
+									size={46}
+									aria-label={t("descriptionDrawer.telegram")}
+									onClick={
+										listing.seller_telegram
+											? () => void trackContact(listing.id)
+											: undefined
+									}
+									style={{ boxShadow: "0 4px 14px rgba(34,139,230,0.55)" }}
+								>
+									<IconBrandTelegram size={24} color="white" />
+								</ActionIcon>
 							)}
 						</Stack>
 					)}
@@ -527,16 +508,32 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 										)}
 									</Group>
 									{(sellerTypeLabel || dateLabel) && (
-										<Text
-											size="11px"
-											c="rgba(255,255,255,0.85)"
-											truncate
-											style={{ textShadow: shadow }}
-										>
-											{[sellerTypeLabel, dateLabel]
-												.filter(Boolean)
-												.join(" · ")}
-										</Text>
+										<Group gap={6} wrap="nowrap" align="center">
+											<Text
+												size="11px"
+												c="rgba(255,255,255,0.85)"
+												truncate
+												style={{ textShadow: shadow }}
+											>
+												{[sellerTypeLabel, dateLabel]
+													.filter(Boolean)
+													.join(" · ")}
+											</Text>
+											<Group gap={3} wrap="nowrap" align="center" style={{ flexShrink: 0 }}>
+												<IconEye
+													size={13}
+													color="rgba(255,255,255,0.85)"
+													style={{ filter: `drop-shadow(${shadow})` }}
+												/>
+												<Text
+													size="11px"
+													c="rgba(255,255,255,0.85)"
+													style={{ textShadow: shadow }}
+												>
+													{listing.views_count || 0}
+												</Text>
+											</Group>
+										</Group>
 									)}
 								</Box>
 							</Group>
