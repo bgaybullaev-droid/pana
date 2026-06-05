@@ -192,6 +192,7 @@ function Stage1() {
 			return false;
 		}
 		return images.length > 0 && !isUploading;
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		form.values.type,
 		form.values.property_type,

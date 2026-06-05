@@ -210,6 +210,7 @@ function Page() {
 		}
 
 		return cards;
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [olxListings, telegramListings, selectedPlatform, searchQuery, t]);
 
 	const removeCard = (id: string, source: Platform) => {

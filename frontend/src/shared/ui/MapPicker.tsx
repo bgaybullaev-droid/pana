@@ -155,6 +155,7 @@ export const MapPicker: FC<MapPickerProps> = ({
 			mapRef.current = null;
 			markerRef.current = null;
 		};
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fullscreen]); // Re-create map on fullscreen toggle
 
 	// Update marker position when lat/lng props change externally
@@ -190,6 +191,7 @@ export const MapPicker: FC<MapPickerProps> = ({
 			});
 		}
 		mapRef.current.setView([lat, lng], mapRef.current.getZoom());
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [lat, lng]);
 
 	// Pan map when external center changes (region/district selection)

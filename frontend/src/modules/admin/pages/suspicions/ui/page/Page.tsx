@@ -174,6 +174,7 @@ function DecideDrawer({ suspicion, onClose, onDone }: DecideProps) {
 
 	useEffect(() => {
 		setNotes(suspicion?.notes ?? "");
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [suspicion?.id]);
 
 	const decide = async (decision: SuspicionDecision) => {

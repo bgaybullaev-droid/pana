@@ -324,7 +324,6 @@ export function useListingForm(
 		saveTimerRef.current = setTimeout(() => saveDraft(form.values, uploadedImageData), 800);
 		return () => clearTimeout(saveTimerRef.current);
 	// form.values and images are new references on each change — intentional deps.
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [form.values, images, mode]);
 
 	const handleRegionChange = (value: string) => {

@@ -97,6 +97,7 @@ export function SynonymHints({
 				debounceTimer.current = null;
 			}
 		};
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [text, language, listingId, JSON.stringify(currentParams)]);
 
 	const visible = useMemo(

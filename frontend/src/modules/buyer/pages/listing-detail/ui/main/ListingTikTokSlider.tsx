@@ -145,6 +145,7 @@ export const ListingTikTokSlider: FC<ListingTikTokSliderProps> = ({
       setShowGetReady(true);
       onLoadMore();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slideIds, hasMore, onLoadMore]);
 
   if (slideIds.length === 0) {

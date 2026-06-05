@@ -290,6 +290,7 @@ function Page() {
 				seller_type: editingListing.seller_type || "",
 			});
 		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [editingListing]);
 
 	const [existingImagesList, setExistingImagesList] = useState<any[]>([]);

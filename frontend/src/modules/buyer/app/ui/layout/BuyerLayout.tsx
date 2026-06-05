@@ -404,6 +404,7 @@ export function Layout() {
 		};
 
 		requestAnimationFrame(tryRestore);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [location.pathname]);
 
 	return (

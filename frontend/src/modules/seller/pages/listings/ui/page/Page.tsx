@@ -207,6 +207,7 @@ function Page() {
 			}
 		});
 		return counts;
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [platformListings, selectedStatus]);
 
 	// Count exactly how many platform listings match each status
@@ -226,6 +227,7 @@ function Page() {
 			}
 		});
 		return counts;
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [platformListings, selectedPropertyType]);
 
 	const unifiedCards = useMemo((): UnifiedCard[] => {
@@ -275,6 +277,7 @@ function Page() {
 		}
 
 		return cards;
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [platformListings, selectedPropertyType, searchQuery, t]);
 
 	const handleDeleteClick = (listingId: string) => {

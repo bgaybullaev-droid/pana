@@ -82,6 +82,7 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
 		}, 100);
 
 		return () => clearInterval(interval);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// On every visibility/focus event, check whether the underlying

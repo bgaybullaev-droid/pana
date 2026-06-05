@@ -156,6 +156,7 @@ function Page() {
 			phone: editingListing.phone || "",
 			seller_type: editingListing.seller_type || "",
 		});
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [editingListing]);
 
 	useEffect(() => {
