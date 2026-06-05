@@ -16,6 +16,7 @@ import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
+import { METRO_STATIONS } from "@shared/constants/metroStations";
 import { apiClient } from "@shared/api/client";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
@@ -381,20 +382,23 @@ export function ListingFormFields({
 	];
 
 	// S3 — metro stations of Tashkent (gated by P5 to region=toshkent_shahri).
-	const metroStationOpts = [
-		{ value: "chilonzor",           label: t("createListing.metroStation.chilonzor") },
-		{ value: "mustaqillik_maydoni", label: t("createListing.metroStation.mustaqillik_maydoni") },
-		{ value: "amir_temur_xiyoboni", label: t("createListing.metroStation.amir_temur_xiyoboni") },
-		{ value: "yunus_rajabiy",       label: t("createListing.metroStation.yunus_rajabiy") },
-		{ value: "minor",               label: t("createListing.metroStation.minor") },
-		{ value: "beruniy",             label: t("createListing.metroStation.beruniy") },
-		{ value: "pushkin",             label: t("createListing.metroStation.pushkin") },
-		{ value: "ming_urik",           label: t("createListing.metroStation.ming_urik") },
-		{ value: "oybek",               label: t("createListing.metroStation.oybek") },
-		{ value: "kosmonavtlar",        label: t("createListing.metroStation.kosmonavtlar") },
-		{ value: "olmazor",             label: t("createListing.metroStation.olmazor") },
-		{ value: "sergeli",             label: t("createListing.metroStation.sergeli") },
-	];
+	// Cascade: once a Tashkent district is chosen, only that district's
+	// stations are offered (район → метро). Before a district is picked the
+	// full list is shown. Chips wrap to a new row at each line boundary so
+	// the lines read as visually distinct groups.
+	const metroDistrict =
+		form.values.region === TASHKENT_REGION ? form.values.district : undefined;
+	const metroStations = metroDistrict
+		? METRO_STATIONS.filter((s) => s.district === metroDistrict)
+		: METRO_STATIONS;
+	const metroStationOpts = metroStations.map((station, i) => {
+		const next = metroStations[i + 1];
+		return {
+			value: station.key,
+			label: t(`createListing.metroStation.${station.key}`),
+			breakAfter: next != null && next.line !== station.line,
+		};
+	});
 
 	// Apartment amenities
 	const aptAmenityOpts = [
@@ -966,7 +970,20 @@ export function ListingFormFields({
 						options={districts}
 						value={form.values.district || undefined}
 						onChange={(val) => {
-							set("district", val ? String(val) : "");
+							const nextDistrict = val ? String(val) : "";
+							set("district", nextDistrict);
+							// Cascade: drop a metro station that is not in the newly
+							// selected district (mirrors the P5 region clear).
+							if (
+								form.values.metro_station &&
+								!METRO_STATIONS.some(
+									(s) =>
+										s.key === form.values.metro_station &&
+										s.district === nextDistrict,
+								)
+							) {
+								set("metro_station", undefined);
+							}
 						}}
 						error={form.errors.district as string}
 					/>
@@ -999,8 +1016,9 @@ export function ListingFormFields({
 						}}
 					/>
 				)}
-				{/* S3 — metro_station (matrix + P5 region sub-gate) */}
-				{show.metroStation && (
+				{/* S3 — metro_station (matrix + P5 region sub-gate + район→метро cascade).
+				    Hidden when the chosen district has no metro stations. */}
+				{show.metroStation && metroStationOpts.length > 0 && (
 					<ChipSelect
 						label={t("createListing.metroStationLabel")}
 						options={metroStationOpts}
