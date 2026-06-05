@@ -15,9 +15,12 @@ import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
-import { MicrodistrictAutocomplete } from "@shared/ui/MicrodistrictAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import { METRO_STATIONS } from "@shared/constants/metroStations";
+import {
+	MICRODISTRICTS,
+	microdistrictName,
+} from "@shared/constants/microdistricts";
 import { apiClient } from "@shared/api/client";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ListingFormValues } from "./useListingForm";
@@ -53,7 +56,7 @@ export function ListingFormFields({
 	sectionBg,
 	afterDescriptionContent,
 }: ListingFormFieldsProps) {
-	const { t } = useTranslation("seller");
+	const { t, i18n } = useTranslation("seller");
 	const pt = form.values.property_type;
 	const dt = form.values.type;
 
@@ -400,6 +403,16 @@ export function ListingFormFields({
 			breakAfter: next != null && next.line !== station.line,
 		};
 	});
+
+	const microdistrictOpts = useMemo(() => {
+		if (!form.values.district) return [];
+		return MICRODISTRICTS.filter((m) => m.district === form.values.district).map(
+			(m) => {
+				const name = microdistrictName(m, i18n.language);
+				return { value: name, label: name };
+			},
+		);
+	}, [form.values.district, i18n.language]);
 
 	// Apartment amenities
 	const aptAmenityOpts = [
@@ -989,35 +1002,21 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
-				{/* S3 — always-visible microdistrict. Autocomplete hints come from
-				    the country-wide registry, scoped by the район→микрорайон
-				    cascade (form.values.district — keys are globally unique).
-				    Free-text is always accepted; districts with no OSM-tagged
-				    microdistricts simply show no hints. */}
-				<MicrodistrictAutocomplete
-					label={t("createListing.microdistrictLabel")}
-					placeholder={t("createListing.microdistrictPlaceholder")}
-					district={form.values.district || undefined}
-					value={form.values.microdistrict || undefined}
-					onChange={(val) => set("microdistrict", val)}
-				/>
-				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house).
-				    Autocomplete resolves to jk_id on pick; free-text keeps jk_id
-				    undefined and stores the name in jk_name. Both columns are
-				    valid during the dual-column window. */}
-				{show.jkName && (
-					<HousingComplexAutocomplete
-						label={t("createListing.jkNameLabel")}
-						placeholder={t("createListing.jkNamePlaceholder")}
-						region={form.values.region || undefined}
-						value={{
-							jk_id: form.values.jk_id,
-							jk_name: form.values.jk_name,
-						}}
-						onChange={({ jk_id, jk_name }) => {
-							set("jk_id", jk_id);
-							set("jk_name", jk_name);
-						}}
+				{microdistrictOpts.length > 0 ? (
+					<ChipSelect
+						label={t("createListing.microdistrictLabel")}
+						options={microdistrictOpts}
+						value={form.values.microdistrict}
+						onChange={(val) => set("microdistrict", val as string | undefined)}
+					/>
+				) : (
+					<TextInput
+						label={t("createListing.microdistrictLabel")}
+						placeholder={t("createListing.microdistrictPlaceholder")}
+						value={form.values.microdistrict || ""}
+						onChange={(e) =>
+							set("microdistrict", e.currentTarget.value || undefined)
+						}
 					/>
 				)}
 				{/* S3 — metro_station (matrix + P5 region sub-gate + район→метро cascade).
@@ -1037,6 +1036,22 @@ export function ListingFormFields({
 					value={form.values.landmark || ""}
 					onChange={(e) => set("landmark", e.currentTarget.value || undefined)}
 				/>
+				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house) */}
+				{show.jkName && (
+					<HousingComplexAutocomplete
+						label={t("createListing.jkNameLabel")}
+						placeholder={t("createListing.jkNamePlaceholder")}
+						region={form.values.region || undefined}
+						value={{
+							jk_id: form.values.jk_id,
+							jk_name: form.values.jk_name,
+						}}
+						onChange={({ jk_id, jk_name }) => {
+							set("jk_id", jk_id);
+							set("jk_name", jk_name);
+						}}
+					/>
+				)}
 				<Box>
 					<Text size="sm" fw={500} mb={6}>
 						{t("createListing.mapLabel")}
