@@ -990,17 +990,14 @@ export function ListingFormFields({
 					/>
 				)}
 				{/* S3 — always-visible microdistrict. Autocomplete hints come from
-				    the Tashkent registry, scoped by the район→микрорайон cascade
-				    (form.values.district). Free-text is always accepted; outside
-				    Tashkent the field degrades to a plain input (no hints). */}
+				    the country-wide registry, scoped by the район→микрорайон
+				    cascade (form.values.district — keys are globally unique).
+				    Free-text is always accepted; districts with no OSM-tagged
+				    microdistricts simply show no hints. */}
 				<MicrodistrictAutocomplete
 					label={t("createListing.microdistrictLabel")}
 					placeholder={t("createListing.microdistrictPlaceholder")}
-					district={
-						form.values.region === TASHKENT_REGION
-							? form.values.district
-							: undefined
-					}
+					district={form.values.district || undefined}
 					value={form.values.microdistrict || undefined}
 					onChange={(val) => set("microdistrict", val)}
 				/>

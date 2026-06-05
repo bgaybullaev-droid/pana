@@ -6,9 +6,9 @@
  * registry rather than a network lookup — no debounce / fetch needed.
  *
  * UX contract:
- *   - Suggestions are scoped to the район→микрорайон cascade: when a Tashkent
- *     `district` is selected, only that district's entries are offered; if no
- *     district is set the field stays free-text with no hints.
+ *   - Suggestions are scoped to the район→микрорайон cascade: when a `district`
+ *     is selected, only that district's entries are offered; if no district is
+ *     set (or it has no tagged entries) the field stays free-text with no hints.
  *   - Typing filters the scoped list by case-insensitive substring.
  *   - Picking a suggestion → `onChange(<name>)`.
  *   - Free-text is allowed: any value the user types is emitted as-is, so a
@@ -25,7 +25,7 @@ export interface MicrodistrictAutocompleteProps {
 	onChange: (next: string | undefined) => void;
 	label?: string;
 	placeholder?: string;
-	/** Tashkent-city district key used to scope the suggestion list. When
+	/** District key (from REGIONS) used to scope the suggestion list. When
 	 *  omitted, no suggestions are shown (free-text only). */
 	district?: string | undefined;
 	disabled?: boolean;

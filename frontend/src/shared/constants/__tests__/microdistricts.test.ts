@@ -1,37 +1,32 @@
 import { describe, it, expect } from "vitest";
 import { MICRODISTRICTS } from "../microdistricts";
+import { REGIONS } from "../regions";
 
-// The 12 Tashkent-city (toshkent_shahri) districts — kept in sync with the
-// backend registry in app/core/regions.py. The район→микрорайон cascade relies
-// on every entry resolving to one of these.
-const TASHKENT_DISTRICTS = new Set([
-	"bektemir",
-	"chilonzor",
-	"mirobod",
-	"mirzo_ulugbek",
-	"olmazor",
-	"sergeli",
-	"shayxontohur",
-	"uchtepa",
-	"yakkasaroy",
-	"yangihayot",
-	"yashnobod",
-	"yunusobod",
-]);
+// Every district key used by a microdistrict must exist in the canonical
+// region→district registry (REGIONS mirrors backend app/core/regions.py).
+const ALL_DISTRICT_KEYS = new Set(Object.values(REGIONS).flat());
 
 describe("MICRODISTRICTS registry", () => {
-	it("is non-empty and covers every Tashkent district", () => {
+	it("is non-empty", () => {
 		expect(MICRODISTRICTS.length).toBeGreaterThan(0);
-		const covered = new Set(MICRODISTRICTS.map((m) => m.district));
-		for (const d of TASHKENT_DISTRICTS) {
-			expect(covered.has(d)).toBe(true);
+	});
+
+	it("maps every entry to a known district key", () => {
+		for (const m of MICRODISTRICTS) {
+			expect(ALL_DISTRICT_KEYS.has(m.district)).toBe(true);
 		}
 	});
 
-	it("maps every entry to a valid Tashkent district", () => {
-		for (const m of MICRODISTRICTS) {
-			expect(TASHKENT_DISTRICTS.has(m.district)).toBe(true);
+	it("covers multiple regions across Uzbekistan", () => {
+		const keyToRegion = new Map<string, string>();
+		for (const [region, keys] of Object.entries(REGIONS)) {
+			for (const k of keys) keyToRegion.set(k, region);
 		}
+		const regions = new Set(
+			MICRODISTRICTS.map((m) => keyToRegion.get(m.district)),
+		);
+		// Sanity floor: data should span well beyond a single region.
+		expect(regions.size).toBeGreaterThan(5);
 	});
 
 	it("has a non-empty name for every entry", () => {
@@ -49,13 +44,12 @@ describe("MICRODISTRICTS registry", () => {
 		}
 	});
 
-	it("places every entry inside the Tashkent bounding box", () => {
-		// Wider than the metro box: microdistricts span the whole city.
+	it("places every entry inside the Uzbekistan bounding box", () => {
 		for (const m of MICRODISTRICTS) {
-			expect(m.lat).toBeGreaterThan(41.1);
-			expect(m.lat).toBeLessThan(41.45);
-			expect(m.lng).toBeGreaterThan(69.14);
-			expect(m.lng).toBeLessThan(69.41);
+			expect(m.lat).toBeGreaterThan(37);
+			expect(m.lat).toBeLessThan(46);
+			expect(m.lng).toBeGreaterThan(55);
+			expect(m.lng).toBeLessThan(74);
 		}
 	});
 });
