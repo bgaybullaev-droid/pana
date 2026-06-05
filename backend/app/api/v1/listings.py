@@ -3674,13 +3674,14 @@ async def update_listing(
             detail={"error": "ai_generation_pending"},
         )
 
-    # Block F F1 — on the first DRAFT → ACTIVE flip the seller's
-    # listings_count increments (DRAFT did not count, mirroring the
-    # B2C invisibility of drafts).
+    # Block F F1 — on the first DRAFT → ACTIVE flip: auto-approve so the
+    # listing becomes immediately B2C-visible (no manual moderation queue),
+    # and increment the seller's listings_count (drafts don't count).
     if (
         old_status == ListingStatus.DRAFT
         and listing.status == ListingStatus.ACTIVE
     ):
+        listing.moderation_status = ModerationStatus.APPROVED
         seller.listings_count += 1
         logger.info(
             "listing.draft.published seller=%s listing=%s", seller.id, listing.id
