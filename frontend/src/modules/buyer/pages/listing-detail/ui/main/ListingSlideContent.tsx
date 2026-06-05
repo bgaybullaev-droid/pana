@@ -519,7 +519,7 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 									gap: 6,
 								}}
 							>
-								{/* Row 1 — primary params */}
+								{/* Row 1 — type + deal type (+ urgent) */}
 								<Group gap={4} wrap="wrap">
 									{listing.urgent_flag && (
 										<Badge size="xs" variant="filled" color="red" radius="sm">
@@ -550,28 +550,33 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 											? t("listing.typeSell").toUpperCase()
 											: t("listing.typeRent").toUpperCase()}
 									</Badge>
-									{listing.area != null && (
-										<Badge size="xs" variant="filled" color="gray" radius="sm">
-											{listing.area} {t("listing.area")}
-										</Badge>
-									)}
-									{listing.rooms != null && (
-										<Badge size="xs" variant="filled" color="gray" radius="sm">
-											{listing.rooms} {t("listing.rooms")}
-										</Badge>
-									)}
-									{listing.floor != null && (
-										<Badge size="xs" variant="filled" color="gray" radius="sm">
-											{listing.floor}/{listing.total_floors || "?"}
-										</Badge>
-									)}
 								</Group>
 
-								{/* Row 2 — qualitative: market type, condition, metro, ЖК */}
-								{(marketTypeLabel ||
-									conditionLabel ||
-									listing.metro_station ||
-									listing.jk_name) && (
+								{/* Row 2 — size: area, rooms, floor */}
+								{(listing.area != null ||
+									listing.rooms != null ||
+									listing.floor != null) && (
+									<Group gap={4} wrap="wrap">
+										{listing.area != null && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												{listing.area} {t("listing.area")}
+											</Badge>
+										)}
+										{listing.rooms != null && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												{listing.rooms} {t("listing.rooms")}
+											</Badge>
+										)}
+										{listing.floor != null && (
+											<Badge size="xs" variant="filled" color="gray" radius="sm">
+												{listing.floor}/{listing.total_floors || "?"}
+											</Badge>
+										)}
+									</Group>
+								)}
+
+								{/* Row 3 — qualitative: market type, condition, ЖК */}
+								{(marketTypeLabel || conditionLabel || listing.jk_name) && (
 									<Group gap={4} wrap="wrap">
 										{marketTypeLabel && (
 											<Badge size="xs" variant="filled" color="gray" radius="sm">
@@ -581,11 +586,6 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 										{conditionLabel && (
 											<Badge size="xs" variant="filled" color="gray" radius="sm">
 												{conditionLabel.toUpperCase()}
-											</Badge>
-										)}
-										{listing.metro_station && (
-											<Badge size="xs" variant="filled" color="gray" radius="sm">
-												м. {listing.metro_station}
 											</Badge>
 										)}
 										{listing.jk_name && (
@@ -620,8 +620,8 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 									</Group>
 								)}
 
-								{/* Location — region + district */}
-								<Group gap={4}>
+								{/* Location — region + district + metro */}
+								<Group gap={4} wrap="wrap">
 									{regionLabel && (
 										<Badge size="xs" variant="filled" color="gray" radius="sm">
 											{regionLabel.toUpperCase()}
@@ -630,6 +630,11 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 									<Badge size="xs" variant="filled" color="gray" radius="sm">
 										{districtLabel.toUpperCase()}
 									</Badge>
+									{listing.metro_station && (
+										<Badge size="xs" variant="filled" color="gray" radius="sm">
+											м. {ts(`createListing.metroStation.${listing.metro_station}`, listing.metro_station)}
+										</Badge>
+									)}
 								</Group>
 
 								{/* Price + price per m² + negotiable */}
