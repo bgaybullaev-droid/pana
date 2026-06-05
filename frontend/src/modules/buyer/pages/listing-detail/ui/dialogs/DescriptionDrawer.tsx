@@ -12,21 +12,7 @@ import {
 	UnstyledButton,
 	Divider,
 } from "@mantine/core";
-import {
-	IconMapPin,
-	IconPhone,
-	IconUser,
-	IconShieldCheck,
-	IconCalendar,
-	IconEye,
-	IconDroplet,
-	IconFlame,
-	IconBuilding,
-	IconBrandTelegram,
-	IconChevronRight,
-	IconMap2,
-	IconTrain,
-} from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandTelegram, IconBuilding, IconCalendar, IconChevronRight, IconDroplet, IconEye, IconFlame, IconMap2, IconMapPin, IconPhone, IconShieldCheck, IconTrain, IconUser } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
@@ -35,7 +21,7 @@ import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { trackContact } from "@shared/lib/viewTracking";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { MapDrawer } from "./MapDrawer";
-import { formatPrice, radii } from "@app/styles/theme";
+import { formatPrice, radii, shadows } from "@app/styles/theme";
 
 interface DescriptionDrawerProps {
 	opened: boolean;
@@ -947,6 +933,27 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 						}}
 					>
 						<Box style={{ display: "flex", gap: 10, height: 56 }}>
+							{/* Круглая кнопка — закрыть дравер */}
+							<UnstyledButton
+								onClick={onClose}
+								style={{
+									width: 56,
+									height: 56,
+									flexShrink: 0,
+									borderRadius: "50%",
+									backgroundColor: "rgba(255, 255, 255, 0.65)",
+									backdropFilter: "blur(20px) saturate(180%)",
+									WebkitBackdropFilter: "blur(20px) saturate(180%)",
+									border: "1px solid rgba(255, 255, 255, 0.5)",
+									boxShadow: shadows.md,
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+							>
+								<IconArrowLeft size={24} stroke={1.8} color="#495057" />
+							</UnstyledButton>
+
 							{/* Позвонить — активна только если есть телефон */}
 							<Button
 								component={listing.contact_phone ? "a" : "button"}
