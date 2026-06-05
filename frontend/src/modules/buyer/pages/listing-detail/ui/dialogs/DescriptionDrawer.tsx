@@ -489,6 +489,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 				<Box
 					{...handlers}
 					style={{
+						position: "relative",
 						display: "flex",
 						flexDirection: "column",
 						height: "100%",
@@ -517,7 +518,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 					</Box>
 
 					{/* Content */}
-					<ScrollArea style={{ flex: 1 }} px="md" py="sm" viewportRef={scrollRef}>
+					<ScrollArea style={{ flex: 1 }} px="md" py="sm" viewportRef={scrollRef} viewportProps={{ style: { paddingBottom: 80 } }}>
 						<Stack gap="md">
 							{/* Price hero + deal type */}
 							<Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -928,15 +929,20 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 						</Stack>
 					</ScrollArea>
 
-					{/* Sticky CTA — Позвонить + Написать в Telegram */}
+					{/* Floating CTA — Позвонить + Написать + Закрыть */}
 					<Box
 						style={{
-							flexShrink: 0,
+							position: "absolute",
+							bottom: 0,
+							left: 0,
+							right: 0,
 							padding: "4px 12px 12px",
 							paddingBottom: "max(12px, env(safe-area-inset-bottom, 12px))",
+							background: "transparent",
+							pointerEvents: "none",
 						}}
 					>
-						<Box style={{ display: "flex", gap: 10, height: 56 }}>
+						<Box style={{ display: "flex", gap: 10, height: 56, pointerEvents: "auto" }}>
 							{/* Позвонить — активна только если есть телефон */}
 							<Button
 								component={listing.contact_phone ? "a" : "button"}
@@ -953,13 +959,13 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								styles={{
 									root: {
 										backgroundColor: listing.contact_phone
-											? "rgba(64, 167, 227, 0.85)"
-											: "rgba(64, 167, 227, 0.35)",
+											? "rgba(34, 139, 230, 1)"
+											: "rgba(34, 139, 230, 0.45)",
 										backdropFilter: "blur(20px) saturate(180%)",
 										WebkitBackdropFilter: "blur(20px) saturate(180%)",
 										boxShadow: listing.contact_phone
-											? "0 4px 15px rgba(64, 167, 227, 0.4)"
-											: "none",
+											? "0 4px 15px rgba(34, 139, 230, 0.45)"
+											: "0 2px 8px rgba(34, 139, 230, 0.15)",
 										border: "1px solid rgba(255, 255, 255, 0.2)",
 									},
 								}}
@@ -985,13 +991,13 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								styles={{
 									root: {
 										backgroundColor: listing.seller_telegram
-											? "rgba(41, 182, 246, 0.85)"
-											: "rgba(41, 182, 246, 0.35)",
+											? "rgba(34, 139, 230, 1)"
+											: "rgba(34, 139, 230, 0.45)",
 										backdropFilter: "blur(20px) saturate(180%)",
 										WebkitBackdropFilter: "blur(20px) saturate(180%)",
 										boxShadow: listing.seller_telegram
-											? "0 4px 15px rgba(41, 182, 246, 0.4)"
-											: "none",
+											? "0 4px 15px rgba(34, 139, 230, 0.45)"
+											: "0 2px 8px rgba(34, 139, 230, 0.15)",
 										border: "1px solid rgba(255, 255, 255, 0.2)",
 									},
 								}}
