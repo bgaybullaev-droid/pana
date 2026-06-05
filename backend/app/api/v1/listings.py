@@ -3398,20 +3398,15 @@ async def regenerate_listing_text(
             f"Cannot regenerate listing in status={listing.status.value}"
         )
 
-    from app.workers.tasks.ai_generation import (
-        _template_fallback,
-        generate_listing_description,
-    )
-
-    # If text is missing (previous generation failed or Celery was down),
-    # write template fallback synchronously so the poll sees non-null text
-    # even when Celery is unavailable.  Never overwrite existing text here —
-    # the AI task does that when it runs successfully.
-    if not listing.ai_description_ru:
-        listing.ai_description_ru = _template_fallback(listing, "ru")
-        listing.ai_description_uz = _template_fallback(listing, "uz")
-        listing.ai_description_uz_cyrl = _template_fallback(listing, "uz_cyrl")
-        await db.commit()
+    # Clear existing text so the frontend polling loop keeps running until
+    # the Celery task writes real AI text (or the structured-params fallback
+    # on permanent failure via _write_fallback_on_failure).  The old logic
+    # never cleared text, so the poll saw the stale fallback on the first
+    # fetch and stopped — the AI result was written to DB but never shown.
+    listing.ai_description_ru = None
+    listing.ai_description_uz = None
+    listing.ai_description_uz_cyrl = None
+    await db.commit()
 
     try:
         generate_listing_description.delay(
