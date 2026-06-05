@@ -214,7 +214,7 @@
 	"createListing.wsPossible": "Уланиш мумкин",
 	"createListing.wsWell": "Қудуқ",
 	"createListing.wsBorder": "Чегарада",
-	"createListing.wsBorehole": "Скважина",
+	"createListing.wsBorehole": "Қудуқ",
 	"createListing.wsNone": "Йўқ",
 	"createListing.heatCentral": "Марказий",
 	"createListing.heatGas": "Газ",
@@ -750,5 +750,18 @@
 	"clients.pipeline.viewing": "Кўрик",
 	"clients.pipeline.negotiating": "Музокаралар",
 	"clients.pipeline.won": "Ютилди",
-	"clients.pipeline.lost": "Йўқотилди"
+	"clients.pipeline.lost": "Йўқотилди",
+
+	"createListing.addAiDescription": "AI билан тавсиф қўшинг",
+	"createListing.aiEditableHint": "Натижани таҳрирлаш мумкин",
+	"createListing.aiLanguagesLabel": "Матн уч тилда бирдан:",
+	"createListing.aiReadyTitle": "Тавсиф тайёрланди",
+	"createListing.aiRecommend": "Тавсия этамиз — одатда ишончлироқ чиқади",
+	"createListing.aiWishesLabel": "AI учун изоҳлар (ихтиёрий)",
+	"createListing.aiWishesPlaceholder": "Муҳим хусусиятларни кўрсатинг…",
+	"createListing.generateAiButton": "AI билан яратиш",
+	"createListing.editButton": "Таҳрирлаш",
+	"createListing.nextButton": "Кейинги →",
+	"createListing.previewPageTitle": "Сизнинг эълонингиз",
+	"createListing.previewSubtitle": "Харидорлар кўриши қандай бўлишини кўринг"
 }

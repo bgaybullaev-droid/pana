@@ -210,7 +210,7 @@
 	"createListing.wsPossible": "Ulanish mumkin",
 	"createListing.wsWell": "Quduq",
 	"createListing.wsBorder": "Chegarada",
-	"createListing.wsBorehole": "Skvazhina",
+	"createListing.wsBorehole": "Quduq",
 	"createListing.wsNone": "Yo'q",
 	"createListing.heatCentral": "Markaziy",
 	"createListing.heatGas": "Gaz",
@@ -729,5 +729,44 @@
 	"clients.pipeline.viewing": "Ko'rib chiqish",
 	"clients.pipeline.negotiating": "Muzokaralar",
 	"clients.pipeline.won": "Yutilgan",
-	"clients.pipeline.lost": "Yo'qotilgan"
+	"clients.pipeline.lost": "Yo'qotilgan",
+
+	"createListing.addAiDescription": "AI bilan tavsif qo'shing",
+	"createListing.aiEditableHint": "Natijani tahrirlash mumkin",
+	"createListing.aiLanguagesLabel": "Matn uch tilda birdan:",
+	"createListing.aiReadyTitle": "Tavsif tayyorlandi",
+	"createListing.aiRecommend": "Tavsiya etamiz — odatda ishonarliroq chiqadi",
+	"createListing.aiWishesLabel": "AI uchun izohlar (ixtiyoriy)",
+	"createListing.aiWishesPlaceholder": "Muhim xususiyatlarni ko'rsating…",
+	"createListing.generateAiButton": "AI bilan yaratish",
+	"createListing.editButton": "Tahrirlash",
+	"createListing.nextButton": "Keyingi →",
+	"createListing.previewPageTitle": "Sizning e'loningiz",
+	"createListing.previewSubtitle": "Xaridorlar ko'rishi qanday bo'lishini ko'ring",
+
+	"listingForm.phoneSelect.label": "Aloqa raqami",
+	"listingForm.phoneSelect.placeholder": "Raqam tanlang",
+
+	"myListings.activeChip": "Faol: {{count}} / {{free}} ta bepul",
+	"myListings.activeChipTest": "Faol: {{count}} / ∞ (test)",
+	"myListings.overFreeLimitToast": "Faol e'lonlar: {{count}} / {{free}} ta bepul",
+	"myListings.thirdListingToast": "Bu sizning sinov davrida {{count}}-e'loningiz",
+
+	"phones.deleteWithActiveListings.title": "Raqamni o'chirish?",
+	"phones.deleteWithActiveListings.body": "Bu raqamga faol e'lonlar bog'langan. Ular bilan nima qilish kerak?",
+	"phones.deleteWithActiveListings.reassign": "Asosiy raqamga o'tkazish",
+	"phones.deleteWithActiveListings.pause": "E'lonlarni to'xtatib qo'yish",
+	"phones.deleteWithActiveListings.cancel": "Bekor qilish",
+
+	"phones.listingsCount_few": "{{count}} ta e'lon",
+	"phones.listingsCount_many": "{{count}} ta e'lon",
+	"stats.contacts_few": "{{count}} ta murojaat",
+	"stats.contacts_many": "{{count}} ta murojaat",
+	"stats.views_few": "{{count}} ta ko'rishlar",
+	"stats.views_many": "{{count}} ta ko'rishlar",
+
+	"tariffs.title": "Tariflar",
+	"tariffs.testPeriod.banner": "Sinov davri — barcha e'lonlar bepul",
+	"tariffs.testPeriod.hint": "Sinov davrida bepul",
+	"tariffs.cta.disabled": "To'lov sinov davridan keyin ochiladi"
 }
