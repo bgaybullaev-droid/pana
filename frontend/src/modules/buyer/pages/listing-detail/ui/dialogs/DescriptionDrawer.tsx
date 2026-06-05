@@ -467,6 +467,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 				position="bottom"
 				size="90%"
 				withCloseButton={false}
+				zIndex={10001}
 				portalProps={container ? { target: container } : undefined}
 				styles={{
 					content: {
@@ -933,27 +934,6 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 						}}
 					>
 						<Box style={{ display: "flex", gap: 10, height: 56 }}>
-							{/* Круглая кнопка — закрыть дравер */}
-							<UnstyledButton
-								onClick={onClose}
-								style={{
-									width: 56,
-									height: 56,
-									flexShrink: 0,
-									borderRadius: "50%",
-									backgroundColor: "rgba(255, 255, 255, 0.65)",
-									backdropFilter: "blur(20px) saturate(180%)",
-									WebkitBackdropFilter: "blur(20px) saturate(180%)",
-									border: "1px solid rgba(255, 255, 255, 0.5)",
-									boxShadow: shadows.md,
-									display: "flex",
-									alignItems: "center",
-									justifyContent: "center",
-								}}
-							>
-								<IconArrowLeft size={24} stroke={1.8} color="#495057" />
-							</UnstyledButton>
-
 							{/* Позвонить — активна только если есть телефон */}
 							<Button
 								component={listing.contact_phone ? "a" : "button"}
@@ -1015,6 +995,27 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 							>
 								{t("descriptionDrawer.telegram")}
 							</Button>
+
+							{/* Круглая кнопка — закрыть дравер */}
+							<UnstyledButton
+								onClick={onClose}
+								style={{
+									width: 56,
+									height: 56,
+									flexShrink: 0,
+									borderRadius: "50%",
+									backgroundColor: "rgba(255, 255, 255, 0.65)",
+									backdropFilter: "blur(20px) saturate(180%)",
+									WebkitBackdropFilter: "blur(20px) saturate(180%)",
+									border: "1px solid rgba(255, 255, 255, 0.5)",
+									boxShadow: shadows.md,
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+							>
+								<IconArrowLeft size={24} stroke={1.8} color="#495057" />
+							</UnstyledButton>
 						</Box>
 					</Box>
 				</Box>
