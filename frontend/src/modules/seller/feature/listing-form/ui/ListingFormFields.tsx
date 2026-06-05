@@ -16,6 +16,7 @@ import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
 import { HousingComplexAutocomplete } from "@shared/ui/HousingComplexAutocomplete";
 import { MicrodistrictAutocomplete } from "@shared/ui/MicrodistrictAutocomplete";
+import { MetroStationAutocomplete } from "@shared/ui/MetroStationAutocomplete";
 import { resolveLocationCoords } from "@shared/constants/locationCoords";
 import { METRO_STATIONS } from "@shared/constants/metroStations";
 import { apiClient } from "@shared/api/client";
@@ -393,21 +394,15 @@ export function ListingFormFields({
 	// stations are offered (район → метро). Before a district is picked the
 	// full list is shown. Chips wrap to a new row at each line boundary so
 	// the lines read as visually distinct groups.
+	// Show metro autocomplete only for Tashkent + after a district is selected
+	// that actually has metro stations.
 	const metroDistrict =
 		form.values.region === TASHKENT_REGION && form.values.district
 			? form.values.district
 			: undefined;
-	const metroStations = metroDistrict
-		? METRO_STATIONS.filter((s) => s.district === metroDistrict)
-		: [];
-	const metroStationOpts = metroStations.map((station, i) => {
-		const next = metroStations[i + 1];
-		return {
-			value: station.key,
-			label: t(`createListing.metroStation.${station.key}`),
-			breakAfter: next != null && next.line !== station.line,
-		};
-	});
+	const metroDistrictHasStations = metroDistrict
+		? METRO_STATIONS.some((s) => s.district === metroDistrict)
+		: false;
 
 	// Apartment amenities
 	const aptAmenityOpts = [
@@ -1003,14 +998,19 @@ export function ListingFormFields({
 					value={form.values.microdistrict || undefined}
 					onChange={(val) => set("microdistrict", val)}
 				/>
-				{/* S3 — metro_station (matrix + P5 region sub-gate + район→метро cascade).
-				    Hidden when the chosen district has no metro stations. */}
-				{show.metroStation && metroStationOpts.length > 0 && (
-					<ChipSelect
+				{/* S3 — metro_station: shown only after the user picks a district
+				    that has stations (prevents the full 49-station list appearing
+				    immediately when Tashkent is selected). */}
+				{show.metroStation && metroDistrictHasStations && (
+					<MetroStationAutocomplete
 						label={t("createListing.metroStationLabel")}
-						options={metroStationOpts}
+						placeholder={t(
+							"createListing.metroStationPlaceholder",
+							"Начните вводить название…",
+						)}
+						district={metroDistrict}
 						value={form.values.metro_station}
-						onChange={(val) => set("metro_station", val as string | undefined)}
+						onChange={(key) => set("metro_station", key)}
 					/>
 				)}
 				{/* S3 — always-visible landmark */}

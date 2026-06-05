@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Paper, Text, TextInput } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { matchesQuery } from "@shared/lib/searchNormalize";
 import {
 	MICRODISTRICTS,
 	microdistrictName,
@@ -76,11 +77,11 @@ export function MicrodistrictAutocomplete({
 	const results = useMemo(() => {
 		if (!district) return [];
 		const scoped = MICRODISTRICTS.filter((m) => m.district === district);
-		const q = text.trim().toLowerCase();
+		const q = text.trim();
 		const matched = q
 			? scoped.filter((m) =>
 					[m.name, m.nameUzLatn, m.nameUzCyrl].some((n) =>
-						n.toLowerCase().includes(q),
+						matchesQuery(n, q),
 					),
 				)
 			: scoped;
