@@ -30,7 +30,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
-import { translateDistrict, translateRegion } from "@shared/lib/regions";
+import { translateDistrict, translateRegion, normalizeLocationKey } from "@shared/lib/regions";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { formatPhone } from "@shared/lib/formatPhone";
 import { trackContact } from "@shared/lib/viewTracking";
@@ -308,19 +308,19 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		return key ? ts(key, a) : a;
 	};
 
-	// ── All params as unified chips: rooms / areas / floor / ceiling / price-per-sqm ──
+	// ── All params as unified chips: rooms / floor / areas / ceiling / price-per-sqm ──
 	type ParamChip = { value: string; label: string };
 	const paramChips: ParamChip[] = [];
 	if (listing.rooms)
 		paramChips.push({ value: String(listing.rooms), label: t("listing.rooms") });
+	if (listing.floor)
+		paramChips.push({ value: `${listing.floor}/${listing.total_floors || "?"}`, label: t("listing.floorLabel") });
 	if (listing.area)
 		paramChips.push({ value: `${listing.area}`, label: "м² " + t("descriptionDrawer.areaTotal", "общая") });
 	if (listing.living_area)
 		paramChips.push({ value: `${listing.living_area}`, label: "м² " + t("descriptionDrawer.livingArea", "жилая") });
 	if (listing.kitchen_area)
 		paramChips.push({ value: `${listing.kitchen_area}`, label: "м² " + t("descriptionDrawer.kitchenArea", "кухня") });
-	if (listing.floor)
-		paramChips.push({ value: `${listing.floor}/${listing.total_floors || "?"}`, label: t("listing.floorLabel") });
 	if (listing.ceiling_height)
 		paramChips.push({ value: `${listing.ceiling_height} м`, label: t("descriptionDrawer.ceilingHeight") });
 	if (listing.land_area)
@@ -329,10 +329,14 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 		paramChips.push({ value: formatPrice(listing.price_per_sqm, listing.currency), label: t("descriptionDrawer.pricePerSqm", "за м²") });
 
 	// ── Location: one-line region/city/district dedup ────────────────────────
-	const translatedRegion = listing.region ? translateRegion(listing.region, t).toLowerCase() : "";
-	const cityLower = listing.city?.toLowerCase() ?? "";
-	const showCity =
-		cityLower !== (listing.region ?? "").toLowerCase() && cityLower !== translatedRegion;
+	// Normalize both region and city to their canonical keys before comparing,
+	// so "tashkent_city" and "Tashkent" both resolve to "toshkent_shahri".
+	const normalizedRegionKey = normalizeLocationKey(listing.region, 'region');
+	const normalizedCityKey = normalizeLocationKey(listing.city, 'region');
+	const translatedRegion = listing.region ? translateRegion(listing.region, t) : "";
+	const showCity = Boolean(listing.city) &&
+		normalizedCityKey !== normalizedRegionKey &&
+		listing.city!.toLowerCase() !== translatedRegion.toLowerCase();
 	const locationLine = [
 		listing.region ? translateRegion(listing.region, t) : null,
 		showCity && listing.city ? listing.city : null,
