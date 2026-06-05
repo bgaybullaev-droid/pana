@@ -314,13 +314,13 @@ function Stage1() {
 	const generateButtonStyle = {
 		root: {
 			backgroundColor: hasMinimumParams
-				? "rgba(64, 167, 227, 0.85)"
-				: "rgba(64, 167, 227, 0.35)",
+				? "rgba(34, 139, 230, 1)"
+				: "rgba(34, 139, 230, 0.45)",
 			backdropFilter: "blur(20px) saturate(180%)",
 			WebkitBackdropFilter: "blur(20px) saturate(180%)",
 			boxShadow: hasMinimumParams
-				? "0 4px 15px rgba(64, 167, 227, 0.4)"
-				: "0 2px 8px rgba(64, 167, 227, 0.2)",
+				? "0 4px 15px rgba(34, 139, 230, 0.45)"
+				: "0 2px 8px rgba(34, 139, 230, 0.15)",
 			border: "1px solid rgba(255, 255, 255, 0.2)",
 			animation: hasMinimumParams ? "f1Pulse 1.4s ease-out 1" : "none",
 		},
