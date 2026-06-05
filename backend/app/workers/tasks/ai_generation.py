@@ -110,7 +110,6 @@ def _params_block(listing: Listing) -> str:
     def g(name: str):
         return getattr(listing, name, None)
 
-    cur = _enum_value(listing.currency) if listing.currency else ""
     p: list[str] = []
 
     # — type & deal (localized) —
@@ -162,15 +161,13 @@ def _params_block(listing: Listing) -> str:
         if g(fld):
             p.append(f"- {label}: {g(fld)}")
 
-    # — price & finance —
-    if listing.price:
-        p.append(f"- price: {listing.price} {cur}")
-    if g("price_per_sqm"):
-        p.append(f"- price_per_sqm: {listing.price_per_sqm} {cur}")
+    # — finance terms (NO money amounts) —
+    # price / price_per_sqm / deposit are shown separately on the listing
+    # page, so they are intentionally NOT fed to the model — the prompt also
+    # says "Do NOT mention any price or money amount". Only non-monetary deal
+    # terms (rent period, min months) and the qualitative flags below remain.
     if g("rent_period"):
         p.append(f"- rent_period: {listing.rent_period}")
-    if g("deposit"):
-        p.append(f"- deposit: {listing.deposit} {cur}")
     if g("min_rent_months"):
         p.append(f"- min_rent_months: {listing.min_rent_months}")
 
@@ -336,11 +333,11 @@ async def _call_openai(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            # Block F F1 — long-form selling copy across three locales.
-            # 0.6 gives warmer, more varied prose while the prompt's strict
-            # "do not invent" rules keep it grounded; the higher token cap
-            # fits ~400-800 chars × 3 locales (the old 600 truncated them).
-            temperature=0.6,
+            # Block F v3 — calm, plain copy across three locales. 0.5 keeps
+            # the tone steady and down-to-earth (less salesy) while the
+            # prompt's strict "do not invent" rules keep it grounded; the
+            # token cap comfortably fits <=500 chars x 3 locales.
+            temperature=0.5,
             max_tokens=2000,
         )
     except Exception as e:  # noqa: BLE001 — surfaced via logs

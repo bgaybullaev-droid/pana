@@ -60,12 +60,14 @@ def _rich_listing(**overrides):
 def test_prompt_constant_shape():
     body = LISTING_DESCRIPTION_PROMPT
     assert "{params_block}" in body and "{raw_text}" in body
-    # long-form selling intent
-    assert "4-7 sentences" in body
-    assert "400-800 characters" in body
-    assert "persuasive" in body
+    # v3 — calm, short, paragraphed copy
+    assert "MAXIMUM 500 characters" in body
+    assert "2-3 short paragraphs" in body
+    assert "NO exclamation marks" in body
+    # price must NOT appear in the generated copy
+    assert "Do NOT mention any price" in body
     # safety rails kept
-    assert "Never invent" in body
+    assert "never invent" in body
     assert "No phone numbers" in body
     # strict-JSON contract preserved
     assert '"ru"' in body and '"uz"' in body and '"uz_cyrl"' in body
@@ -92,6 +94,20 @@ def test_params_block_omits_empty_fields():
     assert "rooms:" not in block
     assert "residential_complex:" not in block
     assert "mortgage available" not in block
+
+
+def test_params_block_omits_money_amounts():
+    # v3 — price / price_per_sqm / deposit are shown separately on the page
+    # and must NOT be fed to the model (no money amount in the generated copy).
+    block = _params_block(
+        _rich_listing(price=120000, price_per_sqm=1500, deposit=500)
+    )
+    assert "- price:" not in block
+    assert "- price_per_sqm:" not in block
+    assert "- deposit:" not in block
+    assert "120000" not in block
+    # qualitative deal flags stay (they are not money amounts)
+    assert "price negotiable" in block
 
 
 def test_build_prompt_substitutes_and_scrubs_pii():

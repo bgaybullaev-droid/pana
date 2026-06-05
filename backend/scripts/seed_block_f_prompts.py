@@ -63,8 +63,8 @@ async def main() -> int:
             model_hint="gpt-4o-mini",
             is_active=True,
             notes=(
-                "Block F — long-form selling copy (4-7 sentences, "
-                "~400-800 chars/locale). Mirrors app/core/prompts."
+                "Block F v3 — calm local copy, no price, 2-3 paragraphs, "
+                "<=500 chars/locale. Mirrors app/core/prompts."
             ),
         )
         db.add(row)
