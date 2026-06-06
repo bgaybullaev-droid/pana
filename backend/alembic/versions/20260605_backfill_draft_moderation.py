@@ -22,15 +22,21 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # NB: the PostgreSQL enum *labels* are UPPERCASE — SQLAlchemy derives them
+    # from the Python Enum member NAMES (ModerationStatus.APPROVED, …), not the
+    # lowercase values, because the columns use a plain ``Enum(...)`` without
+    # ``values_callable``. Comparing/assigning lowercase literals raises
+    # "invalid input value for enum", which previously aborted the migration
+    # and the whole ``alembic upgrade head`` on deploy.
     conn = op.get_bind()
     conn.execute(
         sa.text(
             """
             UPDATE listings
-            SET moderation_status = 'approved'
-            WHERE status = 'active'
-              AND moderation_status = 'pending'
-              AND source_type = 'manual'
+            SET moderation_status = 'APPROVED'
+            WHERE status = 'ACTIVE'
+              AND moderation_status = 'PENDING'
+              AND source_type = 'MANUAL'
             """
         )
     )
