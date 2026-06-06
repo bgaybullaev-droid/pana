@@ -1,11 +1,12 @@
 import { FC, Suspense, lazy } from "react";
-import { Drawer, Box, Text, Group, UnstyledButton } from "@mantine/core";
-import { IconMapPin, IconArrowLeft } from "@tabler/icons-react";
+import { Drawer, Box, Text, Group } from "@mantine/core";
+import { IconMapPin } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
 import { getListingCoords } from "../main/ListingMap";
-import { radii, shadows } from "@app/styles/theme";
+import { radii } from "@app/styles/theme";
+import { DrawerBackButton } from "./DrawerBackButton";
 
 const ListingMap = lazy(() =>
 	import("../main/ListingMap").then((m) => ({ default: m.ListingMap })),
@@ -126,29 +127,8 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 				</Group>
 			</Box>
 
-			{/* Close — same dark round button as the listing back; closes the map */}
-			<UnstyledButton
-				onClick={onClose}
-				aria-label={t("descriptionDrawer.back", "Назад")}
-				style={{
-					position: "absolute",
-					right: 12,
-					bottom: "max(12px, env(safe-area-inset-bottom, 12px))",
-					width: 45,
-					height: 45,
-					borderRadius: "50%",
-					backgroundColor: "rgba(0, 0, 0, 0.6)",
-					backdropFilter: "blur(20px) saturate(180%)",
-					WebkitBackdropFilter: "blur(20px) saturate(180%)",
-					border: "1px solid rgba(255, 255, 255, 0.25)",
-					boxShadow: shadows.md,
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-				}}
-			>
-				<IconArrowLeft size={24} stroke={1.8} color="#fff" />
-			</UnstyledButton>
+			{/* Back — pinned outside the sliding sheet so it stays put (no slide-up). */}
+			<DrawerBackButton opened={opened} onClose={onClose} container={container} />
 		</Drawer>
 	);
 };

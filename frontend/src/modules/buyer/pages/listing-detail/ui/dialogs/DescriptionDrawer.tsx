@@ -11,7 +11,7 @@ import {
 	UnstyledButton,
 	Divider,
 } from "@mantine/core";
-import { IconArrowLeft, IconBuilding, IconCalendar, IconChevronRight, IconDroplet, IconEye, IconFlame, IconMap2, IconMapPin, IconShieldCheck, IconTrain, IconUser } from "@tabler/icons-react";
+import { IconBuilding, IconCalendar, IconChevronRight, IconDroplet, IconEye, IconFlame, IconMap2, IconMapPin, IconShieldCheck, IconTrain, IconUser } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
@@ -19,7 +19,8 @@ import { translateDistrict, translateRegion, normalizeLocationKey } from "@share
 import { localizeMicrodistrict } from "@shared/constants/microdistricts";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { CommentsDrawer } from "./CommentsDrawer";
-import { formatPrice, radii, shadows } from "@app/styles/theme";
+import { DrawerBackButton } from "./DrawerBackButton";
+import { formatPrice, radii } from "@app/styles/theme";
 
 interface DescriptionDrawerProps {
 	opened: boolean;
@@ -927,53 +928,10 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 							</Group>
 						</Stack>
 					</ScrollArea>
-
-					{/* Floating CTA — Позвонить + Написать + Закрыть */}
-					<Box
-						style={{
-							position: "absolute",
-							bottom: 0,
-							left: 0,
-							right: 0,
-							padding: "4px 12px 12px",
-							paddingBottom: "max(12px, env(safe-area-inset-bottom, 12px))",
-							background: "transparent",
-							pointerEvents: "none",
-						}}
-					>
-						<Box
-							style={{
-								maxWidth: 500,
-								margin: "0 auto",
-								display: "flex",
-								justifyContent: "flex-end",
-								pointerEvents: "auto",
-							}}
-						>
-							{/* Круглая кнопка — закрыть дровер (выровнена под «Назад» страницы) */}
-							<UnstyledButton
-								onClick={onClose}
-								style={{
-									width: 45,
-									height: 45,
-									flexShrink: 0,
-									borderRadius: "50%",
-									backgroundColor: "rgba(0, 0, 0, 0.6)",
-									backdropFilter: "blur(20px) saturate(180%)",
-									WebkitBackdropFilter: "blur(20px) saturate(180%)",
-									border: "1px solid rgba(255, 255, 255, 0.25)",
-									boxShadow: shadows.md,
-									display: "flex",
-									alignItems: "center",
-									justifyContent: "center",
-								}}
-							>
-								<IconArrowLeft size={24} stroke={1.8} color="#fff" />
-							</UnstyledButton>
-						</Box>
-					</Box>
 				</Box>
 			</Drawer>
+
+			<DrawerBackButton opened={opened} onClose={onClose} container={container} />
 
 			<CommentsDrawer
 				opened={commentsOpen}
