@@ -1,5 +1,6 @@
 import type React from "react";
 import {
+	ActionIcon,
 	Textarea,
 	NumberInput,
 	Box,
@@ -8,6 +9,7 @@ import {
 	TextInput,
 	Select,
 } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FormSection } from "@shared/ui/FormSection";
@@ -1165,6 +1167,18 @@ export function ListingFormFields({
 							inputMode="decimal"
 							hideControls
 							error={form.errors.price}
+							rightSection={
+								form.values.price != null && form.values.price !== "" ? (
+									<ActionIcon
+										variant="transparent"
+										color="gray"
+										size="sm"
+										onClick={() => set("price", undefined)}
+									>
+										<IconX size={14} />
+									</ActionIcon>
+								) : null
+							}
 							{...form.getInputProps("price")}
 						/>
 					)}
@@ -1234,6 +1248,7 @@ export function ListingFormFields({
 					value={form.values.phone}
 					onChange={(val) => set("phone", val)}
 					error={form.errors.phone as string}
+					onClear={() => set("phone", "")}
 				/>
 				{/* S3 — seller_telegram (always-visible, optional). */}
 				<TextInput
@@ -1242,6 +1257,18 @@ export function ListingFormFields({
 					value={form.values.seller_telegram || ""}
 					onChange={(e) =>
 						set("seller_telegram", e.currentTarget.value || undefined)
+					}
+					rightSection={
+						form.values.seller_telegram ? (
+							<ActionIcon
+								variant="transparent"
+								color="gray"
+								size="sm"
+								onClick={() => set("seller_telegram", undefined)}
+							>
+								<IconX size={14} />
+							</ActionIcon>
+						) : null
 					}
 				/>
 			</FormSection>

@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect } from "react";
-import { Box, Text, type BoxProps } from "@mantine/core";
+import { ActionIcon, Box, Text, type BoxProps } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 
 const COUNTRY_CODE = "+998";
 const PREFIX = "+998 ";
@@ -37,6 +38,7 @@ interface PhoneInputProps {
 	disabled?: boolean;
 	w?: BoxProps["w"];
 	onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+	onClear?: () => void;
 }
 
 /**
@@ -53,6 +55,7 @@ export function PhoneInput({
 	disabled,
 	w,
 	onKeyDown: externalKeyDown,
+	onClear,
 }: PhoneInputProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const onChangeRef = useRef(onChange);
@@ -285,6 +288,29 @@ export function PhoneInput({
 						el.style.boxShadow = "none";
 					}}
 				/>
+				{onClear &&
+					!disabled &&
+					value.replace(/\D/g, "").replace(/^998/, "").length > 0 && (
+						<ActionIcon
+							variant="transparent"
+							color="gray"
+							size="sm"
+							style={{
+								position: "absolute",
+								right: 10,
+								top: "50%",
+								transform: "translateY(-50%)",
+								zIndex: 3,
+							}}
+							onClick={() => {
+								const el = inputRef.current;
+								if (el) el.value = PREFIX;
+								onClear();
+							}}
+						>
+							<IconX size={14} />
+						</ActionIcon>
+					)}
 			</Box>
 			{error && typeof error === "string" && (
 				<Text size="xs" c="red" mt={4}>
