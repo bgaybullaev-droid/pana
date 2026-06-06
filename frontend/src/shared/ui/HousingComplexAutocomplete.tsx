@@ -72,6 +72,15 @@ export function HousingComplexAutocomplete({
 		setText(value.jk_name ?? "");
 	}, [value.jk_name]);
 
+	// Pre-load suggestions when district changes (район→ЖК cascade).
+	useEffect(() => {
+		if (!district || text.trim()) return;
+		searchHousingComplexes({ q: "", district, region, limit: MAX_RESULTS })
+			.then((list) => setResults(list))
+			.catch(() => {});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [district, region]);
+
 	// Close dropdown on outside-click.
 	useEffect(() => {
 		function handleClick(e: MouseEvent) {

@@ -65,6 +65,17 @@ export function LandmarkAutocomplete({
 		setText(value.landmark ?? "");
 	}, [value.landmark]);
 
+	// Pre-load suggestions when district changes (район→ориентир cascade).
+	// The backend returns the first N results for empty q scoped to the
+	// district, so the user sees options immediately on focus without typing.
+	useEffect(() => {
+		if (!district || text.trim()) return;
+		searchLandmarks({ q: "", district, region, limit: MAX_RESULTS })
+			.then((list) => setResults(list))
+			.catch(() => {});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [district, region]);
+
 	// Close dropdown on outside-click.
 	useEffect(() => {
 		function handleClick(e: MouseEvent) {
