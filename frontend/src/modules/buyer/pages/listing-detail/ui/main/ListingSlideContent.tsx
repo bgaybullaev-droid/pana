@@ -268,9 +268,15 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 				style={{
 					zIndex: 50,
 					position: "absolute",
-					bottom: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
+					// Buyer: raised to clear the reserved "Написать" slot of the
+					// bottom contact group and aligned (45px column) to share its
+					// vertical centre axis. Crawled preview keeps the old layout.
+					bottom:
+						mode === "buyer"
+							? "calc(env(safe-area-inset-bottom, 0px) + 195px)"
+							: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
 					right: 12,
-					width: 56,
+					width: mode === "buyer" ? 45 : 56,
 					opacity: showInfo ? 1 : 0,
 					pointerEvents: showInfo ? "auto" : "none",
 					transition: "opacity 300ms ease",

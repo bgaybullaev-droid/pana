@@ -1168,7 +1168,7 @@ export function ListingFormFields({
 							hideControls
 							error={form.errors.price}
 							rightSection={
-								form.values.price != null && form.values.price !== "" ? (
+								form.values.price != null ? (
 									<ActionIcon
 										variant="transparent"
 										color="gray"

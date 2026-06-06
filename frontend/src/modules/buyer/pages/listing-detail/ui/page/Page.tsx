@@ -270,44 +270,41 @@ function Page() {
 					}}
 				>
 					<Box style={{ maxWidth: 500, margin: "0 auto", position: "relative", height: 200 }}>
-						<Stack
-							gap={12}
-							align="center"
-							style={{ position: "absolute", bottom: 69, right: 12, pointerEvents: "auto" }}
-						>
-							{activeListing.contact_phone && (
-								<ActionIcon
-									component="a"
-									href={`tel:${activeListing.contact_phone}`}
-									onClick={() => void trackContact(activeListing.id)}
-									variant="filled"
-									color="green"
-									radius="50%"
-									size={45}
-									aria-label={t("descriptionDrawer.call")}
-									style={{ boxShadow: shadows.md }}
-								>
-									<IconPhone size={22} color="white" />
-								</ActionIcon>
-							)}
-							{activeListing.seller_telegram && (
-								<ActionIcon
-									component="a"
-									href={`https://t.me/${activeListing.seller_telegram.replace(/^@/, "")}`}
-									target="_blank"
-									rel="noopener noreferrer"
-									onClick={() => void trackContact(activeListing.id)}
-									variant="filled"
-									color="blue"
-									radius="50%"
-									size={45}
-									aria-label={t("descriptionDrawer.telegram")}
-									style={{ boxShadow: shadows.md }}
-								>
-									<IconBrandTelegram size={22} color="white" />
-								</ActionIcon>
-							)}
-						</Stack>
+						{/* Позвонить — fixed slot just above the back button */}
+						{activeListing.contact_phone && (
+							<ActionIcon
+								component="a"
+								href={`tel:${activeListing.contact_phone}`}
+								onClick={() => void trackContact(activeListing.id)}
+								variant="filled"
+								color="green"
+								radius="50%"
+								size={45}
+								aria-label={t("descriptionDrawer.call")}
+								style={{ position: "absolute", bottom: 69, right: 12, pointerEvents: "auto", boxShadow: shadows.md }}
+							>
+								<IconPhone size={22} color="white" />
+							</ActionIcon>
+						)}
+						{/* Написать — reserved slot above Позвонить; appears only with Telegram
+						    so call/back never shift when it toggles. */}
+						{activeListing.seller_telegram && (
+							<ActionIcon
+								component="a"
+								href={`https://t.me/${activeListing.seller_telegram.replace(/^@/, "")}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								onClick={() => void trackContact(activeListing.id)}
+								variant="filled"
+								color="blue"
+								radius="50%"
+								size={45}
+								aria-label={t("descriptionDrawer.telegram")}
+								style={{ position: "absolute", bottom: 126, right: 12, pointerEvents: "auto", boxShadow: shadows.md }}
+							>
+								<IconBrandTelegram size={22} color="white" />
+							</ActionIcon>
+						)}
 					</Box>
 				</Box>
 			)}
