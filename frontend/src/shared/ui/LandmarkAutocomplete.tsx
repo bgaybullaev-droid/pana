@@ -13,7 +13,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Loader, Paper, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Loader, Paper, Text, TextInput } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
 	landmarkName,
@@ -129,7 +130,24 @@ export function LandmarkAutocomplete({
 					if (results.length > 0) setOpen(true);
 				}}
 				disabled={disabled}
-				rightSection={loading ? <Loader size="xs" /> : null}
+				rightSection={
+					loading ? (
+						<Loader size="xs" />
+					) : text.trim() && !disabled ? (
+						<ActionIcon
+							variant="transparent"
+							color="gray"
+							size="sm"
+							onClick={() => {
+								setText("");
+								setOpen(false);
+								onChange({ landmark_id: undefined, landmark: undefined });
+							}}
+						>
+							<IconX size={14} />
+						</ActionIcon>
+					) : null
+				}
 			/>
 			{open && results.length > 0 && (
 				<Paper

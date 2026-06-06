@@ -18,7 +18,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Paper, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Paper, Text, TextInput } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { matchesQuery } from "@shared/lib/searchNormalize";
 import {
@@ -111,6 +112,22 @@ export function MicrodistrictAutocomplete({
 					if (results.length > 0) setOpen(true);
 				}}
 				disabled={disabled}
+				rightSection={
+					text.trim() && !disabled ? (
+						<ActionIcon
+							variant="transparent"
+							color="gray"
+							size="sm"
+							onClick={() => {
+								setText("");
+								setOpen(false);
+								onChange(undefined);
+							}}
+						>
+							<IconX size={14} />
+						</ActionIcon>
+					) : null
+				}
 			/>
 			{open && results.length > 0 && (
 				<Paper
