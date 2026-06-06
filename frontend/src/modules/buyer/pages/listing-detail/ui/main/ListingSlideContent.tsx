@@ -20,7 +20,6 @@ import {
 	IconEye,
 	IconMapPin,
 	IconPhone,
-	IconBrandTelegram,
 	IconCheck,
 	IconTrash,
 	IconPhoto,
@@ -57,11 +56,6 @@ interface ListingSlideContentProps {
 }
 
 const shadow = "0 1px 4px rgba(0,0,0,0.6)";
-
-// Mockup phase: force the call + Telegram CTA buttons onto EVERY listing even
-// when it has no phone / no seller_telegram (those render inert). Flip to
-// false to gate each button on real data again.
-const CTA_MOCKUP = true;
 
 // market_type value → seller-namespace i18n key.
 const MARKET_TYPE_KEY: Record<string, string> = {
@@ -390,58 +384,6 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 						</Stack>
 					)}
 
-					{/* ── Call-to-action — contact the realtor (call + write in Telegram).
-					     Mockup phase: both buttons appear on every listing and render
-					     inert when there is no phone / Telegram (see CTA_MOCKUP). No labels. ── */}
-					{mode === "buyer" && (
-						<Stack gap={10} align="center" mt={6}>
-							{(listing.contact_phone || CTA_MOCKUP) && (
-								<ActionIcon
-									variant="filled"
-									color="green"
-									radius="xl"
-									size={46}
-									aria-label={t("descriptionDrawer.call")}
-									onClick={
-										listing.contact_phone
-											? () => {
-												void trackContact(listing.id);
-												window.location.href = `tel:${listing.contact_phone}`;
-											}
-											: undefined
-									}
-									style={{ boxShadow: "0 4px 14px rgba(64,192,87,0.55)" }}
-								>
-									<IconPhone size={24} color="white" />
-								</ActionIcon>
-							)}
-							{(listing.seller_telegram || CTA_MOCKUP) && (
-								<ActionIcon
-									component={listing.seller_telegram ? "a" : "button"}
-									href={
-										listing.seller_telegram
-											? `https://t.me/${listing.seller_telegram.replace(/^@/, "")}`
-											: undefined
-									}
-									target={listing.seller_telegram ? "_blank" : undefined}
-									rel={listing.seller_telegram ? "noopener noreferrer" : undefined}
-									variant="filled"
-									color="blue"
-									radius="xl"
-									size={46}
-									aria-label={t("descriptionDrawer.telegram")}
-									onClick={
-										listing.seller_telegram
-											? () => void trackContact(listing.id)
-											: undefined
-									}
-									style={{ boxShadow: "0 4px 14px rgba(34,139,230,0.55)" }}
-								>
-									<IconBrandTelegram size={24} color="white" />
-								</ActionIcon>
-							)}
-						</Stack>
-					)}
 				</Stack>
 			</Box>
 

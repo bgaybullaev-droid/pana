@@ -8,18 +8,16 @@ import {
 	Badge,
 	ScrollArea,
 	Avatar,
-	Button,
 	UnstyledButton,
 	Divider,
 } from "@mantine/core";
-import { IconArrowLeft, IconBrandTelegram, IconBuilding, IconCalendar, IconChevronRight, IconDroplet, IconEye, IconFlame, IconMap2, IconMapPin, IconPhone, IconShieldCheck, IconTrain, IconUser } from "@tabler/icons-react";
+import { IconArrowLeft, IconBuilding, IconCalendar, IconChevronRight, IconDroplet, IconEye, IconFlame, IconMap2, IconMapPin, IconShieldCheck, IconTrain, IconUser } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict, translateRegion, normalizeLocationKey } from "@shared/lib/regions";
 import { localizeMicrodistrict } from "@shared/constants/microdistricts";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
-import { trackContact } from "@shared/lib/viewTracking";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { MapDrawer } from "./MapDrawer";
 import { formatPrice, radii, shadows } from "@app/styles/theme";
@@ -942,75 +940,21 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 							pointerEvents: "none",
 						}}
 					>
-						<Box style={{ display: "flex", gap: 10, height: 56, pointerEvents: "auto" }}>
-							{/* Позвонить — активна только если есть телефон */}
-							<Button
-								component={listing.contact_phone ? "a" : "button"}
-								href={listing.contact_phone ? `tel:${listing.contact_phone}` : undefined}
-								onClick={listing.contact_phone ? () => void trackContact(listing.id) : undefined}
-								disabled={!listing.contact_phone}
-								style={{ flex: 1 }}
-								h="100%"
-								radius={100}
-								c="white"
-								fw={600}
-								fz={14}
-								leftSection={<IconPhone size={16} />}
-								styles={{
-									root: {
-										backgroundColor: listing.contact_phone
-											? "rgba(34, 139, 230, 1)"
-											: "rgba(34, 139, 230, 0.45)",
-										backdropFilter: "blur(20px) saturate(180%)",
-										WebkitBackdropFilter: "blur(20px) saturate(180%)",
-										boxShadow: listing.contact_phone
-											? "0 4px 15px rgba(34, 139, 230, 0.45)"
-											: "0 2px 8px rgba(34, 139, 230, 0.15)",
-										border: "1px solid rgba(255, 255, 255, 0.2)",
-									},
-								}}
-							>
-								{t("descriptionDrawer.call")}
-							</Button>
-
-							{/* Написать в Telegram — мокап: всегда виден */}
-							<Button
-								component={listing.seller_telegram ? "a" : "button"}
-								href={listing.seller_telegram
-									? `https://t.me/${listing.seller_telegram.replace(/^@/, "")}`
-									: undefined}
-								target={listing.seller_telegram ? "_blank" : undefined}
-								disabled={!listing.seller_telegram}
-								style={{ flex: 1 }}
-								h="100%"
-								radius={100}
-								c="white"
-								fw={600}
-								fz={14}
-								leftSection={<IconBrandTelegram size={16} />}
-								styles={{
-									root: {
-										backgroundColor: listing.seller_telegram
-											? "rgba(34, 139, 230, 1)"
-											: "rgba(34, 139, 230, 0.45)",
-										backdropFilter: "blur(20px) saturate(180%)",
-										WebkitBackdropFilter: "blur(20px) saturate(180%)",
-										boxShadow: listing.seller_telegram
-											? "0 4px 15px rgba(34, 139, 230, 0.45)"
-											: "0 2px 8px rgba(34, 139, 230, 0.15)",
-										border: "1px solid rgba(255, 255, 255, 0.2)",
-									},
-								}}
-							>
-								{t("descriptionDrawer.telegram")}
-							</Button>
-
-							{/* Круглая кнопка — закрыть дравер */}
+						<Box
+							style={{
+								maxWidth: 500,
+								margin: "0 auto",
+								display: "flex",
+								justifyContent: "flex-end",
+								pointerEvents: "auto",
+							}}
+						>
+							{/* Круглая кнопка — закрыть дровер (выровнена под «Назад» страницы) */}
 							<UnstyledButton
 								onClick={onClose}
 								style={{
-									width: 56,
-									height: 56,
+									width: 45,
+									height: 45,
 									flexShrink: 0,
 									borderRadius: "50%",
 									backgroundColor: "rgba(255, 255, 255, 0.65)",

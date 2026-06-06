@@ -1,9 +1,10 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
-import { trackView } from "@shared/lib/viewTracking";
+import { trackView, trackContact } from "@shared/lib/viewTracking";
 import {
+	ActionIcon,
 	Box,
 	LoadingOverlay,
 	Text,
@@ -13,7 +14,7 @@ import {
 	Container,
 	UnstyledButton,
 } from "@mantine/core";
-import { IconArrowLeft, IconPhoto } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandTelegram, IconPhone, IconPhoto } from "@tabler/icons-react";
 import { shadows } from "@app/styles/theme";
 import { useTelegram } from "@app/providers/useTelegram";
 import { useAuth } from "@app/providers/useAuth";
@@ -132,6 +133,32 @@ function Page() {
 		navigate(-1);
 	}, [navigate]);
 
+	// Track the currently visible slide so the persistent contact buttons show
+	// the active listing's phone / Telegram. Initialised to the route listing
+	// (the slider scrolls there programmatically without firing the callback).
+	const [activeId, setActiveId] = useState<string | null>(id ?? null);
+	useEffect(() => {
+		if (id) setActiveId(id);
+	}, [id]);
+
+	const handleVisibleItemChange = useCallback((visibleId: string) => {
+		setActiveId(visibleId);
+		ensureNearbyResolved(visibleId);
+	}, []);
+
+	// Mirror "clean mode" (toggled by long-pressing back) so the contact
+	// buttons hide together with the rest of the chrome.
+	const [showChrome, setShowChrome] = useState(
+		() => sessionStorage.getItem("slide_show_info") !== "false",
+	);
+	useEffect(() => {
+		const handler = (e: Event) => setShowChrome((e as CustomEvent).detail);
+		window.addEventListener("slide-show-info", handler);
+		return () => window.removeEventListener("slide-show-info", handler);
+	}, []);
+
+	const activeListing = activeId ? listingsMap[activeId] : undefined;
+
 	if (isLoading && slideIds.length === 0) {
 		return <LoadingOverlay visible />;
 	}
@@ -167,7 +194,7 @@ function Page() {
 					hasMore={hasMore}
 					onLike={handleLike}
 					onShare={handleShare}
-					onVisibleItemChange={ensureNearbyResolved}
+					onVisibleItemChange={handleVisibleItemChange}
 				/>
 			)}
 
@@ -203,8 +230,8 @@ function Page() {
 							position: "absolute",
 							bottom: 12,
 							right: 12,
-							width: 56,
-							height: 56,
+							width: 45,
+							height: 45,
 							borderRadius: "50%",
 							backgroundColor: "rgba(255, 255, 255, 0.65)",
 							backdropFilter: "blur(20px) saturate(180%)",
@@ -223,6 +250,67 @@ function Page() {
 					</UnstyledButton>
 				</Box>
 			</Box>
+
+			{/* Persistent contact CTA — call + write, stacked above the back
+			    button and kept above the description drawer (zIndex 10002).
+			    Uses the active slide's listing; hidden in clean mode and when
+			    the listing has no phone / Telegram. */}
+			{showChrome &&
+				activeListing &&
+				(activeListing.contact_phone || activeListing.seller_telegram) && (
+				<Box
+					style={{
+						position: "fixed",
+						bottom: 0,
+						left: 0,
+						right: 0,
+						paddingBottom: "env(safe-area-inset-bottom, 0px)",
+						zIndex: 10002,
+						pointerEvents: "none",
+					}}
+				>
+					<Box style={{ maxWidth: 500, margin: "0 auto", position: "relative", height: 200 }}>
+						<Stack
+							gap={12}
+							align="center"
+							style={{ position: "absolute", bottom: 69, right: 12, pointerEvents: "auto" }}
+						>
+							{activeListing.contact_phone && (
+								<ActionIcon
+									component="a"
+									href={`tel:${activeListing.contact_phone}`}
+									onClick={() => void trackContact(activeListing.id)}
+									variant="filled"
+									color="green"
+									radius="50%"
+									size={45}
+									aria-label={t("descriptionDrawer.call")}
+									style={{ boxShadow: shadows.md }}
+								>
+									<IconPhone size={22} color="white" />
+								</ActionIcon>
+							)}
+							{activeListing.seller_telegram && (
+								<ActionIcon
+									component="a"
+									href={`https://t.me/${activeListing.seller_telegram.replace(/^@/, "")}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={() => void trackContact(activeListing.id)}
+									variant="filled"
+									color="blue"
+									radius="50%"
+									size={45}
+									aria-label={t("descriptionDrawer.telegram")}
+									style={{ boxShadow: shadows.md }}
+								>
+									<IconBrandTelegram size={22} color="white" />
+								</ActionIcon>
+							)}
+						</Stack>
+					</Box>
+				</Box>
+			)}
 		</Box>
 	);
 }
