@@ -957,17 +957,17 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 									height: 45,
 									flexShrink: 0,
 									borderRadius: "50%",
-									backgroundColor: "rgba(255, 255, 255, 0.65)",
+									backgroundColor: "rgba(0, 0, 0, 0.6)",
 									backdropFilter: "blur(20px) saturate(180%)",
 									WebkitBackdropFilter: "blur(20px) saturate(180%)",
-									border: "1px solid rgba(255, 255, 255, 0.5)",
+									border: "1px solid rgba(255, 255, 255, 0.25)",
 									boxShadow: shadows.md,
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "center",
 								}}
 							>
-								<IconArrowLeft size={24} stroke={1.8} color="#495057" />
+								<IconArrowLeft size={24} stroke={1.8} color="#fff" />
 							</UnstyledButton>
 						</Box>
 					</Box>
