@@ -11,7 +11,6 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
-	Alert,
 	Box,
 	Button,
 	Container,
@@ -23,18 +22,13 @@ import {
 	Progress,
 	SimpleGrid,
 	Stack,
-	Tabs,
 	Text,
-	Textarea,
 	Badge,
 	ActionIcon,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
 	IconCameraPlus,
-	IconInfoCircle,
-	IconRefresh,
-	IconRobot,
 	IconX,
 } from "@tabler/icons-react";
 
@@ -54,6 +48,10 @@ import {
 	loadDraft,
 } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
+import {
+	buildAiDescriptionSlots,
+	type AiLang,
+} from "@modules/seller/feature/listing-form/ui/aiDescriptionSlots";
 import { radii } from "@app/styles/theme";
 
 import {
@@ -75,14 +73,6 @@ import {
 const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_ITERATIONS = 15;
 
-type Lang = "ru" | "uz" | "uz_cyrl";
-
-const LANG_TABS: Array<{ value: Lang; label: string }> = [
-	{ value: "ru", label: "RU" },
-	{ value: "uz", label: "UZ" },
-	{ value: "uz_cyrl", label: "ЎЗ" },
-];
-
 function Stage1() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
@@ -100,7 +90,7 @@ function Stage1() {
 	const photoSectionRef = useRef<HTMLDivElement>(null);
 	const [imageError, setImageError] = useState(false);
 	const [wishes, setWishes] = useState("");
-	const [activeTab, setActiveTab] = useState<Lang>("ru");
+	const [activeTab, setActiveTab] = useState<AiLang>("ru");
 	const pollIterations = useRef(0);
 	const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -353,6 +343,26 @@ function Stage1() {
 		},
 	};
 
+	// Shared AI-description block — same source on the edit page.
+	const aiSlots = buildAiDescriptionSlots({
+		t,
+		hasAi,
+		isPolling,
+		pollTimedOut,
+		isRegenerating,
+		generateLoading: isCreatingDraft && !isPolling,
+		generateDisabled: !hasMinimumParams,
+		showDisabledHint: !hasMinimumParams,
+		wishes,
+		onWishesChange: setWishes,
+		activeTab,
+		onActiveTabChange: setActiveTab,
+		activeText: edits[activeTab],
+		onActiveTextChange: (val) => editDescription({ lang: activeTab, value: val }),
+		onGenerate: handleGenerate,
+		onManualRefresh: handleManualRefresh,
+	});
+
 	return (
 		<InnerPage title={t("createListing.title")} noPadding>
 			<style>{`
@@ -526,147 +536,10 @@ function Stage1() {
 							regions={regions}
 							districts={districts}
 							onRegionChange={handleRegionChange}
-							beforeDescriptionContent={
-								hasAi ? (
-									<Tabs
-										value={activeTab}
-										onChange={(v) => v && setActiveTab(v as Lang)}
-										variant="pills"
-										radius="md"
-										color="green"
-										mb={6}
-									>
-										<Tabs.List>
-											{LANG_TABS.map(({ value, label }) => (
-												<Tabs.Tab key={value} value={value}>
-													{label}
-												</Tabs.Tab>
-											))}
-										</Tabs.List>
-									</Tabs>
-								) : undefined
-							}
-							descriptionValueOverride={hasAi ? edits[activeTab] : undefined}
-							onDescriptionChangeOverride={
-								hasAi
-									? (val) => editDescription({ lang: activeTab, value: val })
-									: undefined
-							}
-							afterDescriptionContent={
-								<Box mt={8}>
-									{/* Wishes field */}
-									{!hasAi && (
-										<Textarea
-											placeholder={t(
-												"createListing.aiWishesPlaceholder",
-												"Укажите особенности, которые важно упомянуть…",
-											)}
-											value={wishes}
-											onChange={(e) => setWishes(e.currentTarget.value)}
-											minRows={1}
-											maxRows={3}
-											autosize
-											mb={8}
-											styles={{ input: { fontSize: 13 } }}
-										/>
-									)}
-
-									{/* Idle: badges + generate button */}
-									{!hasAi && !isPolling && !pollTimedOut && (
-										<>
-											<Group justify="space-between" align="center" mb={4}>
-												<Group gap={4}>
-													<Badge variant="light" color="blue" size="sm" radius="md">🇷🇺 RU</Badge>
-													<Badge variant="light" color="green" size="sm" radius="md">🇺🇿 UZ</Badge>
-													<Badge variant="light" color="teal" size="sm" radius="md">ЎЗ</Badge>
-												</Group>
-												<Button
-													size="xs"
-													radius="xl"
-													leftSection={<IconRobot size={14} />}
-													disabled={!hasMinimumParams}
-													loading={isCreatingDraft && !isPolling}
-													onClick={handleGenerate}
-												>
-													{t("createListing.generateAiButton", "Сгенерировать с AI")}
-												</Button>
-											</Group>
-											{!hasMinimumParams && (
-												<Text size="xs" c="dimmed" mt={4}>
-													{t(
-														"createListing.generateDisabledHint",
-														"Заполните основные параметры и добавьте фото",
-													)}
-												</Text>
-											)}
-										</>
-									)}
-
-									{/* Polling */}
-									{!hasAi && isPolling && !pollTimedOut && (
-										<Group gap={8}>
-											<Loader size="xs" color="blue" />
-											<Text size="xs" fw={600} c="#0369a1">
-												{t(
-													"createListing.generatingText",
-													"AI готовит описание объявления…",
-												)}
-											</Text>
-										</Group>
-									)}
-
-									{/* Timed out */}
-									{!hasAi && pollTimedOut && (
-										<Alert
-											icon={<IconInfoCircle size={16} />}
-											color="orange"
-											title={t(
-												"createListing.pollingTimedOutTitle",
-												"Генерация занимает дольше обычного",
-											)}
-										>
-											<Text size="sm" mb="sm">
-												{t(
-													"createListing.pollingTimedOutBody",
-													"Текст ещё не готов. Попробуйте обновить или сгенерировать заново.",
-												)}
-											</Text>
-											<Group gap="sm">
-												<Button
-													size="xs"
-													variant="light"
-													leftSection={<IconRefresh size={14} />}
-													onClick={handleManualRefresh}
-												>
-													{t("createListing.pollingRetry", "Обновить")}
-												</Button>
-												<Button
-													size="xs"
-													variant="subtle"
-													loading={isRegenerating}
-													onClick={handleGenerate}
-												>
-													{t("createListing.regenerateButton", "Сгенерировать заново")}
-												</Button>
-											</Group>
-										</Alert>
-									)}
-
-									{/* AI ready: just regenerate link */}
-									{hasAi && (
-										<Button
-											size="xs"
-											variant="subtle"
-											leftSection={<IconRefresh size={12} />}
-											loading={isRegenerating}
-											onClick={handleGenerate}
-											mt={4}
-										>
-											{t("createListing.regenerateButton", "Сгенерировать заново")}
-										</Button>
-									)}
-								</Box>
-							}
+							beforeDescriptionContent={aiSlots.beforeDescriptionContent}
+							descriptionValueOverride={aiSlots.descriptionValueOverride}
+							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}
+							afterDescriptionContent={aiSlots.afterDescriptionContent}
 						/>
 
 					</Stack>
