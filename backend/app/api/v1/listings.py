@@ -3,7 +3,7 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -3968,6 +3968,67 @@ def _safe_anon(anon_id: Optional[str]) -> Optional[str]:
     return s
 
 
+async def _resolve_event_target(
+    db: AsyncSession, listing_id: UUID
+) -> Tuple[Optional[Listing], Optional[UUID]]:
+    """Resolve a view/contact target across every listing source.
+
+    The public feed (``/listings/feed``) and ``/listings/resolve/{id}`` serve
+    listings from three tables — native ``listings`` plus crawled
+    ``telegram_listings`` / ``olx_listings`` — so a tracked id may belong to any
+    of them. A native-only lookup 404s on every crawled listing (the bulk of
+    the feed); this resolves the id the same way ``/resolve`` does.
+
+    Returns ``(listing, effective_id)``:
+      * ``(Listing, id)`` — native listing, or a *claimed* crawled listing
+        mapped to its native row; run the full counter + event path.
+      * ``(None, id)`` — an *unclaimed* crawled listing: a real, viewable
+        listing, so the event is logged against its id, but native counters are
+        skipped (crawled tables carry their own scraped counts).
+      * ``(None, None)`` — unknown id; the caller raises ``NotFoundException``.
+    """
+    native = (
+        await db.execute(
+            select(Listing)
+            .where(Listing.id == listing_id, Listing.deleted_at.is_(None))
+            .options(selectinload(Listing.seller))
+        )
+    ).scalar_one_or_none()
+    if native is not None:
+        return native, native.id
+
+    # Crawled sources. A claimed crawl (``converted_listing_id`` set) is mapped
+    # back to its native listing so counters stay consistent with ``/resolve``.
+    for model in (TelegramListing, OLXListing):
+        row = (
+            await db.execute(
+                select(model.id, model.converted_listing_id).where(
+                    model.id == listing_id
+                )
+            )
+        ).first()
+        if row is None:
+            continue
+        if row.converted_listing_id is not None:
+            claimed = (
+                await db.execute(
+                    select(Listing)
+                    .where(
+                        Listing.id == row.converted_listing_id,
+                        Listing.deleted_at.is_(None),
+                    )
+                    .options(selectinload(Listing.seller))
+                )
+            ).scalar_one_or_none()
+            if claimed is not None:
+                return claimed, claimed.id
+        # Standalone crawl (or a claim pointing at a removed listing): still a
+        # real listing — log the event without touching native counters.
+        return None, listing_id
+
+    return None, None
+
+
 @router.post("/{listing_id}/view", status_code=204)
 async def record_listing_view(
     listing_id: UUID,
@@ -3986,25 +4047,22 @@ async def record_listing_view(
     Self-views (listing belongs to the requester) are no-ops.
     Dedup is one row per (user_or_anon, listing, event_type, calendar-day).
     """
-    listing = await db.execute(
-        select(Listing)
-        .where(Listing.id == listing_id, Listing.deleted_at.is_(None))
-        .options(selectinload(Listing.seller))
-    )
-    listing = listing.scalar_one_or_none()
-    if listing is None:
+    listing, effective_id = await _resolve_event_target(db, listing_id)
+    if effective_id is None:
         raise NotFoundException("Listing", str(listing_id))
-    if is_self_view(current_user, listing):
+    if listing is not None and is_self_view(current_user, listing):
         return
 
     anon = _safe_anon(body.anon_id)
     user_id = current_user.id if current_user else None
 
     if user_id is None and anon is None:
-        # Anonymous viewer without a cookie — nothing to dedup against.
-        # Bump the cached counter only (cheap, idempotent at the read layer).
-        listing.views_count = (listing.views_count or 0) + 1
-        await db.commit()
+        # Anonymous viewer without a cookie — nothing to dedup against. Only a
+        # native listing has a cached counter to bump; crawled listings keep
+        # their own scraped counts, so there is nothing to do for them.
+        if listing is not None:
+            listing.views_count = (listing.views_count or 0) + 1
+            await db.commit()
         return
 
     await db.execute(
@@ -4030,39 +4088,14 @@ async def record_listing_view(
         {
             "uid": user_id,
             "anon": anon,
-            "lid": listing_id,
+            "lid": effective_id,
             "dwell": body.dwell_ms,
         },
     )
-    # views_count is the cached aggregate; bump on every distinct (user/anon, day)
-    # event. ON CONFLICT … DO UPDATE means we cannot distinguish first-write from
-    # update at the SQL level, so we approximate with a separate count.
-    cnt = await db.execute(
-        text(
-            """
-            SELECT 1 FROM listing_view_event
-              WHERE listing_id = :lid
-                AND event_type = 'view'
-                AND date(viewed_at) = current_date
-                AND COALESCE(user_id::text, anon_id) = COALESCE(:uid::text, :anon)
-              LIMIT 1
-            """
-        ),
-        {"lid": listing_id, "uid": user_id, "anon": anon},
-    )
-    # If the row already existed before this insert/update we don't re-bump
-    # because we can't tell. Acceptable: counter slightly under-counts repeat
-    # views by the same user the same day — which is the desired behaviour.
-    # The first-of-day case is rare-enough that we increment optimistically here.
-    if cnt.first() is not None:
-        # The row exists for today — but did THIS request create it?
-        # PostgreSQL doesn't expose that directly with ON CONFLICT DO UPDATE.
-        # Compromise: only bump views_count for the very first view of the day
-        # by querying the count of today's rows for this listing first.
-        pass
-
-    # Simpler correct path: separate insert-or-noop, then conditional bump.
-    # The block above is left for documentation; the real bump happens via:
+    # views_count is the cached aggregate; bump only on the first (user/anon,
+    # day) event. ON CONFLICT … DO UPDATE hides whether this request created the
+    # row, so we re-count today's rows for this viewer and treat a count of
+    # exactly one as the first view of the day.
     today_first = await db.execute(
         text(
             """
@@ -4075,10 +4108,9 @@ async def record_listing_view(
             ) = 1 AS is_first
             """
         ),
-        {"lid": listing_id, "uid": user_id, "anon": anon},
+        {"lid": effective_id, "uid": user_id, "anon": anon},
     )
-    is_first = today_first.scalar()
-    if is_first:
+    if listing is not None and today_first.scalar():
         listing.views_count = (listing.views_count or 0) + 1
 
     await db.commit()
@@ -4097,24 +4129,21 @@ async def record_listing_contact(
     Only the first tap of the day increments ``Listing.contacts_count``.
     Self-contacts are no-ops.
     """
-    listing = await db.execute(
-        select(Listing)
-        .where(Listing.id == listing_id, Listing.deleted_at.is_(None))
-        .options(selectinload(Listing.seller))
-    )
-    listing = listing.scalar_one_or_none()
-    if listing is None:
+    listing, effective_id = await _resolve_event_target(db, listing_id)
+    if effective_id is None:
         raise NotFoundException("Listing", str(listing_id))
-    if is_self_view(current_user, listing):
+    if listing is not None and is_self_view(current_user, listing):
         return
 
     anon = _safe_anon(body.anon_id if body else None)
     user_id = current_user.id if current_user else None
 
     if user_id is None and anon is None:
-        # No identifier — bump cached counter, no event row.
-        listing.contacts_count = (listing.contacts_count or 0) + 1
-        await db.commit()
+        # No identifier — bump the native cached counter (crawled listings have
+        # none), no event row.
+        if listing is not None:
+            listing.contacts_count = (listing.contacts_count or 0) + 1
+            await db.commit()
         return
 
     inserted = await db.execute(
@@ -4133,8 +4162,8 @@ async def record_listing_contact(
             RETURNING id
             """
         ),
-        {"uid": user_id, "anon": anon, "lid": listing_id},
+        {"uid": user_id, "anon": anon, "lid": effective_id},
     )
-    if inserted.scalar_one_or_none() is not None:
+    if listing is not None and inserted.scalar_one_or_none() is not None:
         listing.contacts_count = (listing.contacts_count or 0) + 1
     await db.commit()
