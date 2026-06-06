@@ -233,10 +233,10 @@ function Page() {
 							width: 45,
 							height: 45,
 							borderRadius: "50%",
-							backgroundColor: "rgba(0, 0, 0, 0.6)",
+							backgroundColor: "rgba(255, 255, 255, 0.65)",
 							backdropFilter: "blur(20px) saturate(180%)",
 							WebkitBackdropFilter: "blur(20px) saturate(180%)",
-							border: "1px solid rgba(255, 255, 255, 0.25)",
+							border: "1px solid rgba(255, 255, 255, 0.5)",
 							boxShadow: shadows.md,
 							pointerEvents: "auto",
 							userSelect: "none",
@@ -246,7 +246,7 @@ function Page() {
 							justifyContent: "center",
 						}}
 					>
-						<IconArrowLeft size={24} stroke={1.8} color="#fff" />
+						<IconArrowLeft size={24} stroke={1.8} color="#495057" />
 					</UnstyledButton>
 				</Box>
 			</Box>
