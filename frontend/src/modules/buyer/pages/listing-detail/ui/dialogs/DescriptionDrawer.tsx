@@ -19,7 +19,6 @@ import { translateDistrict, translateRegion, normalizeLocationKey } from "@share
 import { localizeMicrodistrict } from "@shared/constants/microdistricts";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { CommentsDrawer } from "./CommentsDrawer";
-import { MapDrawer } from "./MapDrawer";
 import { formatPrice, radii, shadows } from "@app/styles/theme";
 
 interface DescriptionDrawerProps {
@@ -27,6 +26,8 @@ interface DescriptionDrawerProps {
 	onClose: () => void;
 	listing: UnifiedListing;
 	onCommentAdded?: () => void;
+	/** Close this drawer and open the map drawer instead (mutually exclusive). */
+	onViewMap: () => void;
 	container?: HTMLElement | null;
 }
 
@@ -205,12 +206,12 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 	onClose,
 	listing,
 	onCommentAdded,
+	onViewMap,
 	container,
 }) => {
 	const { t, i18n } = useTranslation("buyer");
 	const navigate = useNavigate();
 	const [commentsOpen, setCommentsOpen] = useState(false);
-	const [mapOpen, setMapOpen] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	const { dragOffset, isDragging, isClosing, handlers } = useSwipeDismiss({
@@ -851,7 +852,7 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 									{listing.latitude && listing.longitude && (
 										<UnstyledButton
 											mt={4}
-											onClick={() => setMapOpen(true)}
+											onClick={onViewMap}
 											style={{
 												display: "inline-flex",
 												alignItems: "center",
@@ -973,13 +974,6 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 					</Box>
 				</Box>
 			</Drawer>
-
-			<MapDrawer
-				opened={mapOpen}
-				onClose={() => setMapOpen(false)}
-				listing={listing}
-				container={container}
-			/>
 
 			<CommentsDrawer
 				opened={commentsOpen}

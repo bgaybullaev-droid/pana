@@ -1,11 +1,11 @@
 import { FC, Suspense, lazy } from "react";
-import { Drawer, Box, Text, Group, ActionIcon } from "@mantine/core";
-import { IconX, IconMapPin } from "@tabler/icons-react";
+import { Drawer, Box, Text, Group, UnstyledButton } from "@mantine/core";
+import { IconMapPin, IconArrowLeft } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
 import { getListingCoords } from "../main/ListingMap";
-import { radii } from "@app/styles/theme";
+import { radii, shadows } from "@app/styles/theme";
 
 const ListingMap = lazy(() =>
 	import("../main/ListingMap").then((m) => ({ default: m.ListingMap })),
@@ -37,9 +37,10 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 			opened={opened}
 			onClose={onClose}
 			position="bottom"
-			size="70%"
+			size="90%"
 			withCloseButton={false}
 			lockScroll={!container}
+			zIndex={10001}
 			portalProps={container ? { target: container } : undefined}
 			styles={{
 				...(container
@@ -55,13 +56,19 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 					height: "100%",
 					display: "flex",
 					flexDirection: "column",
+					position: "relative",
 				},
 			}}
 		>
 			{/* Drag handle */}
 			<Box
 				py={8}
-				style={{ display: "flex", justifyContent: "center", cursor: "grab" }}
+				style={{
+					display: "flex",
+					justifyContent: "center",
+					cursor: "grab",
+					flexShrink: 0,
+				}}
 				onClick={onClose}
 			>
 				<Box
@@ -74,27 +81,8 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 				/>
 			</Box>
 
-			{/* Header */}
-			<Box
-				px="md"
-				pb="sm"
-				style={{ borderBottom: "1px solid var(--mantine-color-gray-2)" }}
-			>
-				<Group justify="space-between" align="center">
-					<Group gap={6}>
-						<IconMapPin size={18} color="var(--mantine-color-blue-6)" />
-						<Text fw={600} size="lg">
-							{locationText || t("home.region")}
-						</Text>
-					</Group>
-					<ActionIcon variant="subtle" onClick={onClose}>
-						<IconX size={20} />
-					</ActionIcon>
-				</Group>
-			</Box>
-
-			{/* Map */}
-			<Box style={{ flex: 1, padding: 12 }}>
+			{/* Map — on top, fills the remaining space */}
+			<Box style={{ flex: 1, minHeight: 0, padding: 12 }}>
 				{coords ? (
 					<Suspense
 						fallback={<Box h="100%" bg="gray.1" style={{ borderRadius: radii.md }} />}
@@ -123,6 +111,44 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 					</Box>
 				)}
 			</Box>
+
+			{/* Address — below the map; right padding clears the round buttons */}
+			<Box px="md" pt="sm" pb={72} style={{ flexShrink: 0 }}>
+				<Group gap={6} align="flex-start" wrap="nowrap" style={{ paddingRight: 64 }}>
+					<IconMapPin
+						size={18}
+						color="var(--mantine-color-blue-6)"
+						style={{ flexShrink: 0, marginTop: 2 }}
+					/>
+					<Text fw={500} size="sm">
+						{locationText || t("home.region")}
+					</Text>
+				</Group>
+			</Box>
+
+			{/* Close — same dark round button as the listing back; closes the map */}
+			<UnstyledButton
+				onClick={onClose}
+				aria-label={t("descriptionDrawer.back", "Назад")}
+				style={{
+					position: "absolute",
+					right: 12,
+					bottom: "max(12px, env(safe-area-inset-bottom, 12px))",
+					width: 45,
+					height: 45,
+					borderRadius: "50%",
+					backgroundColor: "rgba(0, 0, 0, 0.6)",
+					backdropFilter: "blur(20px) saturate(180%)",
+					WebkitBackdropFilter: "blur(20px) saturate(180%)",
+					border: "1px solid rgba(255, 255, 255, 0.25)",
+					boxShadow: shadows.md,
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+			>
+				<IconArrowLeft size={24} stroke={1.8} color="#fff" />
+			</UnstyledButton>
 		</Drawer>
 	);
 };

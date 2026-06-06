@@ -335,7 +335,24 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 						</Stack>
 					)}
 
-					{/* Map */}
+					{/* Share */}
+					{mode === "buyer" && (
+						<Stack gap={1} align="center">
+							<ActionIcon
+								variant="transparent"
+								size={36}
+								onClick={() => onShare?.(listing.id)}
+							>
+								<IconShare
+									size={28}
+									color="white"
+									style={{ filter: `drop-shadow(${shadow})` }}
+								/>
+							</ActionIcon>
+						</Stack>
+					)}
+
+					{/* Map — last in the buyer rail */}
 					<Stack gap={1} align="center">
 						<ActionIcon
 							variant="transparent"
@@ -365,23 +382,6 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 								}}
 							>
 								<IconPhone
-									size={28}
-									color="white"
-									style={{ filter: `drop-shadow(${shadow})` }}
-								/>
-							</ActionIcon>
-						</Stack>
-					)}
-
-					{/* Share */}
-					{mode === "buyer" && (
-						<Stack gap={1} align="center">
-							<ActionIcon
-								variant="transparent"
-								size={36}
-								onClick={() => onShare?.(listing.id)}
-							>
-								<IconShare
 									size={28}
 									color="white"
 									style={{ filter: `drop-shadow(${shadow})` }}
@@ -653,6 +653,10 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 				onClose={() => setDescriptionOpen(false)}
 				listing={listing}
 				onCommentAdded={() => onCommentAdded?.(listing.id)}
+				onViewMap={() => {
+					setDescriptionOpen(false);
+					setMapOpen(true);
+				}}
 				container={containerRef?.current}
 			/>
 
