@@ -4029,24 +4029,12 @@ async def _resolve_event_target(
     return None, None
 
 
-@router.post("/{listing_id}/view", status_code=204)
-async def record_listing_view(
+async def _record_view_event(
+    db: AsyncSession,
     listing_id: UUID,
     body: _RecordViewIn,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: AsyncSession = Depends(get_db),
-):
-    """Record a per-listing view event with optional dwell time.
-
-    Authenticated callers write a row keyed by ``user_id``. Anonymous
-    callers may supply an opaque ``anon_id`` (cookie, 24h TTL on the
-    frontend); when provided, anonymous rows are deduped per day. Without
-    a valid id (anonymous, no cookie) the only side-effect is the
-    public ``Listing.views_count`` cached counter.
-
-    Self-views (listing belongs to the requester) are no-ops.
-    Dedup is one row per (user_or_anon, listing, event_type, calendar-day).
-    """
+    current_user: Optional[User],
+) -> None:
     listing, effective_id = await _resolve_event_target(db, listing_id)
     if effective_id is None:
         raise NotFoundException("Listing", str(listing_id))
@@ -4116,19 +4104,42 @@ async def record_listing_view(
     await db.commit()
 
 
-@router.post("/{listing_id}/contact", status_code=204)
-async def record_listing_contact(
+@router.post("/{listing_id}/view", status_code=204)
+async def record_listing_view(
     listing_id: UUID,
-    body: Optional[_RecordViewIn] = None,
+    body: _RecordViewIn,
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
-    """Record a contact event ("Связаться" tap).
+    """Record a per-listing view event with optional dwell time.
 
-    Same dedup contract as ``/view`` — auth user_id or anonymous anon_id.
-    Only the first tap of the day increments ``Listing.contacts_count``.
-    Self-contacts are no-ops.
+    Authenticated callers write a row keyed by ``user_id``. Anonymous
+    callers may supply an opaque ``anon_id`` (cookie, 24h TTL on the
+    frontend); when provided, anonymous rows are deduped per day. Without
+    a valid id (anonymous, no cookie) the only side-effect is the
+    public ``Listing.views_count`` cached counter.
+
+    Self-views (listing belongs to the requester) are no-ops.
+    Dedup is one row per (user_or_anon, listing, event_type, calendar-day).
+
+    Telemetry is fire-and-forget: any failure to record the event is logged
+    server-side and swallowed so it never surfaces as a 5xx to the client.
     """
+    try:
+        await _record_view_event(db, listing_id, body, current_user)
+    except NotFoundException:
+        raise
+    except Exception:
+        await db.rollback()
+        logger.exception("record_listing_view failed for listing %s", listing_id)
+
+
+async def _record_contact_event(
+    db: AsyncSession,
+    listing_id: UUID,
+    body: Optional[_RecordViewIn],
+    current_user: Optional[User],
+) -> None:
     listing, effective_id = await _resolve_event_target(db, listing_id)
     if effective_id is None:
         raise NotFoundException("Listing", str(listing_id))
@@ -4167,3 +4178,29 @@ async def record_listing_contact(
     if listing is not None and inserted.scalar_one_or_none() is not None:
         listing.contacts_count = (listing.contacts_count or 0) + 1
     await db.commit()
+
+
+@router.post("/{listing_id}/contact", status_code=204)
+async def record_listing_contact(
+    listing_id: UUID,
+    body: Optional[_RecordViewIn] = None,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a contact event ("Связаться" tap).
+
+    Same dedup contract as ``/view`` — auth user_id or anonymous anon_id.
+    Only the first tap of the day increments ``Listing.contacts_count``.
+    Self-contacts are no-ops.
+
+    Fire-and-forget: failures are logged server-side and swallowed, never a 5xx.
+    """
+    try:
+        await _record_contact_event(db, listing_id, body, current_user)
+    except NotFoundException:
+        raise
+    except Exception:
+        await db.rollback()
+        logger.exception(
+            "record_listing_contact failed for listing %s", listing_id
+        )
