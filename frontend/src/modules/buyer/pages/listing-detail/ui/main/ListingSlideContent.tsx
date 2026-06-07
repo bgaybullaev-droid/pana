@@ -664,6 +664,10 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 			<MapDrawer
 				opened={mapOpen}
 				onClose={() => setMapOpen(false)}
+				onBackToDescription={() => {
+					setMapOpen(false);
+					setDescriptionOpen(true);
+				}}
 				listing={listing}
 				container={containerRef?.current}
 			/>

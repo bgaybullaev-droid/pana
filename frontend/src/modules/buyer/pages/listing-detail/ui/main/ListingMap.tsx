@@ -1,8 +1,10 @@
-import { FC, useEffect, useRef } from "react";
-import { Box } from "@mantine/core";
+import { FC, useEffect, useRef, useState } from "react";
+import { Box, ActionIcon } from "@mantine/core";
+import { IconMaximize, IconMinimize } from "@tabler/icons-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { UnifiedListing } from "@shared/api/types";
+import { shadows } from "@app/styles/theme";
 
 // Coordinates for Uzbekistan regions and cities
 const LOCATION_COORDS: Record<string, [number, number]> = {
@@ -147,7 +149,7 @@ interface ListingMapProps {
 	lat: number;
 	lng: number;
 	exact: boolean;
-	height?: number;
+	height?: number | string;
 }
 
 export const ListingMap: FC<ListingMapProps> = ({
@@ -158,6 +160,13 @@ export const ListingMap: FC<ListingMapProps> = ({
 }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const mapRef = useRef<L.Map | null>(null);
+	const [isFullscreen, setIsFullscreen] = useState(false);
+
+	// Re-fit Leaflet after the container resizes (entering/leaving fullscreen).
+	useEffect(() => {
+		const id = setTimeout(() => mapRef.current?.invalidateSize(), 150);
+		return () => clearTimeout(id);
+	}, [isFullscreen]);
 
 	useEffect(() => {
 		if (!containerRef.current || mapRef.current) return;
@@ -220,13 +229,42 @@ export const ListingMap: FC<ListingMapProps> = ({
 
 	return (
 		<Box
-			ref={containerRef}
-			style={{
-				height,
-				width: "100%",
-				borderRadius: 12,
-				overflow: "hidden",
-			}}
-		/>
+			style={
+				isFullscreen
+					? {
+							position: "fixed",
+							inset: 0,
+							zIndex: 99999,
+							width: "100vw",
+							height: "100vh",
+							background: "#fff",
+						}
+					: {
+							position: "relative",
+							height,
+							width: "100%",
+							borderRadius: 12,
+							overflow: "hidden",
+						}
+			}
+		>
+			<Box ref={containerRef} style={{ height: "100%", width: "100%" }} />
+			<ActionIcon
+				onClick={() => setIsFullscreen((v) => !v)}
+				variant="default"
+				size="lg"
+				radius="md"
+				aria-label="Fullscreen"
+				style={{
+					position: "absolute",
+					top: 10,
+					right: 10,
+					zIndex: 1000,
+					boxShadow: shadows.md,
+				}}
+			>
+				{isFullscreen ? <IconMinimize size={18} /> : <IconMaximize size={18} />}
+			</ActionIcon>
+		</Box>
 	);
 };

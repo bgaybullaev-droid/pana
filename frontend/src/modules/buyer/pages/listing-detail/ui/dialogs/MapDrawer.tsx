@@ -1,6 +1,6 @@
 import { FC, Suspense, lazy } from "react";
-import { Drawer, Box, Text, Group } from "@mantine/core";
-import { IconMapPin } from "@tabler/icons-react";
+import { Drawer, Box, Text, Group, UnstyledButton } from "@mantine/core";
+import { IconMapPin, IconArrowLeft } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict } from "@shared/lib/regions";
@@ -16,6 +16,8 @@ interface MapDrawerProps {
 	opened: boolean;
 	onClose: () => void;
 	listing: UnifiedListing;
+	/** Close the map and open the description drawer instead. */
+	onBackToDescription?: () => void;
 	/** See DescriptionDrawer.container — contains the drawer within the
 	 *  seller Stage-2 preview frame instead of the full viewport. */
 	container?: HTMLElement | null;
@@ -25,6 +27,7 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 	opened,
 	onClose,
 	listing,
+	onBackToDescription,
 	container,
 }) => {
 	const { t } = useTranslation("buyer");
@@ -92,7 +95,7 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 							lat={coords.lat}
 							lng={coords.lng}
 							exact={coords.exact}
-							height={400}
+							height="100%"
 						/>
 					</Suspense>
 				) : (
@@ -125,6 +128,22 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 						{locationText || t("home.region")}
 					</Text>
 				</Group>
+				{onBackToDescription && (
+					<UnstyledButton
+						onClick={onBackToDescription}
+						mt={8}
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							gap: 6,
+							color: "var(--mantine-color-blue-6)",
+							fontSize: "var(--mantine-font-size-sm)",
+						}}
+					>
+						<IconArrowLeft size={14} />
+						{t("descriptionDrawer.backToDescription", "К описанию")}
+					</UnstyledButton>
+				)}
 			</Box>
 
 			{/* Back — pinned outside the sliding sheet so it stays put (no slide-up). */}
