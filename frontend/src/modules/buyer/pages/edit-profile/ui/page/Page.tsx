@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/providers/useAuth";
 import { updateProfileFx } from "@shared/state/auth/model/effects";
-import { formatPhone } from "@shared/lib/formatPhone";
 import { radii } from "@app/styles/theme";
 import {
 	Box,
@@ -11,11 +10,11 @@ import {
 	TextInput,
 	Button,
 	Avatar,
-	Anchor,
 } from "@mantine/core";
 import { IconUser } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
 import { ChipSelect } from "@shared/ui/ChipSelect";
+import { PhoneManager } from "@modules/seller/feature/phone-manager";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -165,55 +164,7 @@ function Page() {
 					/>
 
 					<Box mb={16}>
-						<Box
-							style={{
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "space-between",
-								marginBottom: 6,
-							}}
-						>
-							<Text
-								style={{
-									fontSize: 13,
-									fontWeight: 500,
-									color: "#8E8E93",
-								}}
-							>
-								{t("editProfile.phone")}
-							</Text>
-							<Anchor
-								component="button"
-								type="button"
-								onClick={() => navigate("/seller/phones")}
-								style={{ fontSize: 13, fontWeight: 500 }}
-							>
-								{t("editProfile.addPhone")}
-							</Anchor>
-						</Box>
-						{user?.phone && (
-							<Box
-								style={{
-									height: 48,
-									borderRadius: radii.md,
-									border: "1px solid #E8E8ED",
-									backgroundColor: "#F5F5F7",
-									display: "flex",
-									alignItems: "center",
-									paddingLeft: 12,
-									paddingRight: 12,
-								}}
-							>
-								<Text
-									style={{
-										fontSize: 16,
-										color: "#8E8E93",
-									}}
-								>
-									{formatPhone(user.phone)}
-								</Text>
-							</Box>
-						)}
+						<PhoneManager />
 					</Box>
 
 					<Box mb={16}>

@@ -352,7 +352,7 @@ function Page() {
 				<SettingsRow
 					icon={IconDeviceMobile}
 					label={ts("nav.phones")}
-					onClick={() => navigate("/seller/phones")}
+					onClick={() => navigate("/edit-profile")}
 				/>
 				<SettingsRow
 					icon={IconWallet}

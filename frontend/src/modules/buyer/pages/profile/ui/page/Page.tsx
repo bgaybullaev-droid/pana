@@ -162,7 +162,7 @@ function Page() {
 			label: t("nav.phones", { ns: "seller" }),
 			color: "#0891b2",
 			bg: "#cffafe",
-			onClick: () => navigate("/seller/phones"),
+			onClick: () => navigate("/edit-profile"),
 		},
 		{
 			icon: IconCoin,

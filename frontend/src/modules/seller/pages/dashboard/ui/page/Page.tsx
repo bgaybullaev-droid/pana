@@ -198,7 +198,7 @@ function Page() {
 						</UnstyledButton>
 
 						{/* Block C V2.0 (C4): My Phones */}
-						<UnstyledButton onClick={() => navigate("/seller/phones")}>
+						<UnstyledButton onClick={() => navigate("/edit-profile")}>
 							<Card radius={radii.md} p="sm" style={{ background: surface.card, border: '1px solid #f1f5f9', boxShadow: shadows.sm }}>
 								<Group wrap="nowrap" justify="space-between">
 									<Group wrap="nowrap" gap="sm">

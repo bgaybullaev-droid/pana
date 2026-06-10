@@ -1249,7 +1249,7 @@ export function ListingFormFields({
 				<Anchor
 					component="button"
 					size="sm"
-					onClick={() => navigate("/seller/phones")}
+					onClick={() => navigate("/edit-profile")}
 					style={{ display: "block", marginTop: 4 }}
 				>
 					{t("listingForm.addContactLink", { defaultValue: "+ Добавить контакт" })}

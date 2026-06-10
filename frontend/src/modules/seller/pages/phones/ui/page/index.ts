@@ -1,1 +1,0 @@
-export { SellerPhones } from "./Page";

@@ -3,7 +3,6 @@ import {
 	Box,
 	Button,
 	Card,
-	Container,
 	Group,
 	Modal,
 	Select,
@@ -27,20 +26,19 @@ import {
 } from "@tabler/icons-react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
-import { InnerPage } from "@shared/ui/InnerPage";
 import { radii, shadows } from "@app/styles/theme";
-import { $phones, $isLoadingPhones } from "../../model/stores";
+import { $phones, $isLoadingPhones } from "../model/stores";
 import {
 	fetchPhonesFx,
 	requestPhoneOtpFx,
 	verifyPhoneOtpFx,
 	deletePhoneFx,
 	type PhoneRow,
-} from "../../model/effects";
+} from "../model/effects";
 
 const MAX_ADDITIONAL_PHONES = 3;
 
-function Page() {
+export function PhoneManager() {
 	const { t } = useTranslation("seller");
 	const [phones, isLoading] = useUnit([$phones, $isLoadingPhones]);
 	const [
@@ -64,9 +62,7 @@ function Page() {
 	const [deleteAction, setDeleteAction] = useState<
 		"transfer_to_primary" | "transfer_to_other" | "archive_listings"
 	>("transfer_to_primary");
-	const [deleteTargetPhone, setDeleteTargetPhone] = useState<string | null>(
-		null,
-	);
+	const [deleteTargetPhone, setDeleteTargetPhone] = useState<string | null>(null);
 	const [deletePending, setDeletePending] = useState(false);
 
 	useEffect(() => {
@@ -124,15 +120,10 @@ function Page() {
 			if (row.listings_count > 0) {
 				notifications.show({
 					color: "green",
-					message: t("phones.toastAddedWithMatched", {
-						count: row.listings_count,
-					}),
+					message: t("phones.toastAddedWithMatched", { count: row.listings_count }),
 				});
 			} else {
-				notifications.show({
-					color: "green",
-					message: t("phones.toastAdded"),
-				});
+				notifications.show({ color: "green", message: t("phones.toastAdded") });
 			}
 		} catch (err: any) {
 			const detail = err?.response?.data?.detail;
@@ -165,18 +156,13 @@ function Page() {
 			});
 			closeDeleteModal();
 			setPendingDelete(null);
-			notifications.show({
-				color: "blue",
-				message: t("phones.toastDeleted"),
-			});
+			notifications.show({ color: "blue", message: t("phones.toastDeleted") });
 		} catch (err: any) {
 			const detail = err?.response?.data?.detail;
 			notifications.show({
 				color: "red",
 				message:
-					typeof detail === "string"
-						? detail
-						: t("phones.toastErrorGeneric"),
+					typeof detail === "string" ? detail : t("phones.toastErrorGeneric"),
 			});
 		} finally {
 			setDeletePending(false);
@@ -188,104 +174,91 @@ function Page() {
 	);
 
 	return (
-		<InnerPage title={t("phones.pageTitle")} noPadding>
-			<Container px="md" py="md">
-				<Stack gap={16}>
-					<Text size="sm" c="dimmed" lh={1.4}>
-						{t("phones.subtitle")}
-					</Text>
+		<Box>
+			<Text
+				style={{ fontSize: 13, fontWeight: 500, color: "#8E8E93", marginBottom: 8 }}
+			>
+				{t("phones.pageTitle")}
+			</Text>
 
-					{isLoading && phones.length === 0 ? (
-						<>
-							<Skeleton height={72} radius={12} />
-							<Skeleton height={72} radius={12} />
-						</>
-					) : (
-						<Stack gap={8}>
-							{phones.map((p) => (
-								<Card
-									key={p.id}
-									padding="md"
-									style={{
-										border: "1px solid #e2e8f0",
-										borderRadius: radii.md,
-										boxShadow: shadows.sm,
-										background: "#fff",
-									}}
-								>
-									<Group justify="space-between" wrap="nowrap" gap={12}>
-										<Group gap={10} wrap="nowrap" style={{ flex: 1 }}>
-											<ThemeIcon
-												size={36}
-												radius="xl"
-												variant="light"
-												color={p.is_primary ? "blue" : "gray"}
-											>
-												{p.is_primary ? (
-													<IconShield size={18} />
-												) : (
-													<IconPhone size={18} />
-												)}
-											</ThemeIcon>
-											<Box>
-												<Group gap={6}>
-													<Text fw={700} c="dark.9" size="sm">
-														{p.phone}
-													</Text>
-													{p.is_primary && (
-														<Badge size="xs" color="blue" variant="filled">
-															{t("phones.primaryBadge")}
-														</Badge>
-													)}
-												</Group>
-												<Text size="xs" c="dimmed" mt={2}>
-													{p.listings_count > 0
-														? t("phones.listingsCount", {
-																count: p.listings_count,
-															})
-														: ""}
-												</Text>
-											</Box>
+			<Stack gap={8} mb={12}>
+				{isLoading && phones.length === 0 ? (
+					<>
+						<Skeleton height={60} radius={radii.md} />
+						<Skeleton height={60} radius={radii.md} />
+					</>
+				) : (
+					phones.map((p) => (
+						<Card
+							key={p.id}
+							padding="sm"
+							style={{
+								border: "1px solid #e2e8f0",
+								borderRadius: radii.md,
+								boxShadow: shadows.sm,
+								background: "#fff",
+							}}
+						>
+							<Group justify="space-between" wrap="nowrap" gap={12}>
+								<Group gap={10} wrap="nowrap" style={{ flex: 1 }}>
+									<ThemeIcon
+										size={32}
+										radius="xl"
+										variant="light"
+										color={p.is_primary ? "blue" : "gray"}
+									>
+										{p.is_primary ? <IconShield size={16} /> : <IconPhone size={16} />}
+									</ThemeIcon>
+									<Box>
+										<Group gap={6}>
+											<Text fw={700} c="dark.9" size="sm">{p.phone}</Text>
+											{p.is_primary && (
+												<Badge size="xs" color="blue" variant="filled">
+													{t("phones.primaryBadge")}
+												</Badge>
+											)}
 										</Group>
-										{!p.is_primary && (
-											<ActionIcon
-												variant="subtle"
-												color="red"
-												onClick={() => startDelete(p)}
-												aria-label={t("phones.deleteModalTitle")}
-											>
-												<IconTrash size={18} />
-											</ActionIcon>
+										{p.listings_count > 0 && (
+											<Text size="xs" c="dimmed" mt={2}>
+												{t("phones.listingsCount", { count: p.listings_count })}
+											</Text>
 										)}
-									</Group>
-								</Card>
-							))}
-						</Stack>
-					)}
+									</Box>
+								</Group>
+								{!p.is_primary && (
+									<ActionIcon
+										variant="subtle"
+										color="red"
+										onClick={() => startDelete(p)}
+										aria-label={t("phones.deleteModalTitle")}
+									>
+										<IconTrash size={18} />
+									</ActionIcon>
+								)}
+							</Group>
+						</Card>
+					))
+				)}
+			</Stack>
 
-					<Button
-						leftSection={<IconPlus size={16} />}
-						onClick={startAdd}
-						disabled={atMax}
-						variant="light"
-						color="blue"
-					>
-						{atMax
-							? t("phones.maxAdditionalReached", {
-									max: MAX_ADDITIONAL_PHONES,
-								})
-							: t("phones.addBtn")}
-					</Button>
-				</Stack>
-			</Container>
+			<Button
+				leftSection={<IconPlus size={16} />}
+				onClick={startAdd}
+				disabled={atMax}
+				variant="light"
+				color="blue"
+				size="sm"
+				fullWidth
+			>
+				{atMax
+					? t("phones.maxAdditionalReached", { max: MAX_ADDITIONAL_PHONES })
+					: t("phones.addBtn")}
+			</Button>
 
 			{/* Add-phone modal */}
 			<Modal
 				opened={addModalOpened}
-				onClose={() => {
-					closeAddModal();
-					resetAddFlow();
-				}}
+				onClose={() => { closeAddModal(); resetAddFlow(); }}
 				title={t("phones.modalTitle")}
 				centered
 			>
@@ -299,26 +272,18 @@ function Page() {
 						required
 					/>
 					{otpRequested && (
-						<>
-							<TextInput
-								label={t("phones.modalCodeLabel")}
-								placeholder={t("phones.modalCodePlaceholder")}
-								value={code}
-								onChange={(e) => setCode(e.currentTarget.value)}
-								description={t("phones.modalCodeHint")}
-								required
-								maxLength={6}
-							/>
-						</>
+						<TextInput
+							label={t("phones.modalCodeLabel")}
+							placeholder={t("phones.modalCodePlaceholder")}
+							value={code}
+							onChange={(e) => setCode(e.currentTarget.value)}
+							description={t("phones.modalCodeHint")}
+							required
+							maxLength={6}
+						/>
 					)}
 					<Group justify="flex-end" mt={4}>
-						<Button
-							variant="default"
-							onClick={() => {
-								closeAddModal();
-								resetAddFlow();
-							}}
-						>
+						<Button variant="default" onClick={() => { closeAddModal(); resetAddFlow(); }}>
 							{t("phones.modalCancelBtn")}
 						</Button>
 						{!otpRequested ? (
@@ -345,9 +310,7 @@ function Page() {
 					<Stack gap={12}>
 						<Text size="sm" c="dark.7">
 							{pendingDelete.listings_count > 0
-								? t("phones.deleteModalBody", {
-										count: pendingDelete.listings_count,
-									})
+								? t("phones.deleteModalBody", { count: pendingDelete.listings_count })
 								: t("phones.deleteModalEmptyBody")}
 						</Text>
 
@@ -358,48 +321,35 @@ function Page() {
 									style={{
 										padding: 12,
 										borderRadius: 8,
-										background:
-											deleteAction === "transfer_to_primary"
-												? "#dbeafe"
-												: "#f8fafc",
-										border:
-											deleteAction === "transfer_to_primary"
-												? "1px solid #3b82f6"
-												: "1px solid #e2e8f0",
+										background: deleteAction === "transfer_to_primary" ? "#dbeafe" : "#f8fafc",
+										border: deleteAction === "transfer_to_primary"
+											? "1px solid #3b82f6"
+											: "1px solid #e2e8f0",
 									}}
 								>
 									<Group gap={8}>
-										{deleteAction === "transfer_to_primary" && (
-											<IconCheck size={16} color="#3b82f6" />
-										)}
+										{deleteAction === "transfer_to_primary" && <IconCheck size={16} color="#3b82f6" />}
 										<Text size="sm" fw={500} c="dark.8">
 											{t("phones.deleteAction.transferToPrimary")}
 										</Text>
 									</Group>
 								</UnstyledButton>
 
-								{otherPhonesForTransfer.filter((p) => !p.is_primary).length >
-									0 && (
+								{otherPhonesForTransfer.filter((p) => !p.is_primary).length > 0 && (
 									<UnstyledButton
 										onClick={() => setDeleteAction("transfer_to_other")}
 										style={{
 											padding: 12,
 											borderRadius: 8,
-											background:
-												deleteAction === "transfer_to_other"
-													? "#dbeafe"
-													: "#f8fafc",
-											border:
-												deleteAction === "transfer_to_other"
-													? "1px solid #3b82f6"
-													: "1px solid #e2e8f0",
+											background: deleteAction === "transfer_to_other" ? "#dbeafe" : "#f8fafc",
+											border: deleteAction === "transfer_to_other"
+												? "1px solid #3b82f6"
+												: "1px solid #e2e8f0",
 										}}
 									>
 										<Stack gap={6}>
 											<Group gap={8}>
-												{deleteAction === "transfer_to_other" && (
-													<IconCheck size={16} color="#3b82f6" />
-												)}
+												{deleteAction === "transfer_to_other" && <IconCheck size={16} color="#3b82f6" />}
 												<Text size="sm" fw={500} c="dark.8">
 													{t("phones.deleteAction.transferToOther")}
 												</Text>
@@ -412,10 +362,7 @@ function Page() {
 													onChange={setDeleteTargetPhone}
 													data={otherPhonesForTransfer
 														.filter((p) => !p.is_primary)
-														.map((p) => ({
-															value: p.id,
-															label: p.phone,
-														}))}
+														.map((p) => ({ value: p.id, label: p.phone }))}
 												/>
 											)}
 										</Stack>
@@ -427,20 +374,14 @@ function Page() {
 									style={{
 										padding: 12,
 										borderRadius: 8,
-										background:
-											deleteAction === "archive_listings"
-												? "#fee2e2"
-												: "#f8fafc",
-										border:
-											deleteAction === "archive_listings"
-												? "1px solid #ef4444"
-												: "1px solid #e2e8f0",
+										background: deleteAction === "archive_listings" ? "#fee2e2" : "#f8fafc",
+										border: deleteAction === "archive_listings"
+											? "1px solid #ef4444"
+											: "1px solid #e2e8f0",
 									}}
 								>
 									<Group gap={8}>
-										{deleteAction === "archive_listings" && (
-											<IconCheck size={16} color="#ef4444" />
-										)}
+										{deleteAction === "archive_listings" && <IconCheck size={16} color="#ef4444" />}
 										<Text size="sm" fw={500} c="dark.8">
 											{t("phones.deleteAction.archiveListings")}
 										</Text>
@@ -457,10 +398,7 @@ function Page() {
 								color="red"
 								onClick={confirmDelete}
 								loading={deletePending}
-								disabled={
-									deleteAction === "transfer_to_other" &&
-									!deleteTargetPhone
-								}
+								disabled={deleteAction === "transfer_to_other" && !deleteTargetPhone}
 							>
 								{t("phones.deleteModalTitle")}
 							</Button>
@@ -468,11 +406,6 @@ function Page() {
 					</Stack>
 				)}
 			</Modal>
-		</InnerPage>
+		</Box>
 	);
 }
-
-export const SellerPhones = {
-	route: "/seller/phones",
-	Page,
-};

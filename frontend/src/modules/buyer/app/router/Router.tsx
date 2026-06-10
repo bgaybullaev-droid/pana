@@ -121,11 +121,6 @@ const SellerTariffsPage = lazy(() =>
 		default: m.SellerTariffs.Page,
 	})),
 );
-const SellerPhonesPage = lazy(() =>
-	import("@modules/seller/pages/phones").then((m) => ({
-		default: m.SellerPhones.Page,
-	})),
-);
 const SellerAutopostingPage = lazy(() =>
 	import("@modules/seller/pages/autoposting").then((m) => ({
 		default: m.SellerAutoposting.Page,
@@ -206,7 +201,6 @@ export function UserRouter() {
 					{/* C1 V2.0: tariffs are visible from day 1 — accessible
 					    to prospective sellers BEFORE registration. */}
 					<Route path="/seller/tariffs" element={<SellerTariffsPage />} />
-					<Route path="/seller/phones" element={<SellerRoute><SellerPhonesPage /></SellerRoute>} />
 					{/* Block D D4 — autoposting cabinet. SellerRoute gates entry;
 					    subscription gate is enforced server-side in the API. */}
 					<Route path="/seller/autoposting" element={<SellerRoute><SellerAutopostingPage /></SellerRoute>} />
