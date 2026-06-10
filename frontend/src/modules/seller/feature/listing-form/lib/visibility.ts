@@ -108,6 +108,7 @@ const APARTMENT_BASE_FIELDS: readonly FieldKey[] = [
 	"kitchen_area",
 	"floor",
 	"total_floors",
+	"ceiling_height", // optional, all types except land
 	"building_type", // S5: kept during dual-read window
 	"market_type", // S5: new
 	"wall_material", // S5: new (apartment + house)
@@ -129,6 +130,7 @@ const HOUSE_BASE_FIELDS: readonly FieldKey[] = [
 	"living_area",
 	"land_area",
 	"total_floors",
+	"ceiling_height", // optional, all types except land
 	"house_type",
 	"house_condition",
 	"location_type",
@@ -142,7 +144,6 @@ const HOUSE_BASE_FIELDS: readonly FieldKey[] = [
 	"wall_material", // S5
 	"amenities",
 	"nearby_amenities",
-	"jk_name", // S3
 	"garage", // S6
 	"basement", // S6
 ];
@@ -157,7 +158,6 @@ const COMMERCIAL_BASE_FIELDS: readonly FieldKey[] = [
 	"nearby_amenities",
 	"metro_station", // S3
 	"commercial_type", // S4
-	"price_per_sqm", // S4
 	"ceiling_height", // S4
 	"entrance", // S4
 	"parking_comm", // S4

@@ -100,7 +100,7 @@ export function ListingFormFields({
 				form.values.region === TASHKENT_REGION, // P5 region sub-gate
 			// S4 — commercial (all matrix-gated to commercial)
 			commercialType: isVisible("commercial_type", pt, dt),
-			pricePerSqm: isVisible("price_per_sqm", pt, dt),
+			// ceilingHeight is now shown for apartment/house/commercial (not land)
 			ceilingHeight: isVisible("ceiling_height", pt, dt),
 			entrance: isVisible("entrance", pt, dt),
 			parkingComm: isVisible("parking_comm", pt, dt),
@@ -207,7 +207,7 @@ export function ListingFormFields({
 	];
 
 	const landAreaOpts = [
-		{ value: "1", label: "1 sotka" },
+		{ value: "1", label: "1" },
 		{ value: "2", label: "2" },
 		{ value: "3", label: "3" },
 		{ value: "4", label: "4" },
@@ -497,8 +497,12 @@ export function ListingFormFields({
 					options={[
 						{ value: "apartment", label: t("propertyTypes.apartment") },
 						{ value: "house", label: t("propertyTypes.house") },
+						{
+							value: "land",
+							label: t("propertyTypes.land"),
+							breakAfter: true,
+						},
 						{ value: "commercial", label: t("propertyTypes.commercial") },
-						{ value: "land", label: t("propertyTypes.land") },
 					]}
 					value={form.values.property_type}
 					onChange={(val) => {
@@ -521,6 +525,14 @@ export function ListingFormFields({
 						applyTransition(pt, nextDt);
 					}}
 					error={form.errors.type as string}
+				/>
+				{/* S3 — urgent_flag (always-visible, defaults to false). */}
+				<Switch
+					label={t("createListing.urgentFlag")}
+					description={t("createListing.urgentFlagDescription")}
+					checked={form.values.urgent_flag}
+					onChange={(e) => set("urgent_flag", e.currentTarget.checked)}
+					styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 				/>
 			</FormSection>
 
@@ -608,6 +620,21 @@ export function ListingFormFields({
 						customInputMode="numeric"
 						customPlaceholder="24, 30..."
 						error={form.errors.total_floors as string}
+					/>
+				)}
+				{/* Ceiling height — optional, all property types except land */}
+				{show.ceilingHeight && (
+					<NumberInput
+						label={t("createListing.ceilingHeightLabel")}
+						min={0.1}
+						max={30}
+						step={0.1}
+						decimalScale={1}
+						hideControls
+						value={form.values.ceiling_height ?? ""}
+						onChange={(val) =>
+							set("ceiling_height", typeof val === "number" ? val : undefined)
+						}
 					/>
 				)}
 			</FormSection>
@@ -854,8 +881,6 @@ export function ListingFormFields({
 
 			{/* ── Commercial Attributes (S4) ── */}
 			{(show.commercialType ||
-				show.pricePerSqm ||
-				show.ceilingHeight ||
 				show.entrance ||
 				show.parkingComm ||
 				show.buildingClass) && (
@@ -891,34 +916,6 @@ export function ListingFormFields({
 							options={entranceOpts}
 							value={form.values.entrance}
 							onChange={(val) => set("entrance", val as string | undefined)}
-						/>
-					)}
-					{show.ceilingHeight && (
-						<NumberInput
-							label={t("createListing.ceilingHeightLabel")}
-							min={0.1}
-							max={30}
-							step={0.1}
-							decimalScale={1}
-							hideControls
-							value={form.values.ceiling_height ?? ""}
-							onChange={(val) =>
-								set("ceiling_height", typeof val === "number" ? val : undefined)
-							}
-						/>
-					)}
-					{show.pricePerSqm && (
-						<NumberInput
-							label={t("createListing.pricePerSqmLabel")}
-							min={0}
-							allowNegative={false}
-							allowDecimal={false}
-							thousandSeparator=" "
-							hideControls
-							value={form.values.price_per_sqm ?? ""}
-							onChange={(val) =>
-								set("price_per_sqm", typeof val === "number" ? val : undefined)
-							}
 						/>
 					)}
 					{show.parkingComm && (
@@ -1205,14 +1202,6 @@ export function ListingFormFields({
 					options={currencyOpts}
 					value={form.values.currency}
 					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}
-				/>
-				{/* S3 — urgent_flag (always-visible, defaults to false). */}
-				<Switch
-					label={t("createListing.urgentFlag")}
-					description={t("createListing.urgentFlagDescription")}
-					checked={form.values.urgent_flag}
-					onChange={(e) => set("urgent_flag", e.currentTarget.checked)}
-					styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 				/>
 			</FormSection>
 

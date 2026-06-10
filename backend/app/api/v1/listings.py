@@ -216,6 +216,7 @@ _APARTMENT_BASE_FIELDS = frozenset(
         "kitchen_area",
         "floor",
         "total_floors",
+        "ceiling_height",  # optional, all types except land
         "building_type",  # S5: kept during dual-read
         "market_type",  # S5
         "wall_material",  # S5
@@ -238,6 +239,7 @@ _HOUSE_BASE_FIELDS = frozenset(
         "living_area",
         "land_area",
         "total_floors",
+        "ceiling_height",  # optional, all types except land
         "house_type",
         "house_condition",
         "location_type",
@@ -251,7 +253,6 @@ _HOUSE_BASE_FIELDS = frozenset(
         "wall_material",  # S5
         "amenities",
         "nearby_amenities",
-        "jk_name",  # S3
         "garage",  # S6
         "basement",  # S6
     }
@@ -267,7 +268,6 @@ _COMMERCIAL_BASE_FIELDS = frozenset(
         "nearby_amenities",
         "metro_station",  # S3
         "commercial_type",  # S4
-        "price_per_sqm",  # S4
         "ceiling_height",  # S4
         "entrance",  # S4
         "parking_comm",  # S4
