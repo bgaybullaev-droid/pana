@@ -11,6 +11,7 @@ import {
 	TextInput,
 	Button,
 	Avatar,
+	Anchor,
 } from "@mantine/core";
 import { IconUser } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
@@ -163,18 +164,34 @@ function Page() {
 						}}
 					/>
 
-					{user?.phone && (
-						<Box mb={16}>
+					<Box mb={16}>
+						<Box
+							style={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+								marginBottom: 6,
+							}}
+						>
 							<Text
 								style={{
 									fontSize: 13,
 									fontWeight: 500,
 									color: "#8E8E93",
-									marginBottom: 6,
 								}}
 							>
 								{t("editProfile.phone")}
 							</Text>
+							<Anchor
+								component="button"
+								type="button"
+								onClick={() => navigate("/seller/phones")}
+								style={{ fontSize: 13, fontWeight: 500 }}
+							>
+								{t("editProfile.addPhone")}
+							</Anchor>
+						</Box>
+						{user?.phone && (
 							<Box
 								style={{
 									height: 48,
@@ -196,8 +213,8 @@ function Page() {
 									{formatPhone(user.phone)}
 								</Text>
 							</Box>
-						</Box>
-					)}
+						)}
+					</Box>
 
 					<Box mb={16}>
 						<ChipSelect

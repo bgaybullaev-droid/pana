@@ -327,6 +327,7 @@
   "editProfile.telegramLabel": "Telegram",
   "editProfile.telegramPlaceholder": "@username",
   "editProfile.telegramDescription": "Покупатели смогут написать вам в Telegram",
+  "editProfile.addPhone": "Добавить номер →",
   "favorites.tabListings": "Объявления",
   "favorites.tabSearches": "Сохранённые поиски",
   "favorites.searches.emptyTitle": "Нет сохранённых поисков",
