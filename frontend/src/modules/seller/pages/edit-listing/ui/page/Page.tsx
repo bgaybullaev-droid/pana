@@ -56,6 +56,8 @@ import {
 } from "@shared/state/listing/model";
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
+import { useListingCompleteness } from "@modules/seller/feature/listing-form/ui/useListingCompleteness";
+import { scrollToSection } from "@modules/seller/feature/listing-form/lib/scrollToSection";
 import {
 	buildAiDescriptionSlots,
 	type AiLang,
@@ -330,9 +332,23 @@ function Page() {
 		}
 	}, [totalImageCount, imageError]);
 
+	const [submitAttempted, setSubmitAttempted] = useState(false);
+	const { sectionStates, progress, firstIncompleteSection } =
+		useListingCompleteness({
+			values: form.values,
+			mode: "edit",
+			imageCount: totalImageCount,
+			submitAttempted,
+		});
+
 	const handleError = () => {
 		if (totalImageCount === 0) {
 			setImageError(true);
+		}
+		// Paint incomplete sections red and lead the user to the first one.
+		setSubmitAttempted(true);
+		if (firstIncompleteSection) {
+			scrollToSection(firstIncompleteSection);
 		}
 	};
 
@@ -409,6 +425,7 @@ function Page() {
 
 		if (totalImageCount === 0) {
 			setImageError(true);
+			setSubmitAttempted(true);
 			photoSectionRef.current?.scrollIntoView({
 				behavior: "smooth",
 				block: "start",
@@ -472,6 +489,23 @@ function Page() {
 	const errorCount =
 		Object.keys(form.errors).length +
 		(totalImageCount === 0 && imageError ? 1 : 0);
+
+	// Photos section status — same labels ListingFormFields uses internally.
+	const photosState = sectionStates.photos;
+	const photosStatusProps =
+		photosState.status === "complete"
+			? {
+					status: "complete" as const,
+					statusLabel: t("createListing.sectionComplete"),
+				}
+			: photosState.status === "error"
+				? {
+						status: "error" as const,
+						statusLabel: t("createListing.sectionRemaining", {
+							count: photosState.remaining,
+						}),
+					}
+				: { status: "neutral" as const };
 
 	// Shared AI-description block — same source on the create page. The
 	// listing already exists here, so generation is always allowed (no
@@ -669,8 +703,16 @@ function Page() {
 				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
 						{/* Section: Photos */}
-						<div ref={photoSectionRef}>
-							<FormSection title={t("createListing.photos")} required>
+						<div
+							ref={photoSectionRef}
+							data-section-key="photos"
+							style={{ scrollMarginTop: 12 }}
+						>
+							<FormSection
+								title={t("createListing.photos")}
+								required
+								{...photosStatusProps}
+							>
 								{/* Existing images */}
 								{existingImagesList.length > 0 && (
 									<Box mb="sm">
@@ -801,6 +843,7 @@ function Page() {
 							regions={regions}
 							districts={districts}
 							onRegionChange={handleRegionChange}
+							sectionStates={sectionStates}
 							beforeDescriptionContent={aiSlots.beforeDescriptionContent}
 							descriptionValueOverride={aiSlots.descriptionValueOverride}
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}
@@ -830,8 +873,15 @@ function Page() {
 						}}
 					>
 						{errorCount > 0 && (
-							<Box
+							<UnstyledButton
+								onClick={() => {
+									if (firstIncompleteSection) {
+										scrollToSection(firstIncompleteSection);
+									}
+								}}
 								style={{
+									display: "block",
+									width: "100%",
 									backgroundColor: "#fee2e2",
 									border: "1px solid #fca5a5",
 									padding: "10px 16px",
@@ -839,6 +889,7 @@ function Page() {
 									marginBottom: 12,
 									pointerEvents: "auto",
 									boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+									cursor: "pointer",
 								}}
 							>
 								<Text size="xs" c="red.8" fw={500} ta="center">
@@ -846,7 +897,7 @@ function Page() {
 										count: errorCount,
 									})}
 								</Text>
-							</Box>
+							</UnstyledButton>
 						)}
 						<Box
 							style={{
@@ -902,6 +953,21 @@ function Page() {
 									: t("editListing.save")}
 							</Button>
 						</Box>
+						<Text
+							size="11px"
+							c={
+								progress.filled === progress.total ? "green.7" : "dimmed"
+							}
+							fw={progress.filled === progress.total ? 600 : 400}
+							ta="center"
+							mt={6}
+							style={{ pointerEvents: "auto" }}
+						>
+							{t("createListing.requiredProgress", {
+								filled: progress.filled,
+								total: progress.total,
+							})}
+						</Text>
 					</Box>
 				</Box>
 			</Container>

@@ -33,6 +33,7 @@ import {
 	normalizeCombo,
 } from "../lib/visibility";
 import type { DealType, PropertyType } from "../lib/visibility";
+import type { SectionKey, SectionState } from "../lib/requiredness";
 
 // P5 sub-gate (blueprint §2.2): metro_station is only meaningful inside
 // Tashkent. Mirrors backend `_clear_incompatible_fields` rule P5.
@@ -52,6 +53,8 @@ interface ListingFormFieldsProps {
 	afterDescriptionContent?: React.ReactNode;
 	descriptionValueOverride?: string;
 	onDescriptionChangeOverride?: (val: string) => void;
+	/** Per-section completeness (useListingCompleteness). Omit → render as before. */
+	sectionStates?: Record<SectionKey, SectionState>;
 }
 
 export function ListingFormFields({
@@ -64,6 +67,7 @@ export function ListingFormFields({
 	afterDescriptionContent,
 	descriptionValueOverride,
 	onDescriptionChangeOverride,
+	sectionStates,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
 	const navigate = useNavigate();
@@ -117,6 +121,10 @@ export function ListingFormFields({
 			balcony: isVisible("balcony", pt, dt),
 			listingSubtype: isVisible("listing_subtype", pt, dt),
 			floorPlanUrl: isVisible("floor_plan_url", pt, dt),
+			// S2 — rent group (matrix-gated to rent × non-land). Required by
+			// both frontend validation and backend publish.
+			rentPeriod: isVisible("rent_period", pt, dt),
+			minRentMonths: isVisible("min_rent_months", pt, dt),
 		}),
 		// form.values.region feeds P5 region sub-gate for metro_station.
 		[pt, dt, form.values.region],
@@ -473,6 +481,37 @@ export function ListingFormFields({
 
 	const set = (key: string, val: any) => form.setFieldValue(key, val);
 
+	// FormSection status props from the page-computed completeness map.
+	// When `sectionStates` is absent (no page adopted it) sections render
+	// exactly as before. `neutral` still passes `status` so the transparent
+	// border reserves layout and complete/error transitions don't shift.
+	const sectionStatusProps = (key: SectionKey) => {
+		const state = sectionStates?.[key];
+		if (!state) return {};
+		if (state.status === "complete") {
+			return {
+				status: "complete" as const,
+				statusLabel: t("createListing.sectionComplete"),
+			};
+		}
+		if (state.status === "error") {
+			return {
+				status: "error" as const,
+				statusLabel: t("createListing.sectionRemaining", {
+					count: state.remaining,
+				}),
+			};
+		}
+		return { status: "neutral" as const };
+	};
+
+	// Scroll anchor for scrollToSection(); keeps the section title clear of
+	// any sticky chrome.
+	const sectionAnchor = (key: SectionKey) => ({
+		"data-section-key": key,
+		style: { scrollMarginTop: 12 },
+	});
+
 	// Apply the Sprint 1 visibility matrix: when (property_type, deal_type)
 	// changes, wipe fields that are no longer visible. Rule P3 (land forces
 	// sell) is applied via normalizeCombo before computing the clearing patch.
@@ -493,7 +532,12 @@ export function ListingFormFields({
 	return (
 		<>
 			{/* ── Type ── */}
-			<FormSection title={t("createListing.listingType")} bg={sectionBg}>
+			<div {...sectionAnchor("type")}>
+			<FormSection
+				title={t("createListing.listingType")}
+				bg={sectionBg}
+				{...sectionStatusProps("type")}
+			>
 				<ChipSelect
 					label={t("createListing.propertyType")}
 					required
@@ -538,10 +582,16 @@ export function ListingFormFields({
 					styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 				/>
 			</FormSection>
+			</div>
 
 			{/* ── Parameters ── */}
 			{/* Field order changes by property type: houses prioritize land area + stories */}
-			<FormSection title={t("createListing.parameters")} bg={sectionBg}>
+			<div {...sectionAnchor("parameters")}>
+			<FormSection
+				title={t("createListing.parameters")}
+				bg={sectionBg}
+				{...sectionStatusProps("parameters")}
+			>
 				{/* Land area — first for houses and land */}
 				{show.landArea && (
 					<ChipSelect
@@ -641,6 +691,7 @@ export function ListingFormFields({
 					/>
 				)}
 			</FormSection>
+			</div>
 
 			{/* ── Apartment Attributes (apartment only) ── */}
 			{pt !== "house" &&
@@ -651,7 +702,12 @@ export function ListingFormFields({
 					show.balcony ||
 					show.listingSubtype ||
 					show.floorPlanUrl) && (
-				<FormSection title={t("createListing.aptAttributes")} bg={sectionBg}>
+				<div {...sectionAnchor("aptAttributes")}>
+				<FormSection
+					title={t("createListing.aptAttributes")}
+					bg={sectionBg}
+					{...sectionStatusProps("aptAttributes")}
+				>
 					{show.marketType && (
 						<ChipSelect
 							label={t("createListing.marketTypeLabel")}
@@ -721,11 +777,17 @@ export function ListingFormFields({
 						/>
 					)}
 				</FormSection>
+				</div>
 			)}
 
 			{/* ── House-Specific Attributes ── */}
 			{(show.houseType || show.garage || show.basement) && (
-				<FormSection title={t("createListing.houseAttributes")} bg={sectionBg}>
+				<div {...sectionAnchor("houseAttributes")}>
+				<FormSection
+					title={t("createListing.houseAttributes")}
+					bg={sectionBg}
+					{...sectionStatusProps("houseAttributes")}
+				>
 					{show.houseType && (
 						<ChipSelect
 							label={t("createListing.houseType")}
@@ -794,11 +856,17 @@ export function ListingFormFields({
 						/>
 					)}
 				</FormSection>
+				</div>
 			)}
 
 			{/* ── Utilities (House only) ── */}
 			{show.utilities && (
-				<FormSection title={t("createListing.utilities")} bg={sectionBg}>
+				<div {...sectionAnchor("utilities")}>
+				<FormSection
+					title={t("createListing.utilities")}
+					bg={sectionBg}
+					{...sectionStatusProps("utilities")}
+				>
 					<ChipMultiSelect
 						label={t("createListing.waterSupply")}
 						description={t("createListing.multipleAllowed")}
@@ -832,6 +900,7 @@ export function ListingFormFields({
 						onChange={(val) => set("sewage", val as string | undefined)}
 					/>
 				</FormSection>
+				</div>
 			)}
 
 			{/* ── Land Purpose + S6 land polish (Land only) ── */}
@@ -839,9 +908,11 @@ export function ListingFormFields({
 				show.buildingsExist ||
 				show.fence ||
 				show.landShape) && (
+				<div {...sectionAnchor("landPurpose")}>
 				<FormSection
 					title={t("createListing.landPurposeSection")}
 					bg={sectionBg}
+					{...sectionStatusProps("landPurpose")}
 				>
 					{show.landPurpose && (
 						<ChipSelect
@@ -880,6 +951,7 @@ export function ListingFormFields({
 						/>
 					)}
 				</FormSection>
+				</div>
 			)}
 
 			{/* ── Commercial Attributes (S4) ── */}
@@ -887,9 +959,11 @@ export function ListingFormFields({
 				show.entrance ||
 				show.parkingComm ||
 				show.buildingClass) && (
+				<div {...sectionAnchor("commercial")}>
 				<FormSection
 					title={t("createListing.commercialSection")}
 					bg={sectionBg}
+					{...sectionStatusProps("commercial")}
 				>
 					{show.commercialType && (
 						<ChipSelect
@@ -932,11 +1006,17 @@ export function ListingFormFields({
 						/>
 					)}
 				</FormSection>
+				</div>
 			)}
 
 			{/* ── Amenities ── */}
 			{(show.aptAmenities || show.houseAmenities || show.nearbyAmenities) && (
-				<FormSection title={t("createListing.amenitiesSection")} bg={sectionBg}>
+				<div {...sectionAnchor("amenities")}>
+				<FormSection
+					title={t("createListing.amenitiesSection")}
+					bg={sectionBg}
+					{...sectionStatusProps("amenities")}
+				>
 					{show.aptAmenities && (
 						<ChipMultiSelect
 							label={t("createListing.inProperty")}
@@ -965,10 +1045,16 @@ export function ListingFormFields({
 						/>
 					)}
 				</FormSection>
+				</div>
 			)}
 
 			{/* ── Location ── */}
-			<FormSection title={t("createListing.locationSection")} bg={sectionBg}>
+			<div {...sectionAnchor("location")}>
+			<FormSection
+				title={t("createListing.locationSection")}
+				bg={sectionBg}
+				{...sectionStatusProps("location")}
+			>
 				<ChipSelect
 					label={t("createListing.region")}
 					required
@@ -1102,9 +1188,15 @@ export function ListingFormFields({
 					</Box>
 				) : null}
 			</FormSection>
+			</div>
 
 			{/* ── Description + optional AI block ── */}
-			<FormSection title={t("createListing.additionalInfo")} bg={sectionBg}>
+			<div {...sectionAnchor("description")}>
+			<FormSection
+				title={t("createListing.additionalInfo")}
+				bg={sectionBg}
+				{...sectionStatusProps("description")}
+			>
 				{beforeDescriptionContent}
 				<Box>
 					<Textarea
@@ -1162,9 +1254,15 @@ export function ListingFormFields({
 				</Box>
 				{afterDescriptionContent}
 			</FormSection>
+			</div>
 
 			{/* ── Price ── */}
-			<FormSection title={t("createListing.priceSection")} bg={sectionBg}>
+			<div {...sectionAnchor("price")}>
+			<FormSection
+				title={t("createListing.priceSection")}
+				bg={sectionBg}
+				{...sectionStatusProps("price")}
+			>
 				<Box>
 					<Switch
 						label={t("createListing.negotiable")}
@@ -1206,10 +1304,59 @@ export function ListingFormFields({
 					value={form.values.currency}
 					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}
 				/>
+				{show.rentPeriod && (
+					<ChipSelect
+						label={t("createListing.rentPeriodLabel")}
+						required
+						options={[
+							{
+								value: "long_term",
+								label: t("createListing.rentPeriodLongTerm"),
+							},
+							{ value: "daily", label: t("createListing.rentPeriodDaily") },
+						]}
+						value={form.values.rent_period}
+						onChange={(val) => {
+							const next = val as string | undefined;
+							set("rent_period", next);
+							// P4 sub-gate: min_rent_months only applies to long_term —
+							// drop a stale value when switching away.
+							if (next !== "long_term" && form.values.min_rent_months) {
+								set("min_rent_months", undefined);
+							}
+						}}
+						error={form.errors.rent_period as string}
+					/>
+				)}
+				{show.minRentMonths && form.values.rent_period === "long_term" && (
+					<ChipSelect
+						label={t("createListing.minRentMonthsLabel")}
+						required
+						options={[
+							{ value: "1", label: "1" },
+							{ value: "3", label: "3" },
+							{ value: "6", label: "6" },
+							{ value: "12", label: "12" },
+						]}
+						value={form.values.min_rent_months}
+						onChange={(val) =>
+							set("min_rent_months", val as number | undefined)
+						}
+						customInputMode="numeric"
+						customPlaceholder="2, 9, 24..."
+						error={form.errors.min_rent_months as string}
+					/>
+				)}
 			</FormSection>
+			</div>
 
 			{/* ── Contact ── */}
-			<FormSection title={t("createListing.contactSection")} bg={sectionBg}>
+			<div {...sectionAnchor("contact")}>
+			<FormSection
+				title={t("createListing.contactSection")}
+				bg={sectionBg}
+				{...sectionStatusProps("contact")}
+			>
 				{verifiedPhones.length >= 1 ? (
 					<Select
 						label={t("listingForm.phoneSelect.label", {
@@ -1255,6 +1402,7 @@ export function ListingFormFields({
 					{t("listingForm.addContactLink", { defaultValue: "+ Добавить контакт" })}
 				</Anchor>
 			</FormSection>
+			</div>
 		</>
 	);
 }

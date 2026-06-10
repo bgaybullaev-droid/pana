@@ -7,7 +7,7 @@
  * Advancing without generating is always allowed.
  */
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
@@ -25,6 +25,7 @@ import {
 	Text,
 	Badge,
 	ActionIcon,
+	UnstyledButton,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -48,6 +49,8 @@ import {
 	loadDraft,
 } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
+import { useListingCompleteness } from "@modules/seller/feature/listing-form/ui/useListingCompleteness";
+import { scrollToSection } from "@modules/seller/feature/listing-form/lib/scrollToSection";
 import {
 	buildAiDescriptionSlots,
 	type AiLang,
@@ -169,31 +172,15 @@ function Stage1() {
 		};
 	}, [isPolling, draftId]);
 
-	const hasMinimumParams = useMemo(() => {
-		const v = form.values;
-		if (!v.type || !v.property_type || !v.district || !v.price || !v.area) {
-			return false;
-		}
-		if (
-			(v.property_type === "apartment" || v.property_type === "house") &&
-			v.rooms === undefined &&
-			v.listing_subtype !== "studio"
-		) {
-			return false;
-		}
-		return images.length > 0 && !isUploading;
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [
-		form.values.type,
-		form.values.property_type,
-		form.values.district,
-		form.values.price,
-		form.values.area,
-		form.values.rooms,
-		form.values.listing_subtype,
-		images.length,
-		isUploading,
-	]);
+	const [submitAttempted, setSubmitAttempted] = useState(false);
+	const { sectionStates, progress, isComplete, firstIncompleteSection } =
+		useListingCompleteness({
+			values: form.values,
+			mode: "create",
+			imageCount: images.length,
+			submitAttempted,
+		});
+	const readyToProceed = isComplete && !isUploading;
 
 	const hasAi = edits.ru.length > 0;
 
@@ -209,6 +196,11 @@ function Stage1() {
 	const handleError = () => {
 		if (images.length === 0) {
 			setImageError(true);
+		}
+		// Paint incomplete sections red and lead the user to the first one.
+		setSubmitAttempted(true);
+		if (firstIncompleteSection) {
+			scrollToSection(firstIncompleteSection);
 		}
 	};
 
@@ -251,6 +243,7 @@ function Stage1() {
 
 		if (images.length === 0) {
 			setImageError(true);
+			setSubmitAttempted(true);
 			photoSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 			return;
 		}
@@ -290,6 +283,7 @@ function Stage1() {
 	const handleSubmit = async (values: typeof form.values) => {
 		if (images.length === 0) {
 			setImageError(true);
+			setSubmitAttempted(true);
 			photoSectionRef.current?.scrollIntoView({
 				behavior: "smooth",
 				block: "start",
@@ -330,18 +324,35 @@ function Stage1() {
 
 	const generateButtonStyle = {
 		root: {
-			backgroundColor: hasMinimumParams
+			backgroundColor: readyToProceed
 				? "rgba(34, 139, 230, 1)"
 				: "rgba(34, 139, 230, 0.45)",
 			backdropFilter: "blur(20px) saturate(180%)",
 			WebkitBackdropFilter: "blur(20px) saturate(180%)",
-			boxShadow: hasMinimumParams
+			boxShadow: readyToProceed
 				? "0 4px 15px rgba(34, 139, 230, 0.45)"
 				: "0 2px 8px rgba(34, 139, 230, 0.15)",
 			border: "1px solid rgba(255, 255, 255, 0.2)",
-			animation: hasMinimumParams ? "f1Pulse 1.4s ease-out 1" : "none",
+			animation: readyToProceed ? "f1Pulse 1.4s ease-out 1" : "none",
 		},
 	};
+
+	// Photos section status — same labels ListingFormFields uses internally.
+	const photosState = sectionStates.photos;
+	const photosStatusProps =
+		photosState.status === "complete"
+			? {
+					status: "complete" as const,
+					statusLabel: t("createListing.sectionComplete"),
+				}
+			: photosState.status === "error"
+				? {
+						status: "error" as const,
+						statusLabel: t("createListing.sectionRemaining", {
+							count: photosState.remaining,
+						}),
+					}
+				: { status: "neutral" as const };
 
 	// Shared AI-description block — same source on the edit page.
 	const aiSlots = buildAiDescriptionSlots({
@@ -351,8 +362,8 @@ function Stage1() {
 		pollTimedOut,
 		isRegenerating,
 		generateLoading: isCreatingDraft && !isPolling,
-		generateDisabled: !hasMinimumParams,
-		showDisabledHint: !hasMinimumParams,
+		generateDisabled: !readyToProceed,
+		showDisabledHint: !readyToProceed,
 		wishes,
 		onWishesChange: setWishes,
 		activeTab,
@@ -377,8 +388,16 @@ function Stage1() {
 				<form onSubmit={form.onSubmit(handleSubmit, handleError)}>
 					<Stack gap="md">
 						{/* Section: Photos */}
-						<div ref={photoSectionRef}>
-							<FormSection title={t("createListing.photos")} required>
+						<div
+							ref={photoSectionRef}
+							data-section-key="photos"
+							style={{ scrollMarginTop: 12 }}
+						>
+							<FormSection
+								title={t("createListing.photos")}
+								required
+								{...photosStatusProps}
+							>
 								{isUploading && (
 									<Box mb="md">
 										<Group justify="space-between" mb={4}>
@@ -536,6 +555,7 @@ function Stage1() {
 							regions={regions}
 							districts={districts}
 							onRegionChange={handleRegionChange}
+							sectionStates={sectionStates}
 							beforeDescriptionContent={aiSlots.beforeDescriptionContent}
 							descriptionValueOverride={aiSlots.descriptionValueOverride}
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}
@@ -565,8 +585,15 @@ function Stage1() {
 						}}
 					>
 						{errorCount > 0 && (
-							<Box
+							<UnstyledButton
+								onClick={() => {
+									if (firstIncompleteSection) {
+										scrollToSection(firstIncompleteSection);
+									}
+								}}
 								style={{
+									display: "block",
+									width: "100%",
 									backgroundColor: "#fee2e2",
 									border: "1px solid #fca5a5",
 									padding: "10px 16px",
@@ -574,6 +601,7 @@ function Stage1() {
 									marginBottom: 12,
 									pointerEvents: "auto",
 									boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+									cursor: "pointer",
 								}}
 							>
 								<Text size="xs" c="red.8" fw={500} ta="center">
@@ -581,7 +609,7 @@ function Stage1() {
 										count: errorCount,
 									})}
 								</Text>
-							</Box>
+							</UnstyledButton>
 						)}
 						<Box
 							style={{
@@ -619,9 +647,21 @@ function Stage1() {
 								c="white"
 								fw={600}
 								fz={14}
-								disabled={!hasMinimumParams}
 								loading={(isCreatingDraft && !isPolling) || isUploading}
 								onClick={() => {
+									// Not disabled on purpose: a click on the muted button
+									// validates, paints incomplete sections red and scrolls
+									// to the first one instead of silently doing nothing.
+									if (!readyToProceed) {
+										if (isUploading) return;
+										setSubmitAttempted(true);
+										form.validate();
+										if (images.length === 0) setImageError(true);
+										if (firstIncompleteSection) {
+											scrollToSection(firstIncompleteSection);
+										}
+										return;
+									}
 									if (draftId) {
 										stageAdvance();
 									} else {
@@ -635,20 +675,19 @@ function Stage1() {
 									: t("createListing.nextButton", "Далее →")}
 							</Button>
 						</Box>
-						{!hasMinimumParams && (
-							<Text
-								size="11px"
-								c="dimmed"
-								ta="center"
-								mt={6}
-								style={{ pointerEvents: "auto" }}
-							>
-								{t(
-									"createListing.generateDisabledHint",
-									"Заполните основные параметры и добавьте фото",
-								)}
-							</Text>
-						)}
+						<Text
+							size="11px"
+							c={readyToProceed ? "green.7" : "dimmed"}
+							fw={readyToProceed ? 600 : 400}
+							ta="center"
+							mt={6}
+							style={{ pointerEvents: "auto" }}
+						>
+							{t("createListing.requiredProgress", {
+								filled: progress.filled,
+								total: progress.total,
+							})}
+						</Text>
 					</Box>
 				</Box>
 			</Container>

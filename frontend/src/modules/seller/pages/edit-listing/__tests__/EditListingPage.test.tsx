@@ -251,6 +251,16 @@ describe("EditListingPage", () => {
 		expect(actionIcons.length).toBeGreaterThan(0);
 	});
 
+	it("should render the required-progress line", async () => {
+		const model = await import("@shared/state/listing/model");
+		(model.$isLoadingEdit as any).getState = () => false;
+		(model.$isLoadingEdit as any)["@@unitShape"] = () => false;
+
+		const { EditListing } = await import("../ui/page/Page");
+		renderPage(<EditListing.Page />);
+		expect(screen.getByText("createListing.requiredProgress")).toBeTruthy();
+	});
+
 	it("should display image count badge", async () => {
 		const model = await import("@shared/state/listing/model");
 		(model.$isLoadingEdit as any).getState = () => false;

@@ -12,6 +12,7 @@ import {
 	getDistrictOptions,
 } from "@shared/constants/regions";
 import { saveDraft } from "./listingDraftStorage";
+import { buildValidateRules } from "../lib/requiredness";
 
 // Derives a human-readable city name from the region key for the backend `city` field.
 // City is not shown in the UI but is required by the backend on CREATE.
@@ -224,90 +225,9 @@ export function useListingForm(
 			seller_type: "",
 			...(initialOverrides ?? {}),
 		},
-		validate: {
-			type: (value, values) =>
-				values.property_type !== "land" && !value
-					? t("validation.dealTypeRequired")
-					: null,
-			price: (value, values) =>
-				!values.is_negotiable && (!value || value <= 0)
-					? t("validation.priceRequired")
-					: null,
-			rooms: (value, values) => {
-				const isApt = values.property_type === "apartment";
-				const isHouse = values.property_type === "house";
-				if ((isApt || isHouse) && value === undefined && values.listing_subtype !== "studio") {
-					return t("validation.roomsRequired");
-				}
-				return null;
-			},
-			area: (value, values) => {
-				if (values.property_type !== "land" && !value) {
-					return t("validation.areaRequired");
-				}
-				return null;
-			},
-			floor: (value, values) => {
-				const isApt = values.property_type === "apartment";
-				const isCom = values.property_type === "commercial";
-				if ((isApt || isCom) && value === undefined) {
-					return t("validation.floorRequired");
-				}
-				return null;
-			},
-			total_floors: (value, values) => {
-				const isApt = values.property_type === "apartment";
-				const isCom = values.property_type === "commercial";
-				const isHouse = values.property_type === "house";
-				if ((isApt || isCom || isHouse) && value === undefined) {
-					return t("validation.totalFloorsRequired");
-				}
-				return null;
-			},
-			// S5 dual-read: market_type replaces building_type as the required
-			// apartment-only field. On edit, pre-fill maps the legacy column
-			// to `market_type`, so this still passes for old listings.
-			market_type: (value, values) =>
-				values.property_type === "apartment" && !value
-					? t("validation.buildingTypeRequired")
-					: null,
-			condition: (value, values) => {
-				const isApt = values.property_type === "apartment";
-				const isCom = values.property_type === "commercial";
-				if ((isApt || isCom) && !value) {
-					return t("validation.conditionRequired");
-				}
-				return null;
-			},
-			// S5 dual-read: furniture replaces is_furnished. Required on
-			// non-land listings. Edit-mode maps legacy boolean → enum.
-			furniture: (value, values) =>
-				values.property_type !== "land" && !value
-					? t("validation.furnishedRequired")
-					: null,
-			// S4 (T-009): commercial listings require commercial_type on
-			// CREATE only. Same legacy-safety reasoning as `city`.
-			commercial_type: (value, values) =>
-				mode === "create" && values.property_type === "commercial" && !value
-					? t("validation.commercialTypeRequired")
-					: null,
-			// Sprint 2 — rent listings require a period (blueprint §3.3)
-			rent_period: (value, values) =>
-				values.type === "rent" && values.property_type !== "land" && !value
-					? t("validation.rentPeriodRequired")
-					: null,
-			// Long-term rentals additionally require min_rent_months
-			min_rent_months: (value, values) =>
-				values.type === "rent" &&
-				values.property_type !== "land" &&
-				values.rent_period === "long_term" &&
-				value === undefined
-					? t("validation.minRentMonthsRequired")
-					: null,
-			region: (value) => (!value ? t("validation.regionRequired") : null),
-			district: (value) => (!value ? t("validation.districtRequired") : null),
-			latitude: (value) => (!value ? t("validation.mapRequired") : null),
-		},
+		// Generated from the shared required-field table so the form
+		// validation and the section-status UI can never diverge.
+		validate: buildValidateRules(mode, t),
 	});
 
 	const districts = useMemo(

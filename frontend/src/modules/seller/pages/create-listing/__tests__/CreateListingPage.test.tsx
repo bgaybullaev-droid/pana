@@ -287,4 +287,20 @@ describe("CreateListingPage", () => {
 		renderPage(<CreateListing.Page />);
 		expect(screen.getByText("createListing.nextButton")).toBeTruthy();
 	});
+
+	it("should render the required-progress line", async () => {
+		const { CreateListing } = await import("../ui/page/Page");
+		renderPage(<CreateListing.Page />);
+		expect(screen.getByText("createListing.requiredProgress")).toBeTruthy();
+	});
+
+	it("next button stays enabled while the form is incomplete", async () => {
+		const { CreateListing } = await import("../ui/page/Page");
+		renderPage(<CreateListing.Page />);
+		const button = screen
+			.getByText("createListing.nextButton")
+			.closest("button");
+		expect(button).toBeTruthy();
+		expect(button!.disabled).toBe(false);
+	});
 });
