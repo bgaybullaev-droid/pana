@@ -242,6 +242,7 @@ export function ListingFormFields({
 
 	// House-specific options
 	const houseTypeOpts = [
+		{ value: "private_house", label: t("createListing.htPrivate") },
 		{ value: "cottage", label: t("createListing.htCottage") },
 		{ value: "townhouse", label: t("createListing.htTownhouse") },
 		{ value: "country_house", label: t("createListing.htCountry") },
@@ -456,12 +457,9 @@ export function ListingFormFields({
 	// for new submits.
 	const landPurposeOpts = [
 		{ value: "construction", label: t("createListing.lpConstruction") },
-		{
-			value: "commercial_land",
-			label: t("createListing.lpCommercialLand"),
-		},
-		{ value: "agricultural", label: t("createListing.lpAgricultural") },
 		{ value: "garden", label: t("createListing.lpGarden") },
+		{ value: "agricultural", label: t("createListing.lpAgricultural") },
+		{ value: "commercial_land", label: t("createListing.lpCommercialLand") },
 		{ value: "unspecified", label: t("createListing.lpUnspecified") },
 	];
 
@@ -510,22 +508,20 @@ export function ListingFormFields({
 					}}
 					error={form.errors.property_type as string}
 				/>
-				{pt !== "land" && (
-					<ChipSelect
-						label={t("createListing.dealType")}
-						required
-						options={[
-							{ label: t("createListing.sell"), value: "sell" },
-							{ label: t("createListing.rent"), value: "rent" },
-						]}
-						value={form.values.type}
-						onChange={(val) => {
-							const nextDt = (val as DealType) || "sell";
-							applyTransition(pt, nextDt);
-						}}
-						error={form.errors.type as string}
-					/>
-				)}
+				<ChipSelect
+					label={t("createListing.dealType")}
+					required
+					options={[
+						{ label: t("createListing.sell"), value: "sell" },
+						{ label: t("createListing.rent"), value: "rent" },
+					]}
+					value={form.values.type}
+					onChange={(val) => {
+						const nextDt = (val as DealType) || "sell";
+						applyTransition(pt, nextDt);
+					}}
+					error={form.errors.type as string}
+				/>
 			</FormSection>
 
 			{/* ── Parameters ── */}
@@ -616,14 +612,15 @@ export function ListingFormFields({
 				)}
 			</FormSection>
 
-			{/* ── Apartment / Shared Attributes ── */}
-			{(show.marketType ||
-				show.condition ||
-				show.furniture ||
-				show.wallMaterial ||
-				show.balcony ||
-				show.listingSubtype ||
-				show.floorPlanUrl) && (
+			{/* ── Apartment Attributes (apartment only) ── */}
+			{pt !== "house" &&
+				(show.marketType ||
+					show.condition ||
+					show.furniture ||
+					show.wallMaterial ||
+					show.balcony ||
+					show.listingSubtype ||
+					show.floorPlanUrl) && (
 				<FormSection title={t("createListing.aptAttributes")} bg={sectionBg}>
 					{show.marketType && (
 						<ChipSelect
@@ -723,6 +720,26 @@ export function ListingFormFields({
 							options={locationTypeOpts}
 							value={form.values.location_type}
 							onChange={(val) => set("location_type", val)}
+						/>
+					)}
+					{show.furniture && (
+						<ChipSelect
+							label={t("createListing.furnitureLabel")}
+							required
+							options={furnitureOpts}
+							value={form.values.furniture}
+							onChange={(val) => set("furniture", val as string | undefined)}
+							error={form.errors.furniture as string}
+						/>
+					)}
+					{show.wallMaterial && (
+						<ChipSelect
+							label={t("createListing.wallMaterialLabel")}
+							options={wallMaterialOpts}
+							value={form.values.wall_material}
+							onChange={(val) =>
+								set("wall_material", val as string | undefined)
+							}
 						/>
 					)}
 					{/* S6 — house polish booleans */}

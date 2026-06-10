@@ -255,13 +255,10 @@ export const ALL_FIELDS: readonly FieldKey[] = Object.keys(
 	CLEARING_VALUES,
 ) as FieldKey[];
 
-// P3: Land forces sell. Callers should use the normalized tuple so UI and
-// clearing stay consistent when state is momentarily (land, rent).
 export function normalizeCombo(
 	propertyType: PropertyType,
 	dealType: DealType,
 ): { propertyType: PropertyType; dealType: DealType } {
-	if (propertyType === "land") return { propertyType, dealType: "sell" };
 	return { propertyType, dealType };
 }
 
