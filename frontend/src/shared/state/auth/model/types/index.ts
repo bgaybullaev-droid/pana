@@ -15,4 +15,6 @@ export interface AuthUser {
   // Map to the frontend i18n locale ("uz_cyrl" → "uz-cyrl") via
   // shared/i18n/index.ts helpers when applying.
   language: 'ru' | 'uz' | 'uz_cyrl';
+  seller_type: string | null;
+  seller_telegram: string | null;
 }

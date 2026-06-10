@@ -44,6 +44,8 @@ export interface UserMeResponse {
 	// Block D D1: canonical backend identifier; frontend maps to i18n locale.
 	language: "ru" | "uz" | "uz_cyrl";
 	scope: string | null;
+	seller_type: string | null;
+	seller_telegram: string | null;
 }
 
 export interface AuthResponse {
@@ -61,6 +63,8 @@ export interface AuthResponse {
 	phone: string | null;
 	language: "ru" | "uz" | "uz_cyrl";
 	scope: string;
+	seller_type: string | null;
+	seller_telegram: string | null;
 	access_token: string;
 	refresh_token: string;
 	token_type: string;

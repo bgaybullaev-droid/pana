@@ -175,6 +175,8 @@ class User(Base):
     last_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    seller_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    seller_telegram: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     language: Mapped[str] = mapped_column(String(10), default="ru")
     role: Mapped[UserRole] = mapped_column(

@@ -72,6 +72,8 @@ class UserMeResponse(BaseModel):
     # i18n maps "uz_cyrl" → "uz-cyrl" at its boundary.
     language: str = "ru"
     scope: Optional[str] = None  # "admin" | "buyer" | "seller"
+    seller_type: Optional[str] = None
+    seller_telegram: Optional[str] = None
 
 
 class AuthResponse(BaseModel):
@@ -91,6 +93,8 @@ class AuthResponse(BaseModel):
     phone: Optional[str] = None
     language: str = "ru"
     scope: str  # "admin" | "buyer" | "seller"
+    seller_type: Optional[str] = None
+    seller_telegram: Optional[str] = None
     access_token: str
     refresh_token: str
     token_type: str = "bearer"

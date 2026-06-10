@@ -27,6 +27,8 @@ export const authResponseToUser = (
 		auth_source: data.auth_source,
 		phone: data.phone,
 		language: data.language ?? "ru",
+		seller_type: data.seller_type ?? null,
+		seller_telegram: data.seller_telegram ?? null,
 	};
 };
 
@@ -44,4 +46,6 @@ export const userMeResponseToUser = (data: UserMeResponse): AuthUser => ({
 	auth_source: data.auth_source,
 	phone: data.phone,
 	language: data.language ?? "ru",
+	seller_type: data.seller_type ?? null,
+	seller_telegram: data.seller_telegram ?? null,
 });

@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import { IconUser } from "@tabler/icons-react";
 import { InnerPage } from "@shared/ui/InnerPage";
+import { ChipSelect } from "@shared/ui/ChipSelect";
 
 function Page() {
 	const { t } = useTranslation("buyer");
@@ -22,6 +23,8 @@ function Page() {
 
 	const [firstName, setFirstName] = useState(user?.first_name || "");
 	const [lastName, setLastName] = useState(user?.last_name || "");
+	const [sellerType, setSellerType] = useState(user?.seller_type || "");
+	const [sellerTelegram, setSellerTelegram] = useState(user?.seller_telegram || "");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +35,9 @@ function Page() {
 
 	const hasChanges =
 		firstName !== (user?.first_name || "") ||
-		lastName !== (user?.last_name || "");
+		lastName !== (user?.last_name || "") ||
+		sellerType !== (user?.seller_type || "") ||
+		sellerTelegram !== (user?.seller_telegram || "");
 
 	const handleSave = async () => {
 		if (!firstName.trim()) {
@@ -44,11 +49,20 @@ function Page() {
 		setError(null);
 
 		try {
-			const data: { first_name?: string; last_name?: string } = {};
+			const data: {
+				first_name?: string;
+				last_name?: string;
+				seller_type?: string;
+				seller_telegram?: string;
+			} = {};
 
 			if (firstName !== user?.first_name) data.first_name = firstName.trim();
 			if (lastName !== (user?.last_name || ""))
 				data.last_name = lastName.trim() || undefined;
+			if (sellerType !== (user?.seller_type || ""))
+				data.seller_type = sellerType || undefined;
+			if (sellerTelegram !== (user?.seller_telegram || ""))
+				data.seller_telegram = sellerTelegram.trim() || undefined;
 
 			await updateProfileFx(data);
 			navigate(-1);
@@ -150,7 +164,7 @@ function Page() {
 					/>
 
 					{user?.phone && (
-						<Box>
+						<Box mb={16}>
 							<Text
 								style={{
 									fontSize: 13,
@@ -184,6 +198,44 @@ function Page() {
 							</Box>
 						</Box>
 					)}
+
+					<Box mb={16}>
+						<ChipSelect
+							label={t("editProfile.sellerTypeLabel")}
+							options={[
+								{ value: "owner", label: t("editProfile.sellerTypeOwner") },
+								{ value: "realtor", label: t("editProfile.sellerTypeRealtor") },
+								{ value: "developer", label: t("editProfile.sellerTypeDeveloper") },
+							]}
+							value={sellerType}
+							onChange={(val) => setSellerType((val as string) || "")}
+						/>
+					</Box>
+
+					<TextInput
+						label={t("editProfile.telegramLabel")}
+						placeholder={t("editProfile.telegramPlaceholder")}
+						description={t("editProfile.telegramDescription")}
+						value={sellerTelegram}
+						onChange={(e) => setSellerTelegram(e.currentTarget.value)}
+						styles={{
+							label: {
+								fontSize: 13,
+								fontWeight: 500,
+								color: "#8E8E93",
+								marginBottom: 6,
+							},
+							input: {
+								height: 48,
+								borderRadius: radii.md,
+								borderColor: "#E8E8ED",
+								fontSize: 16,
+								"&:focus": {
+									borderColor: "#1A73E8",
+								},
+							},
+						}}
+					/>
 				</Box>
 
 				{error && (

@@ -135,6 +135,8 @@ def _build_auth_response(
         phone=user.phone,
         language=user.language or "ru",
         scope=scope,
+        seller_type=user.seller_type,
+        seller_telegram=user.seller_telegram,
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.access_token_expire_minutes * 60,
@@ -292,6 +294,8 @@ async def get_me(
         phone=user.phone,
         language=user.language or "ru",
         scope=token_scope,
+        seller_type=user.seller_type,
+        seller_telegram=user.seller_telegram,
     )
 
 
@@ -336,6 +340,8 @@ async def update_profile(
         auth_source=user.auth_source,
         phone=user.phone,
         language=user.language or "ru",
+        seller_type=user.seller_type,
+        seller_telegram=user.seller_telegram,
     )
 
 

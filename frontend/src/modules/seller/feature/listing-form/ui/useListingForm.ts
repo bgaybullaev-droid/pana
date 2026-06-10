@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@app/providers/useAuth";
 import {
 	uploadImageFx,
 	type ListingImageCreateData,
@@ -132,6 +133,7 @@ export function useListingForm(
 	initialImages?: ListingImageCreateData[],
 ) {
 	const { t } = useTranslation("seller");
+	const { user } = useAuth();
 	const [images, setImages] = useState<ImageItem[]>(() =>
 		(initialImages ?? []).map(data => ({ kind: "uploaded" as const, data })),
 	);
@@ -325,6 +327,20 @@ export function useListingForm(
 		return () => clearTimeout(saveTimerRef.current);
 	// form.values and images are new references on each change — intentional deps.
 	}, [form.values, images, mode]);
+
+	// Pre-populate seller_type and seller_telegram from user profile on create.
+	// Edit mode already has these from the listing's own values via initialOverrides.
+	useEffect(() => {
+		if (mode !== "create") return;
+		if (user?.seller_type && !form.values.seller_type) {
+			form.setFieldValue("seller_type", user.seller_type);
+		}
+		if (user?.seller_telegram && !form.values.seller_telegram) {
+			form.setFieldValue("seller_telegram", user.seller_telegram);
+		}
+	// Only run when user profile loads — intentionally not adding form to deps.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [user?.seller_type, user?.seller_telegram, mode]);
 
 	const handleRegionChange = (value: string) => {
 		form.setFieldValue("region", value);

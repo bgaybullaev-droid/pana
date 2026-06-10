@@ -100,7 +100,12 @@ export const devLoginFx = createEffect(async () => {
 });
 
 export const updateProfileFx = createEffect(
-	async (data: { first_name?: string; last_name?: string }) => {
+	async (data: {
+		first_name?: string;
+		last_name?: string;
+		seller_type?: string;
+		seller_telegram?: string;
+	}) => {
 		const response = await apiClient.patch<UserMeResponse>("/auth/me", data);
 		return response.data;
 	},

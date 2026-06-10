@@ -1,6 +1,7 @@
 import type React from "react";
 import {
 	ActionIcon,
+	Anchor,
 	Textarea,
 	NumberInput,
 	Box,
@@ -11,6 +12,7 @@ import {
 } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FormSection } from "@shared/ui/FormSection";
 import { ChipSelect } from "@shared/ui/ChipSelect";
@@ -64,6 +66,7 @@ export function ListingFormFields({
 	onDescriptionChangeOverride,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
+	const navigate = useNavigate();
 	const pt = form.values.property_type;
 	const dt = form.values.type;
 
@@ -1207,21 +1210,7 @@ export function ListingFormFields({
 
 			{/* ── Contact ── */}
 			<FormSection title={t("createListing.contactSection")} bg={sectionBg}>
-				<ChipSelect
-					label={t("createListing.sellerTypeLabel")}
-					options={[
-						{ value: "owner", label: t("createListing.sellerTypeOwner") },
-						{ value: "realtor", label: t("createListing.sellerTypeRealtor") },
-						// S3 (T-001): developer joins the enum.
-						{
-							value: "developer",
-							label: t("createListing.sellerTypeDeveloper"),
-						},
-					]}
-					value={form.values.seller_type}
-					onChange={(val) => set("seller_type", (val as string) || "")}
-				/>
-				{verifiedPhones.length > 1 && (
+				{verifiedPhones.length >= 1 ? (
 					<Select
 						label={t("listingForm.phoneSelect.label", {
 							defaultValue: "Контактный номер",
@@ -1246,37 +1235,25 @@ export function ListingFormFields({
 						onChange={(val) => set("phone", val || "")}
 						clearable={false}
 					/>
+				) : (
+					<PhoneInput
+						label={t("createListing.phoneLabel")}
+						placeholder="+998 XX XXX XX XX"
+						description={t("createListing.phoneDescription")}
+						value={form.values.phone}
+						onChange={(val) => set("phone", val)}
+						error={form.errors.phone as string}
+						onClear={() => set("phone", "")}
+					/>
 				)}
-				<PhoneInput
-					label={t("createListing.phoneLabel")}
-					placeholder="+998 XX XXX XX XX"
-					description={t("createListing.phoneDescription")}
-					value={form.values.phone}
-					onChange={(val) => set("phone", val)}
-					error={form.errors.phone as string}
-					onClear={() => set("phone", "")}
-				/>
-				{/* S3 — seller_telegram (always-visible, optional). */}
-				<TextInput
-					label={t("createListing.sellerTelegramLabel")}
-					placeholder={t("createListing.sellerTelegramPlaceholder")}
-					value={form.values.seller_telegram || ""}
-					onChange={(e) =>
-						set("seller_telegram", e.currentTarget.value || undefined)
-					}
-					rightSection={
-						form.values.seller_telegram ? (
-							<ActionIcon
-								variant="transparent"
-								color="gray"
-								size="sm"
-								onClick={() => set("seller_telegram", undefined)}
-							>
-								<IconX size={14} />
-							</ActionIcon>
-						) : null
-					}
-				/>
+				<Anchor
+					component="button"
+					size="sm"
+					onClick={() => navigate("/seller/phones")}
+					style={{ display: "block", marginTop: 4 }}
+				>
+					{t("listingForm.addContactLink", { defaultValue: "+ Добавить контакт" })}
+				</Anchor>
 			</FormSection>
 		</>
 	);

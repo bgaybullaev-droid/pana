@@ -51,6 +51,12 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = Field(None, max_length=100)
     language: Optional[str] = Field(None, max_length=10)
     onboarding_completed: Optional[bool] = None
+    seller_type: Optional[str] = Field(
+        None,
+        max_length=20,
+        pattern=r"^(owner|realtor|developer)$",
+    )
+    seller_telegram: Optional[str] = Field(None, max_length=100)
 
     @field_validator("language")
     @classmethod
@@ -71,6 +77,8 @@ class UserResponse(BaseModel):
     language: str
     role: str
     onboarding_completed: bool
+    seller_type: Optional[str] = None
+    seller_telegram: Optional[str] = None
     created_at: UTCDateTime
     updated_at: UTCDateTime
 
