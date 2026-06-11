@@ -45,11 +45,15 @@ const SEARCH_ITEM: NavItem = {
 interface BottomNavigationProps {
 	onSearchToggle?: () => void;
 	searchOpen?: boolean;
+	/** Tap on the tab the user is already on (iOS/Android convention:
+	 *  scroll the page back to top). */
+	onActiveTabRepeat?: () => void;
 }
 
 export function BottomNavigation({
 	onSearchToggle,
 	searchOpen = false,
+	onActiveTabRepeat,
 }: BottomNavigationProps) {
 	const { t } = useTranslation("buyer");
 	const location = useLocation();
@@ -133,11 +137,18 @@ export function BottomNavigation({
 	};
 
 	const handleTabClick = (item: NavItem) => {
+		if (item.path === "/search") {
+			onSearchToggle?.();
+			return;
+		}
+		// Re-tap on the tab root the user is already viewing → scroll to top
+		if (location.pathname === item.path && !searchOpen) {
+			onActiveTabRepeat?.();
+			return;
+		}
 		if (item.path === "/") {
 			clearFilters();
 			navigate("/");
-		} else if (item.path === "/search") {
-			onSearchToggle?.();
 		} else {
 			navigate(item.path);
 		}

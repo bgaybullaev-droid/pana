@@ -1572,7 +1572,7 @@ function Page() {
 
 	// Shimmer skeleton
 	const ShimmerSkeleton = (
-		<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+		<RootPage title="UCHAR" tabBarChildren={SearchHeaderContent} noPadding>
 			{FilterDrawer}
 			<Container className="listings-container" px="md" pt="sm">
 				<div
@@ -1650,7 +1650,7 @@ function Page() {
 	const renderEmptyTabState = () => {
 		if (activeTab === "subscriptions") {
 			return (
-				<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+				<RootPage title="UCHAR" tabBarChildren={SearchHeaderContent} noPadding>
 					{FilterDrawer}
 					{HomeTabBar}
 					<Container className="listings-container">
@@ -1680,7 +1680,7 @@ function Page() {
 		}
 		if (activeTab === "recommended") {
 			return (
-				<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+				<RootPage title="UCHAR" tabBarChildren={SearchHeaderContent} noPadding>
 					{FilterDrawer}
 					{HomeTabBar}
 					<Container className="listings-container">
@@ -1721,7 +1721,7 @@ function Page() {
 		const tabEmpty = renderEmptyTabState();
 		if (tabEmpty) return tabEmpty;
 		return (
-			<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+			<RootPage title="UCHAR" tabBarChildren={SearchHeaderContent} noPadding>
 				{FilterDrawer}
 				{HomeTabBar}
 				<Container className="listings-container">
@@ -1764,7 +1764,7 @@ function Page() {
 	}
 
 	return (
-		<RootPage blur tabBarChildren={SearchHeaderContent} noPadding>
+		<RootPage title="UCHAR" tabBarChildren={SearchHeaderContent} noPadding>
 			{FilterDrawer}
 			{HomeTabBar}
 			<Container className="listings-container" px="md" pt="sm">

@@ -151,6 +151,14 @@ export const surface = {
 	muted: "#f1f3f5",
 } as const;
 
+// Shared frosted-glass chrome (app bars, status-bar scrim) — one style so
+// the header reads as a single translucent piece on every page.
+export const glass = {
+	backgroundColor: "rgba(255, 255, 255, 0.72)",
+	backdropFilter: "blur(20px) saturate(180%)",
+	WebkitBackdropFilter: "blur(20px) saturate(180%)",
+} as const;
+
 export const gradients = {
 	primary: "linear-gradient(135deg, #228be6, #40A7E3)",
 	header: "linear-gradient(135deg, #1971c2 0%, #40A7E3 50%, #74c0fc 100%)",

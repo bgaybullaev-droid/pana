@@ -724,6 +724,9 @@ export function Layout() {
 				<BottomNavigation
 					onSearchToggle={searchOpen ? closeSearch : openSearch}
 					searchOpen={searchOpen}
+					onActiveTabRepeat={() =>
+						scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+					}
 				/>
 			</Box>
 		</LayoutCtx.Provider>

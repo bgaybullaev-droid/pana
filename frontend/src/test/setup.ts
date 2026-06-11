@@ -61,6 +61,8 @@ window.scrollTo = vi.fn() as any;
     },
     BackButton: { show: vi.fn(), hide: vi.fn(), onClick: vi.fn() },
     MainButton: { show: vi.fn(), hide: vi.fn(), setText: vi.fn(), onClick: vi.fn() },
+    onEvent: vi.fn(),
+    offEvent: vi.fn(),
     setHeaderColor: vi.fn(),
     setBackgroundColor: vi.fn(),
     enableClosingConfirmation: vi.fn(),
