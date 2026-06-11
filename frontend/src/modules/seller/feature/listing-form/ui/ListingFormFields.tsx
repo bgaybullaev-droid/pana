@@ -142,6 +142,16 @@ export function ListingFormFields({
 			// the selector is hidden and applyTransition pins long_term.
 			rentPeriod: isVisible("rent_period", pt, dt) && pt !== "land",
 			minRentMonths: isVisible("min_rent_months", pt, dt),
+			deposit: isVisible("deposit", pt, dt),
+			utilitiesIncl: isVisible("utilities_incl", pt, dt),
+			allowedStudents: isVisible("allowed_students", pt, dt),
+			allowedPets: isVisible("allowed_pets", pt, dt),
+			rentPayment: isVisible("rent_payment", pt, dt),
+			// S2 — sale finance + deed (matrix-gated to sell).
+			mortgageOk: isVisible("mortgage_ok", pt, dt),
+			installmentOk: isVisible("installment_ok", pt, dt),
+			halolOk: isVisible("halol_ok", pt, dt),
+			deedType: isVisible("deed_type", pt, dt),
 		}),
 		// form.values.region feeds P5 region sub-gate for metro_station.
 		[pt, dt, form.values.region],
@@ -463,6 +473,20 @@ export function ListingFormFields({
 		{ value: "irregular", label: t("createListing.landShapeIrregular") },
 	];
 
+	// S2 — deal-terms option sets. Values mirror the backend schema
+	// (deed_type pattern + rent_payment allowed set).
+	const deedTypeOpts = [
+		{ value: "cadastre", label: t("createListing.deedCadastre") },
+		{ value: "order", label: t("createListing.deedOrder") },
+		{ value: "other", label: t("createListing.deedOther") },
+	];
+	const rentPaymentOpts = [
+		{ value: "cash", label: t("createListing.rentPayCash") },
+		{ value: "payme", label: t("createListing.rentPayPayme") },
+		{ value: "click", label: t("createListing.rentPayClick") },
+		{ value: "bank", label: t("createListing.rentPayBank") },
+	];
+
 	// S3 — metro stations of Tashkent (gated by P5 to region=toshkent_shahri).
 	// Cascade: once a Tashkent district is chosen, only that district's
 	// stations are offered (район → метро). Before a district is picked the
@@ -782,6 +806,108 @@ export function ListingFormFields({
 					/>
 				</Reveal>
 				)}
+				{/* S2 — rent extras (deposit / utilities / students / pets / payment) */}
+				{show.deposit && (
+				<Reveal>
+					<NumberInput
+						label={t("createListing.depositLabel")}
+						min={0}
+						allowNegative={false}
+						allowDecimal={false}
+						thousandSeparator=" "
+						inputMode="numeric"
+						hideControls
+						value={form.values.deposit ?? ""}
+						onChange={(v) => set("deposit", typeof v === "number" ? v : undefined)}
+						error={form.errors.deposit as string}
+					/>
+				</Reveal>
+				)}
+				{show.utilitiesIncl && (
+				<Reveal>
+					<Switch
+						label={t("createListing.utilitiesInclLabel")}
+						checked={!!form.values.utilities_incl}
+						onChange={(e) => set("utilities_incl", e.currentTarget.checked || undefined)}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</Reveal>
+				)}
+				{show.allowedStudents && (
+				<Reveal>
+					<Switch
+						label={t("createListing.allowedStudentsLabel")}
+						checked={!!form.values.allowed_students}
+						onChange={(e) => set("allowed_students", e.currentTarget.checked || undefined)}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</Reveal>
+				)}
+				{show.allowedPets && (
+				<Reveal>
+					<Switch
+						label={t("createListing.allowedPetsLabel")}
+						checked={!!form.values.allowed_pets}
+						onChange={(e) => set("allowed_pets", e.currentTarget.checked || undefined)}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</Reveal>
+				)}
+				{show.rentPayment && (
+				<Reveal>
+					<ChipMultiSelect
+						label={t("createListing.rentPaymentLabel")}
+						description={t("createListing.multipleAllowed")}
+						options={rentPaymentOpts}
+						value={form.values.rent_payment}
+						onChange={(val) => set("rent_payment", val)}
+					/>
+				</Reveal>
+				)}
+
+				{/* S2 — sale finance + deed (shown when type=sell) */}
+				{show.mortgageOk && (
+				<Reveal>
+					<Switch
+						label={t("createListing.mortgageOk")}
+						checked={form.values.mortgage_ok}
+						onChange={(e) => set("mortgage_ok", e.currentTarget.checked)}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</Reveal>
+				)}
+				{show.installmentOk && (
+				<Reveal>
+					<Switch
+						label={t("createListing.installmentOk")}
+						checked={form.values.installment_ok}
+						onChange={(e) => set("installment_ok", e.currentTarget.checked)}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</Reveal>
+				)}
+				{show.halolOk && (
+				<Reveal>
+					<Switch
+						label={t("createListing.halolOk")}
+						checked={form.values.halol_ok}
+						onChange={(e) => set("halol_ok", e.currentTarget.checked)}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</Reveal>
+				)}
+				{show.deedType && (
+				<Reveal>
+					<ChipSelect
+						label={t("createListing.deedTypeLabel")}
+						options={deedTypeOpts}
+						value={form.values.deed_type}
+						onChange={(val) => set("deed_type", val as string | undefined)}
+						error={form.errors.deed_type as string}
+					/>
+				</Reveal>
+				)}
+
 				{/* S3 — urgent_flag (always-visible, defaults to false). */}
 				<Switch
 					label={t("createListing.urgentFlag")}
