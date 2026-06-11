@@ -501,6 +501,7 @@
 	"createListing.sellerTypeDeveloper": "Застройщик",
 	"createListing.lpConstruction": "Под жилое строительство",
 	"createListing.lpCommercialLand": "Под коммерческое строительство",
+	"createListing.lpCommercialUse": "Коммерческое использование",
 	"createListing.lpAgricultural": "Фермерское / с/х",
 	"createListing.lpGarden": "Дача / садовый участок",
 	"createListing.lpUnspecified": "Не указано",

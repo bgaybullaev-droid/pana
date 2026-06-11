@@ -295,19 +295,30 @@ describe("getSectionStates", () => {
 		expect(states.contact.status).toBe("neutral");
 		expect(states.amenities.status).toBe("neutral");
 		expect(states.utilities.status).toBe("neutral");
-		// type defaults to apartment+sell → the Type section is complete,
-		// never neutral, because `type` is required and pre-filled.
-		expect(states.type.status).toBe("complete");
+		// The Type section hosts `type` (pre-filled) plus the lifted
+		// market_type classifier (empty on a fresh apartment form) →
+		// error once a submit was attempted, never neutral.
+		expect(states.type.status).toBe("error");
 	});
 
-	it("commercial section is neutral on edit (commercial_type is create-only)", () => {
+	it("commercial_type counts in the Type section (create-only)", () => {
 		const values = emptyValues({ property_type: "commercial" });
+		// The classifier was lifted into the Type section, so the
+		// commercial section itself hosts no required fields → always
+		// neutral in both modes.
 		expect(getSectionStates(values, "edit", 0, true).commercial.status).toBe(
 			"neutral",
 		);
 		expect(
 			getSectionStates(values, "create", 0, true).commercial.status,
-		).toBe("error");
+		).toBe("neutral");
+		// Its create-only requiredness surfaces in the Type section.
+		expect(getSectionStates(values, "create", 0, true).type.status).toBe(
+			"error",
+		);
+		expect(getSectionStates(values, "edit", 0, true).type.status).toBe(
+			"complete",
+		);
 	});
 
 	it("furniture counts toward houseAttributes for houses (no double count)", () => {
@@ -349,8 +360,10 @@ describe("progress + first incomplete section", () => {
 		expect(getFirstIncompleteSection(emptyValues(), "create", 0)).toBe(
 			"photos",
 		);
+		// market_type now lives in the Type section → with photos covered,
+		// the first gap on a fresh apartment form is the classifier.
 		expect(getFirstIncompleteSection(emptyValues(), "create", 1)).toBe(
-			"parameters",
+			"type",
 		);
 		expect(
 			getFirstIncompleteSection(filledApartment(), "create", 1),

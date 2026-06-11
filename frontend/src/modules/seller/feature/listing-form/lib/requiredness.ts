@@ -190,23 +190,23 @@ export function fieldSection(
 		case "type":
 		case "rent_period":
 		case "min_rent_months":
-			// The rent group renders inside the Type section (right under
-			// the deal-type chips), so its requiredness counts there too.
+		case "market_type":
+		case "commercial_type":
+			// The rent group and the classifiers (market_type /
+			// commercial_type) render inside the Type section right under
+			// the property-type chips — their requiredness counts there too.
 			return "type";
 		case "rooms":
 		case "area":
 		case "floor":
 		case "total_floors":
 			return "parameters";
-		case "market_type":
 		case "condition":
 			return "aptAttributes";
 		case "furniture":
 			return values.property_type === "house"
 				? "houseAttributes"
 				: "aptAttributes";
-		case "commercial_type":
-			return "commercial";
 		case "region":
 		case "district":
 		case "latitude":

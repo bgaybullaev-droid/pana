@@ -130,7 +130,9 @@ export function ListingFormFields({
 			floorPlanUrl: false as boolean,
 			// S2 — rent group (matrix-gated to rent × non-land). Required by
 			// both frontend validation and backend publish.
-			rentPeriod: isVisible("rent_period", pt, dt),
+			// Land rents long-term only (no daily land rentals on the market):
+			// the selector is hidden and applyTransition pins long_term.
+			rentPeriod: isVisible("rent_period", pt, dt) && pt !== "land",
 			minRentMonths: isVisible("min_rent_months", pt, dt),
 		}),
 		// form.values.region feeds P5 region sub-gate for metro_station.
@@ -490,13 +492,31 @@ export function ListingFormFields({
 	// Legacy values (`private`, `industrial`, `commercial`) were backfilled
 	// by migration 20260419_s6_property_polish.py and are no longer valid
 	// for new submits.
-	const landPurposeOpts = [
-		{ value: "construction", label: t("createListing.lpConstruction") },
-		{ value: "garden", label: t("createListing.lpGarden") },
-		{ value: "agricultural", label: t("createListing.lpAgricultural") },
-		{ value: "commercial_land", label: t("createListing.lpCommercialLand") },
-		{ value: "unspecified", label: t("createListing.lpUnspecified") },
-	];
+	// Deal-aware: renting land is about use (agriculture, dacha, commercial
+	// use — parking/storage/trade), not construction, so the rent list drops
+	// «под жилое строительство» and relabels commercial_land accordingly.
+	// Same enum values either way — backend stays untouched.
+	const landPurposeOpts =
+		dt === "rent"
+			? [
+					{ value: "agricultural", label: t("createListing.lpAgricultural") },
+					{ value: "garden", label: t("createListing.lpGarden") },
+					{
+						value: "commercial_land",
+						label: t("createListing.lpCommercialUse"),
+					},
+					{ value: "unspecified", label: t("createListing.lpUnspecified") },
+				]
+			: [
+					{ value: "construction", label: t("createListing.lpConstruction") },
+					{ value: "garden", label: t("createListing.lpGarden") },
+					{ value: "agricultural", label: t("createListing.lpAgricultural") },
+					{
+						value: "commercial_land",
+						label: t("createListing.lpCommercialLand"),
+					},
+					{ value: "unspecified", label: t("createListing.lpUnspecified") },
+				];
 
 	const currencyOpts = [
 		{ value: "USD", label: t("createListing.currencyUSD") },
@@ -558,6 +578,19 @@ export function ListingFormFields({
 			norm.propertyType,
 			norm.dealType,
 		) as Partial<ListingFormValues>;
+		// Land rents long-term only — the rent-period selector is hidden for
+		// land, so the value is pinned here to keep the field required-filled.
+		if (norm.propertyType === "land" && norm.dealType === "rent") {
+			patch.rent_period = "long_term";
+		}
+		// «Под жилое строительство» is a sale-only purpose; the rent option
+		// list hides it, so drop a stale value when the deal flips to rent.
+		if (
+			norm.dealType === "rent" &&
+			form.values.land_purpose === "construction"
+		) {
+			patch.land_purpose = undefined;
+		}
 		form.setValues({
 			...form.values,
 			property_type: norm.propertyType,
@@ -596,6 +629,39 @@ export function ListingFormFields({
 					}}
 					error={form.errors.property_type as string}
 				/>
+				{/* Classifier right under the property type — industry funnel is
+				    «what exactly is it» before sizes (OLX/Avito/Cian ask
+				    вторичка/новостройка, тип дома, офис/склад at category level). */}
+				{show.commercialType && (
+					<ChipSelect
+						label={t("createListing.commercialTypeLabel")}
+						required
+						options={commercialTypeOpts}
+						value={form.values.commercial_type}
+						onChange={(val) =>
+							set("commercial_type", val as string | undefined)
+						}
+						error={form.errors.commercial_type as string}
+					/>
+				)}
+				{show.houseType && (
+					<ChipSelect
+						label={t("createListing.houseType")}
+						options={houseTypeOpts}
+						value={form.values.house_type}
+						onChange={(val) => set("house_type", val as string | undefined)}
+					/>
+				)}
+				{show.marketType && (
+					<ChipSelect
+						label={t("createListing.marketTypeLabel")}
+						required
+						options={marketTypeOpts}
+						value={form.values.market_type}
+						onChange={(val) => set("market_type", val as string | undefined)}
+						error={form.errors.market_type as string}
+					/>
+				)}
 				<ChipSelect
 					label={t("createListing.dealType")}
 					required
@@ -785,9 +851,9 @@ export function ListingFormFields({
 			)}
 
 			{/* ── Apartment Attributes (apartment only) ── */}
+			{/* market_type lifted into the Type section as the classifier. */}
 			{pt !== "house" &&
-				(show.marketType ||
-					show.condition ||
+				(show.condition ||
 					show.furniture ||
 					show.wallMaterial ||
 					show.balcony ||
@@ -799,16 +865,6 @@ export function ListingFormFields({
 					bg={sectionBg}
 					{...sectionStatusProps("aptAttributes")}
 				>
-					{show.marketType && (
-						<ChipSelect
-							label={t("createListing.marketTypeLabel")}
-							required
-							options={marketTypeOpts}
-							value={form.values.market_type}
-							onChange={(val) => set("market_type", val as string | undefined)}
-							error={form.errors.market_type as string}
-						/>
-					)}
 					{show.condition && (
 						<ChipSelect
 							label={t("createListing.condition")}
@@ -879,14 +935,8 @@ export function ListingFormFields({
 					bg={sectionBg}
 					{...sectionStatusProps("houseAttributes")}
 				>
-					{show.houseType && (
-						<ChipSelect
-							label={t("createListing.houseType")}
-							options={houseTypeOpts}
-							value={form.values.house_type}
-							onChange={(val) => set("house_type", val as string | undefined)}
-						/>
-					)}
+					{/* house_type lifted into the Type section as the classifier;
+					    show.houseType still gates the house-only multiselects. */}
 					{show.houseType && (
 						<ChipMultiSelect
 							label={t("createListing.houseCondition")}
@@ -1046,28 +1096,14 @@ export function ListingFormFields({
 			)}
 
 			{/* ── Commercial Attributes (S4) ── */}
-			{(show.commercialType ||
-				show.entrance ||
-				show.parkingComm ||
-				show.buildingClass) && (
+			{/* commercial_type lifted into the Type section as the classifier. */}
+			{(show.entrance || show.parkingComm || show.buildingClass) && (
 				<div {...sectionAnchor("commercial")}>
 				<FormSection
 					title={t("createListing.commercialSection")}
 					bg={sectionBg}
 					{...sectionStatusProps("commercial")}
 				>
-					{show.commercialType && (
-						<ChipSelect
-							label={t("createListing.commercialTypeLabel")}
-							required
-							options={commercialTypeOpts}
-							value={form.values.commercial_type}
-							onChange={(val) =>
-								set("commercial_type", val as string | undefined)
-							}
-							error={form.errors.commercial_type as string}
-						/>
-					)}
 					{show.buildingClass && (
 						<ChipSelect
 							label={t("createListing.buildingClassLabel")}
