@@ -101,7 +101,13 @@ function Stage1() {
 	// Priority: $draftFormData (Stage2 → Stage1 back) > localStorage (accidental leave).
 	const [initialData] = useState(() => {
 		if (draftFormData) {
-			return { prefill: draftDataToFormValues(draftFormData), draftImages: [] as import("@shared/state/listing/model").ListingImageCreateData[] };
+			// Coming back from Stage 2 ("Редактировать"): restore the photos that
+			// were already uploaded with the draft, otherwise the form remounts
+			// with an empty photo grid even though the images are still on hand.
+			return {
+				prefill: draftDataToFormValues(draftFormData),
+				draftImages: draftFormData.images ?? [],
+			};
 		}
 		const draft = loadDraft();
 		return { prefill: draft?.values ?? undefined, draftImages: draft?.images ?? [] };

@@ -6,7 +6,7 @@
  * or go back to edit.
  */
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
@@ -24,6 +24,8 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { InnerPage } from "@shared/ui/InnerPage";
+import { useLayoutContext } from "@modules/buyer/app/ui/layout/BuyerLayout";
+import { frontendToBackendLanguage } from "@shared/i18n";
 import { useTelegram } from "@app/providers/useTelegram";
 import { apiClient } from "@shared/api/client";
 import {
@@ -48,6 +50,7 @@ import {
 function buildPreviewListing(
 	data: ListingCreateData,
 	id: string,
+	description: string | null,
 ): UnifiedListing {
 	return {
 		source: "main",
@@ -65,7 +68,7 @@ function buildPreviewListing(
 		address: data.address ?? null,
 		latitude: data.latitude ?? null,
 		longitude: data.longitude ?? null,
-		description: null,
+		description,
 		raw_text: null,
 		images: (data.images ?? []).map((img) => ({
 			url: img.original_url,
@@ -147,7 +150,8 @@ function buildPreviewListing(
 function Stage2() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
-	const { t } = useTranslation("seller");
+	const { t, i18n } = useTranslation("seller");
+	const { scrollRef } = useLayoutContext();
 
 	const [draftId, draftFormData, edits, isPublishing] = useUnit([
 		$draftId,
@@ -156,14 +160,29 @@ function Stage2() {
 		$isPublishing,
 	]);
 
+	// Stage 1 → Stage 2 keeps the same route (/seller/create), so the shared
+	// layout scroll container never resets and Stage 2 would inherit Stage 1's
+	// scroll offset (title scrolled out of view). Snap to the top on entry.
+	useEffect(() => {
+		scrollRef.current?.scrollTo({ top: 0 });
+	}, [scrollRef]);
+
 	// Preview "phone screenshot" frame — drawers opened from the preview
 	// render inside this element instead of covering the whole viewport.
 	const previewFrameRef = useRef<HTMLDivElement>(null);
 
 	const previewListing = useMemo((): UnifiedListing | null => {
 		if (!draftFormData || !draftId) return null;
-		return buildPreviewListing(draftFormData, draftId);
-	}, [draftFormData, draftId]);
+		// The description the seller prepared in Stage 1 lives in the per-language
+		// edits store, not in the form payload — surface the variant matching the
+		// current UI language (falling back across languages) so the preview's
+		// description drawer shows real text instead of being empty.
+		const lang = frontendToBackendLanguage(i18n.language);
+		const description =
+			(edits[lang] || edits.ru || edits.uz || edits.uz_cyrl || "").trim() ||
+			null;
+		return buildPreviewListing(draftFormData, draftId, description);
+	}, [draftFormData, draftId, edits, i18n.language]);
 
 	const handlePublish = async () => {
 		if (!draftId) return;
@@ -226,7 +245,7 @@ function Stage2() {
 			title={t("createListing.previewPageTitle", "Ваше объявление")}
 			noPadding
 		>
-			<Container px={0} pt="sm" pb={100}>
+			<Container px={0} pt="sm" pb={0}>
 				<Stack gap="md">
 					{/* Subtitle */}
 					<Text size="xs" c="dimmed" ta="center" px="md">
@@ -242,7 +261,13 @@ function Stage2() {
 							ref={previewFrameRef}
 							mx="md"
 							style={{
-								height: "65vh",
+								// Fill the viewport between the header/subtitle and the
+								// fixed action panel, leaving a small breathing gap above
+								// the buttons. ~190px ≈ PageBar + subtitle + paddings (top)
+								// and the action panel height + gap (bottom).
+								height:
+									"calc(100dvh - var(--app-top-inset) - var(--safe-area-inset-bottom) - 190px)",
+								minHeight: 360,
 								borderRadius: 20,
 								overflow: "hidden",
 								boxShadow:
