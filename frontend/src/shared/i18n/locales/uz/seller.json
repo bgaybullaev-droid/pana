@@ -157,6 +157,7 @@
 	"createListing.cancel": "Bekor qilish",
 	"createListing.unfilledFieldsSummary": "Sizda to'ldirilmagan {{count}} ta maydon qoldi. Yuqoriga qaytib shaklni tekshiring.",
 	"createListing.other": "Boshqa",
+	"createListing.optionalHint": "majburiy emas",
 	"createListing.enterValue": "Kiriting...",
 	"createListing.multipleAllowed": "Bir nechtasini tanlash mumkin",
 	"createListing.additionalInfo": "Qo'shimcha",

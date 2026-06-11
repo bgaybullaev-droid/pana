@@ -272,8 +272,6 @@ class TestEmptyFilters:
             PropertyType.LAND,
         ):
             for dt in (ListingType.SELL, ListingType.RENT):
-                if pt is PropertyType.LAND and dt is ListingType.RENT:
-                    continue  # P3-illegal
                 listing = _mk(
                     property_type=pt,
                     type=dt,

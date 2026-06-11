@@ -170,6 +170,7 @@ function Page() {
 					<Box mb={16}>
 						<ChipSelect
 							label={t("editProfile.sellerTypeLabel")}
+							showOptionalHint={false}
 							options={[
 								{ value: "owner", label: t("editProfile.sellerTypeOwner") },
 								{ value: "realtor", label: t("editProfile.sellerTypeRealtor") },

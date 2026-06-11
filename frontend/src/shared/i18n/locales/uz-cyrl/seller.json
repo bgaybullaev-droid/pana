@@ -161,6 +161,7 @@
 	"createListing.unfilledFieldsSummary_many": "Яна {{count}} та майдон тўлдирилмаган. Юқорига қайтиб текширинг.",
 	"createListing.unfilledFieldsSummary_other": "Яна {{count}} та майдон тўлдирилмаган. Юқорига қайтиб текширинг.",
 	"createListing.other": "Бошқа",
+	"createListing.optionalHint": "мажбурий эмас",
 	"createListing.enterValue": "Киритинг...",
 	"createListing.multipleAllowed": "Бир нечтасини танлаш мумкин",
 	"createListing.additionalInfo": "Тавсиф",

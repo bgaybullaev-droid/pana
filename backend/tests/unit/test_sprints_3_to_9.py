@@ -86,12 +86,14 @@ def _mk(**over) -> Listing:
 
 
 class TestSprint3LocationMatrix:
-    def test_jk_name_visible_on_apartment_and_house(self):
-        for pt in ("apartment", "house"):
-            for dt in ("sell", "rent"):
-                assert "jk_name" in _VISIBILITY_MATRIX[(pt, dt)]
+    # Phase-1 UX pass: jk_name removed from the house base — housing
+    # complexes only apply to apartments.
+    def test_jk_name_visible_on_apartment_only(self):
+        for dt in ("sell", "rent"):
+            assert "jk_name" in _VISIBILITY_MATRIX[("apartment", dt)]
 
-    def test_jk_name_hidden_on_commercial_and_land(self):
+    def test_jk_name_hidden_on_house_commercial_and_land(self):
+        assert "jk_name" not in _VISIBILITY_MATRIX[("house", "sell")]
         assert "jk_name" not in _VISIBILITY_MATRIX[("commercial", "sell")]
         assert "jk_name" not in _VISIBILITY_MATRIX[("land", "sell")]
 
@@ -133,10 +135,11 @@ class TestSprint3LocationMatrix:
 
 
 class TestSprint4Commercial:
+    # Phase-1 UX pass: price_per_sqm dropped from the commercial base and
+    # ceiling_height widened to apartment/house (no longer commercial-only).
     def test_commercial_fields_in_commercial_matrix(self):
         for f in (
             "commercial_type",
-            "price_per_sqm",
             "ceiling_height",
             "entrance",
             "parking_comm",
@@ -144,9 +147,12 @@ class TestSprint4Commercial:
         ):
             assert f in _VISIBILITY_MATRIX[("commercial", "sell")]
             assert f in _VISIBILITY_MATRIX[("commercial", "rent")]
-            # Hidden everywhere else
-            assert f not in _VISIBILITY_MATRIX[("apartment", "sell")]
-            assert f not in _VISIBILITY_MATRIX[("house", "sell")]
+            # Hidden everywhere else — except ceiling_height, which is
+            # visible for all property types but land.
+            if f != "ceiling_height":
+                assert f not in _VISIBILITY_MATRIX[("apartment", "sell")]
+                assert f not in _VISIBILITY_MATRIX[("house", "sell")]
+        assert "ceiling_height" not in _VISIBILITY_MATRIX[("land", "sell")]
 
     def test_commercial_type_required_for_commercial_listings(self):
         listing = _mk(

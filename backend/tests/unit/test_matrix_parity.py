@@ -123,6 +123,7 @@ def _build_frontend_matrix(source: str) -> dict[tuple[str, str], frozenset]:
         ("commercial", "sell"): frozenset(com) | frozenset(sale),
         ("commercial", "rent"): frozenset(com) | frozenset(rent),
         ("land", "sell"): frozenset(land) | frozenset(sale),
+        ("land", "rent"): frozenset(land) | frozenset(rent),
     }
 
 

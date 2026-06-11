@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { ActionIcon, Box, Loader, Paper, Text, TextInput } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -33,7 +34,7 @@ export interface HousingComplexSelection {
 export interface HousingComplexAutocompleteProps {
 	value: HousingComplexSelection;
 	onChange: (next: HousingComplexSelection) => void;
-	label?: string;
+	label?: ReactNode;
 	placeholder?: string;
 	/** Narrow the suggestion list to a specific region slug. Optional;
 	 *  omit for a global catalog lookup. */

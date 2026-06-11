@@ -481,6 +481,19 @@ export function ListingFormFields({
 
 	const set = (key: string, val: any) => form.setFieldValue(key, val);
 
+	// Same dimmed "необязательно" hint ChipSelect/ChipMultiSelect render on
+	// their own, for the non-chip optional inputs (NumberInput, TextInput,
+	// autocompletes) so every optional field in the form is marked alike.
+	const optionalLabel = (label: string) => (
+		<>
+			{label}
+			<Text span c="dimmed" fw={400} size="xs">
+				{" "}
+				— {t("createListing.optionalHint")}
+			</Text>
+		</>
+	);
+
 	// FormSection status props from the page-computed completeness map.
 	// When `sectionStates` is absent (no page adopted it) sections render
 	// exactly as before. `neutral` still passes `status` so the transparent
@@ -585,7 +598,17 @@ export function ListingFormFields({
 			</div>
 
 			{/* ── Parameters ── */}
-			{/* Field order changes by property type: houses prioritize land area + stories */}
+			{/* Field order changes by property type: houses prioritize land area + stories.
+			    Rendered only when the current combo has at least one parameter field,
+			    so the section never shows up as an empty card. */}
+			{(show.landArea ||
+				show.rooms ||
+				show.area ||
+				show.livingArea ||
+				show.kitchenArea ||
+				show.floor ||
+				show.totalFloors ||
+				show.ceilingHeight) && (
 			<div {...sectionAnchor("parameters")}>
 			<FormSection
 				title={t("createListing.parameters")}
@@ -678,7 +701,7 @@ export function ListingFormFields({
 				{/* Ceiling height — optional, all property types except land */}
 				{show.ceilingHeight && (
 					<NumberInput
-						label={t("createListing.ceilingHeightLabel")}
+						label={optionalLabel(t("createListing.ceilingHeightLabel"))}
 						min={0.1}
 						max={30}
 						step={0.1}
@@ -692,6 +715,7 @@ export function ListingFormFields({
 				)}
 			</FormSection>
 			</div>
+			)}
 
 			{/* ── Apartment Attributes (apartment only) ── */}
 			{pt !== "house" &&
@@ -768,7 +792,7 @@ export function ListingFormFields({
 					)}
 					{show.floorPlanUrl && (
 						<TextInput
-							label={t("createListing.floorPlanUrlLabel")}
+							label={optionalLabel(t("createListing.floorPlanUrlLabel"))}
 							placeholder={t("createListing.floorPlanUrlPlaceholder")}
 							value={form.values.floor_plan_url || ""}
 							onChange={(e) =>
@@ -1098,7 +1122,7 @@ export function ListingFormFields({
 					/>
 				)}
 				<MicrodistrictAutocomplete
-					label={t("createListing.microdistrictLabel")}
+					label={optionalLabel(t("createListing.microdistrictLabel"))}
 					placeholder={t("createListing.microdistrictPlaceholder")}
 					district={form.values.district || undefined}
 					value={form.values.microdistrict || undefined}
@@ -1109,7 +1133,7 @@ export function ListingFormFields({
 				    immediately when Tashkent is selected). */}
 				{show.metroStation && metroDistrictHasStations && (
 					<MetroStationAutocomplete
-						label={t("createListing.metroStationLabel")}
+						label={optionalLabel(t("createListing.metroStationLabel"))}
 						placeholder={t(
 							"createListing.metroStationPlaceholder",
 							"Начните вводить название…",
@@ -1123,7 +1147,7 @@ export function ListingFormFields({
 				    Free-text is always accepted; landmark_id wiring is a
 				    follow-up, so the form still submits the free-text name. */}
 				<LandmarkAutocomplete
-					label={t("createListing.landmarkLabel")}
+					label={optionalLabel(t("createListing.landmarkLabel"))}
 					placeholder={t("createListing.landmarkPlaceholder")}
 					region={form.values.region || undefined}
 					district={form.values.district || undefined}
@@ -1133,7 +1157,7 @@ export function ListingFormFields({
 				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house) */}
 				{show.jkName && (
 					<HousingComplexAutocomplete
-						label={t("createListing.jkNameLabel")}
+						label={optionalLabel(t("createListing.jkNameLabel"))}
 						placeholder={t("createListing.jkNamePlaceholder")}
 						region={form.values.region || undefined}
 						district={form.values.district || undefined}
@@ -1300,6 +1324,7 @@ export function ListingFormFields({
 				</Box>
 				<ChipSelect
 					label={t("createListing.currencyLabel")}
+					showOptionalHint={false}
 					options={currencyOpts}
 					value={form.values.currency}
 					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}

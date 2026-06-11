@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { ActionIcon, Box, Loader, Paper, Text, TextInput } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -30,7 +31,7 @@ export interface LandmarkSelection {
 export interface LandmarkAutocompleteProps {
 	value: LandmarkSelection;
 	onChange: (next: LandmarkSelection) => void;
-	label?: string;
+	label?: ReactNode;
 	placeholder?: string;
 	/** Narrow suggestions to a district slug (район→ориентир cascade). */
 	district?: string | undefined;

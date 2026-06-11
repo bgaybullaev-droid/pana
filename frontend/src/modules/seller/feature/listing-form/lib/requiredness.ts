@@ -44,8 +44,11 @@ export interface RequiredRule {
 }
 
 export const REQUIRED_RULES: Record<RequiredFieldKey, RequiredRule> = {
+	// Deal type is required for every property type — land included, since
+	// land × rent is a legal combo (the form pre-fills "sell", so this is
+	// always satisfied and mainly drives the Type section status).
 	type: {
-		requiredWhen: (v) => v.property_type !== "land",
+		requiredWhen: () => true,
 		isFilled: (v) => !!v.type,
 		errorKey: "validation.dealTypeRequired",
 	},
@@ -106,18 +109,16 @@ export const REQUIRED_RULES: Record<RequiredFieldKey, RequiredRule> = {
 		isFilled: (v) => !!v.commercial_type,
 		errorKey: "validation.commercialTypeRequired",
 	},
-	// Sprint 2 — rent listings require a period (blueprint §3.3)
+	// Sprint 2 — rent listings require a period (blueprint §3.3). Applies
+	// to land too (matches backend `dt == "rent"` validation).
 	rent_period: {
-		requiredWhen: (v) => v.type === "rent" && v.property_type !== "land",
+		requiredWhen: (v) => v.type === "rent",
 		isFilled: (v) => !!v.rent_period,
 		errorKey: "validation.rentPeriodRequired",
 	},
 	// Long-term rentals additionally require min_rent_months
 	min_rent_months: {
-		requiredWhen: (v) =>
-			v.type === "rent" &&
-			v.property_type !== "land" &&
-			v.rent_period === "long_term",
+		requiredWhen: (v) => v.type === "rent" && v.rent_period === "long_term",
 		isFilled: (v) => v.min_rent_months !== undefined,
 		errorKey: "validation.minRentMonthsRequired",
 	},

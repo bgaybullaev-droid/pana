@@ -163,6 +163,7 @@
 	"createListing.unfilledFieldsSummary_many": "Осталось заполнить {{count}} полей. Прокрутите вверх и проверьте.",
 	"createListing.unfilledFieldsSummary_other": "Осталось заполнить {{count}} полей. Прокрутите вверх и проверьте.",
 	"createListing.other": "Другое",
+	"createListing.optionalHint": "необязательно",
 	"createListing.enterValue": "Введите...",
 	"createListing.multipleAllowed": "Можно выбрать несколько",
 	"createListing.additionalInfo": "Описание",

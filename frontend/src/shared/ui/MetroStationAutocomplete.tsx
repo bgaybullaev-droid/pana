@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { ActionIcon, Box, Paper, Text, TextInput } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +10,7 @@ export interface MetroStationAutocompleteProps {
 	/** Stable station key (e.g. "chilonzor", "paxtakor"). */
 	value: string | undefined;
 	onChange: (key: string | undefined) => void;
-	label?: string;
+	label?: ReactNode;
 	placeholder?: string;
 	/** When set, suggestions are pre-filtered to this district. */
 	district?: string | undefined;

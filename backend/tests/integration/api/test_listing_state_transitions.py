@@ -2,7 +2,8 @@
 
 Covers _clear_incompatible_fields: POST and PATCH /listings must wipe fields
 that are not visible for the listing's (property_type, deal_type) combo,
-apply rule P3 (land forces sell), and be a no-op for unchanged listings.
+and be a no-op for unchanged listings. (Rule P3 — land forces sell — was
+retired when land × rent became a legal combo.)
 """
 
 from uuid import uuid4
@@ -77,7 +78,7 @@ def _valid_house_payload(**overrides):
 
 
 class TestCreateClearing:
-    """POST /api/v1/listings — rule P1 (allowlist) + P3 (land forces sell)."""
+    """POST /api/v1/listings — rule P1 (allowlist)."""
 
     async def test_apartment_create_wipes_house_only_field(
         self, client: AsyncClient, seller_headers
@@ -108,17 +109,19 @@ class TestCreateClearing:
         assert body["rooms"] is None
         assert body["amenities"] in (None, [])
 
-    async def test_land_create_forces_type_sell(
+    async def test_land_rent_is_legal_and_keeps_rent_fields(
         self, client: AsyncClient, seller_headers
     ):
-        """Rule P3: land × rent is illegal → coerced to sell."""
+        """land × rent is a legal combo: type stays rent, rent group survives."""
         payload = {
             "type": "rent",
             "property_type": "land",
             "price": 25000,
             "currency": "USD",
             "land_area": 10.0,
-            "land_purpose": "private",
+            "land_purpose": "construction",
+            "rent_period": "long_term",
+            "min_rent_months": 6,
             "region": "toshkent_shahri",
             "district": "mirzo_ulugbek",
             "latitude": 41.3,
@@ -130,7 +133,10 @@ class TestCreateClearing:
             "/api/v1/listings", json=payload, headers=seller_headers
         )
         assert resp.status_code == 201
-        assert resp.json()["type"] == "sell"
+        body = resp.json()
+        assert body["type"] == "rent"
+        assert body["rent_period"] == "long_term"
+        assert body["min_rent_months"] == 6
 
     async def test_land_create_wipes_apartment_fields(
         self, client: AsyncClient, seller_headers
@@ -247,14 +253,16 @@ class TestUpdateClearing:
         for wiped in ("building_type", "kitchen_area", "condition", "floor"):
             assert body[wiped] is None, f"{wiped} should be cleared on → house"
 
-    async def test_patch_apt_to_land_wipes_almost_everything_and_forces_sell(
+    async def test_patch_apt_to_land_wipes_almost_everything_keeps_rent(
         self,
         client: AsyncClient,
         db_session: AsyncSession,
         seller_headers,
         test_seller,
     ):
-        apt = await self._make_apartment(db_session, test_seller, type=ListingType.RENT)
+        apt = await self._make_apartment(
+            db_session, test_seller, type=ListingType.RENT, rent_period="daily"
+        )
         patch = {
             "property_type": "land",
             "land_area": 5.0,
@@ -266,7 +274,7 @@ class TestUpdateClearing:
         assert resp.status_code == 200
         body = resp.json()
         assert body["property_type"] == "land"
-        assert body["type"] == "sell"  # Rule P3
+        assert body["type"] == "rent"  # land × rent is legal — no coercion
         for wiped in (
             "rooms",
             "floor",
@@ -388,7 +396,8 @@ class TestClearHelperUnit:
         assert listing.building_type is None
         assert listing.is_furnished is None
 
-    async def test_helper_applies_p3_land_forces_sell(self, db_session: AsyncSession):
+    async def test_helper_keeps_land_rent_combo(self, db_session: AsyncSession):
+        """P3 retired: land × rent passes through the helper unchanged."""
         from app.api.v1.listings import _clear_incompatible_fields
 
         listing = Listing(
@@ -398,7 +407,7 @@ class TestClearHelperUnit:
             currency=Currency.USD,
         )
         _clear_incompatible_fields(listing)
-        assert listing.type == ListingType.SELL
+        assert listing.type == ListingType.RENT
 
 
 # ─────────────────────────────────────────────────────────────────────

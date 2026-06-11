@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { ActionIcon, Box, Paper, Text, TextInput } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -30,7 +31,7 @@ import {
 export interface MicrodistrictAutocompleteProps {
 	value: string | undefined;
 	onChange: (next: string | undefined) => void;
-	label?: string;
+	label?: ReactNode;
 	placeholder?: string;
 	/** District key (from REGIONS) used to scope the suggestion list. When
 	 *  omitted, no suggestions are shown (free-text only). */

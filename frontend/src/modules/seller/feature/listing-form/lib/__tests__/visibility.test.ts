@@ -76,10 +76,24 @@ describe("visibility matrix (Sprint 1 snapshot)", () => {
 			}
 		});
 
-		it("land_rent normalizes to land_sell (rule P3)", () => {
+		it("land_rent shows land base fields + rent group (P3 retired)", () => {
+			const landRentVisible = new Set([
+				"land_area",
+				"land_purpose",
+				"buildings_exist",
+				"fence",
+				"land_shape",
+				"rent_period",
+				"deposit",
+				"utilities_incl",
+				"min_rent_months",
+				"allowed_students",
+				"allowed_pets",
+				"rent_payment",
+			]);
 			for (const field of ALL_FIELDS) {
 				expect(isVisible(field, "land", "rent")).toBe(
-					isVisible(field, "land", "sell"),
+					landRentVisible.has(field),
 				);
 			}
 		});
@@ -97,10 +111,10 @@ describe("visibility matrix (Sprint 1 snapshot)", () => {
 			});
 		});
 
-		it("forces land to sell regardless of input", () => {
+		it("passes land tuples through unchanged (P3 retired — land can be rented)", () => {
 			expect(normalizeCombo("land", "rent")).toEqual({
 				propertyType: "land",
-				dealType: "sell",
+				dealType: "rent",
 			});
 			expect(normalizeCombo("land", "sell")).toEqual({
 				propertyType: "land",
@@ -209,8 +223,11 @@ describe("visibility matrix (Sprint 1 snapshot)", () => {
 			expect(VISIBILITY.land_sell.size).toBeGreaterThan(0);
 		});
 
-		it("land_rent is empty (illegal combo)", () => {
-			expect(VISIBILITY.land_rent.size).toBe(0);
+		it("land_rent is a legal combo (land base + rent group)", () => {
+			expect(VISIBILITY.land_rent.size).toBeGreaterThan(0);
+			expect(VISIBILITY.land_rent.has("land_area")).toBe(true);
+			expect(VISIBILITY.land_rent.has("rent_period")).toBe(true);
+			expect(VISIBILITY.land_rent.has("mortgage_ok")).toBe(false);
 		});
 
 		it("CLEARING_VALUES covers every FieldKey", () => {
@@ -373,11 +390,14 @@ describe("visibility matrix (Sprint 1 snapshot)", () => {
 			expect(patch.rent_payment).toEqual([]);
 		});
 
-		it("land × rent normalized to land × sell (P3 + P2 combine)", () => {
+		it("land × rent keeps rent group and wipes sale-finance (P3 retired)", () => {
 			const patch = clearIncompatibleFields("land", "rent");
-			// After P3 normalization this is equivalent to land × sell.
-			expect(patch).not.toHaveProperty("mortgage_ok");
-			expect(patch.rent_period).toBeUndefined();
+			// Sale-only finance flags are wiped to their canonical empty value…
+			expect(patch).toHaveProperty("mortgage_ok", false);
+			expect(patch).toHaveProperty("deed_type", undefined);
+			// …while the rent group and land base survive.
+			expect(patch).not.toHaveProperty("rent_period");
+			expect(patch).not.toHaveProperty("land_area");
 		});
 	});
 });

@@ -293,7 +293,7 @@ _VISIBILITY_MATRIX: dict = {
     ("commercial", "sell"): _COMMERCIAL_BASE_FIELDS | _SALE_ONLY_FIELDS,
     ("commercial", "rent"): _COMMERCIAL_BASE_FIELDS | _RENT_ONLY_FIELDS,
     ("land", "sell"): _LAND_BASE_FIELDS | _SALE_ONLY_FIELDS,
-    # land × rent is illegal (rule P3 coerces type -> sell before lookup)
+    ("land", "rent"): _LAND_BASE_FIELDS | _RENT_ONLY_FIELDS,
 }
 
 # Canonical empty value per clearable field.
@@ -389,12 +389,14 @@ def _clear_incompatible_fields(listing: Listing) -> List[str]:
     Applied BEFORE _validate_required_fields. Rules in execution order
     (blueprint §2.3):
 
-        P3: if property_type == 'land' and type != 'sell', force type = 'sell'.
         P1: keep only fields in the allowlist for (property_type, type);
             wipe everything else to its canonical empty value.
         P2: (implicitly handled by the matrix — sale-only and rent-only
             field groups are already excluded from the opposite allowlist.)
         P4: if rent_period != 'long_term', wipe min_rent_months.
+
+    Rule P3 (land forces sell) was retired when land × rent became a legal
+    combo with its own matrix entry.
 
     No-op for fields already at their empty value. Returns the list of fields
     actually cleared, or an empty list if nothing changed. Logged at INFO
@@ -406,13 +408,6 @@ def _clear_incompatible_fields(listing: Listing) -> List[str]:
     pt = listing.property_type.value if listing.property_type else None
     if not pt:
         return []
-
-    # Rule P3 — Land forces sell.
-    if pt == "land":
-        from app.db.models import ListingType
-
-        if listing.type is None or listing.type.value != "sell":
-            listing.type = ListingType.SELL
 
     dt = listing.type.value if listing.type else None
     if not dt:
@@ -490,8 +485,8 @@ def _validate_required_fields(listing: Listing, *, is_create: bool = True) -> No
 
     missing: List[str] = []
 
-    # Deal type (sell/rent) — required for all except land
-    if not is_land and not listing.type:
+    # Deal type (sell/rent) — required for every property type
+    if not listing.type:
         missing.append("type")
 
     # Price — required unless negotiable
@@ -2974,7 +2969,7 @@ async def create_listing(
     )
 
     # Enforce visibility matrix: wipe fields incompatible with this listing's
-    # (property_type, deal_type). Also applies rule P3 (land forces sell).
+    # (property_type, deal_type).
     # Runs BEFORE required-field validation so cleared fields don't trip it.
     _clear_incompatible_fields(listing)
 
@@ -3655,8 +3650,8 @@ async def update_listing(
 
     # Enforce visibility matrix after applying user updates: if property_type
     # or type changed, wipe fields that are no longer visible for the new
-    # combo. Also applies rule P3 (land forces sell). Runs BEFORE required-
-    # field validation so cleared fields don't trip it.
+    # combo. Runs BEFORE required-field validation so cleared fields don't
+    # trip it.
     _clear_incompatible_fields(listing)
 
     # Block F F1 — DRAFT → ACTIVE guard. The seller must wait until

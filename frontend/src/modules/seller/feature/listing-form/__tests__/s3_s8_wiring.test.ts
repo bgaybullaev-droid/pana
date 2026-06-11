@@ -323,9 +323,11 @@ describe("S5 dual-read: edit-mode pre-fill mapping", () => {
 });
 
 describe("Matrix gating covers S3–S6 field keys", () => {
-	it("jk_name visible on apartment+house, hidden on commercial+land", () => {
+	// jk_name was removed from the house base in the Phase-1 UX pass —
+	// housing complexes only apply to apartments.
+	it("jk_name visible on apartment only, hidden on house+commercial+land", () => {
 		expect(isVisible("jk_name", "apartment", "sell")).toBe(true);
-		expect(isVisible("jk_name", "house", "rent")).toBe(true);
+		expect(isVisible("jk_name", "house", "rent")).toBe(false);
 		expect(isVisible("jk_name", "commercial", "sell")).toBe(false);
 		expect(isVisible("jk_name", "land", "sell")).toBe(false);
 	});

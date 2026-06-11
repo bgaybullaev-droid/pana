@@ -10,6 +10,10 @@ interface ChipSelectProps {
 	customInputMode?: "numeric" | "decimal" | "text";
 	customPlaceholder?: string;
 	required?: boolean;
+	/** Dimmed "необязательно" hint next to the label of non-required fields.
+	 *  On by default; pass false where the hint is noise (e.g. fields with
+	 *  a pre-selected default, or outside the listing form). */
+	showOptionalHint?: boolean;
 	error?: string | null;
 }
 
@@ -55,6 +59,7 @@ export function ChipSelect({
 	customInputMode,
 	customPlaceholder,
 	required,
+	showOptionalHint = true,
 	error,
 }: ChipSelectProps) {
 	const { t } = useTranslation("seller");
@@ -127,11 +132,18 @@ export function ChipSelect({
 			{label && (
 				<Text size="sm" fw={500} mb={6}>
 					{label}
-					{required && (
+					{required ? (
 						<Text span c="red" inherit>
 							{" "}
 							*
 						</Text>
+					) : (
+						showOptionalHint && (
+							<Text span c="dimmed" fw={400} size="xs">
+								{" "}
+								— {t("createListing.optionalHint")}
+							</Text>
+						)
 					)}
 				</Text>
 			)}

@@ -194,6 +194,26 @@ describe("buildValidateRules — parity with the historical inline rules", () =>
 		);
 	});
 
+	it("land × rent is legal and requires rent_period like any rental", () => {
+		const errors = validationErrors(
+			emptyValues({ property_type: "land", type: "rent" }),
+		);
+		expect(errors).toContain("validation.rentPeriodRequired");
+		expect(
+			validationErrors(
+				emptyValues({
+					property_type: "land",
+					type: "rent",
+					price: 500,
+					rent_period: "daily",
+					region: "toshkent_shahri",
+					district: "mirzo_ulugbek",
+					latitude: 41.3,
+				}),
+			),
+		).toEqual([]);
+	});
+
 	it("apartment × rent requires rent_period", () => {
 		const errors = validationErrors(filledApartment({ type: "rent" }));
 		expect(errors).toEqual(["validation.rentPeriodRequired"]);
@@ -321,7 +341,8 @@ describe("progress + first incomplete section", () => {
 			0,
 		);
 		expect(land.total).toBeLessThan(apt.total);
-		expect(land.total).toBe(5); // photos + price + region + district + map
+		// photos + type (pre-filled) + price + region + district + map
+		expect(land.total).toBe(6);
 	});
 
 	it("getFirstIncompleteSection walks the visual order, photos first", () => {

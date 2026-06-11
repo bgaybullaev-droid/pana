@@ -93,5 +93,6 @@ def test_params_block_feeds_localized_names():
     assert 'uz="Olmazor t."' in block
     assert 'uz_cyrl="Олмазор т."' in block
     assert 'property_type: ru="Квартира"' in block
-    # price keeps the plain currency code, not the enum repr.
-    assert "price: 80000 USD" in block
+    # Money amounts are intentionally NOT fed to the model (the prompt says
+    # "Do NOT mention any price") — they render separately on the page.
+    assert "80000" not in block

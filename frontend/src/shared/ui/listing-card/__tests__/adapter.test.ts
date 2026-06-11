@@ -82,13 +82,12 @@ describe("getListingCardContent", () => {
 			expect(c.price.period).toBe("month");
 		});
 
-		it("land × rent normalizes to land × sell (period=total)", () => {
-			// Rule P3: land forces sell.
+		it("land × rent derives the period from rent_period (P3 retired)", () => {
 			const c = getListingCardContent(
 				listing({ type: "rent", property_type: "land", rent_period: "daily" }),
 				t,
 			);
-			expect(c.price.period).toBe("total");
+			expect(c.price.period).toBe("day");
 		});
 	});
 

@@ -173,7 +173,8 @@ const LAND_BASE_FIELDS: readonly FieldKey[] = [
 ];
 
 // Sprint 2 matrix: base ∪ (sale or rent) per deal_type.
-// land_rent is illegal (rule P3 coerces type → sell) and empty by construction.
+// land_rent became legal when the deal-type selector was opened up for land
+// (land can be rented); it follows the same base ∪ rent construction.
 export const VISIBILITY: Record<Combo, ReadonlySet<FieldKey>> = {
 	apartment_sell: new Set([...APARTMENT_BASE_FIELDS, ...SALE_ONLY_FIELDS]),
 	apartment_rent: new Set([...APARTMENT_BASE_FIELDS, ...RENT_ONLY_FIELDS]),
@@ -182,7 +183,7 @@ export const VISIBILITY: Record<Combo, ReadonlySet<FieldKey>> = {
 	commercial_sell: new Set([...COMMERCIAL_BASE_FIELDS, ...SALE_ONLY_FIELDS]),
 	commercial_rent: new Set([...COMMERCIAL_BASE_FIELDS, ...RENT_ONLY_FIELDS]),
 	land_sell: new Set([...LAND_BASE_FIELDS, ...SALE_ONLY_FIELDS]),
-	land_rent: new Set<FieldKey>(),
+	land_rent: new Set([...LAND_BASE_FIELDS, ...RENT_ONLY_FIELDS]),
 };
 
 // Canonical empty value per field, used to wipe invisible fields.

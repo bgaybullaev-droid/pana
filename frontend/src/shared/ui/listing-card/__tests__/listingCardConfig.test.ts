@@ -65,12 +65,13 @@ describe("listingCardConfig — derived from visibility matrix", () => {
 			expect(fields).not.toContain("building_type");
 		});
 
-		it("land × rent normalizes to land × sell (no rent_period)", () => {
-			// Rule P3: land forces sell. Adapter must respect this.
-			const landSell = getCardFields("land", "sell");
+		it("land × rent shows land base + rent_period (P3 retired)", () => {
 			const landRent = getCardFields("land", "rent");
-			expect(landRent).toEqual(landSell);
-			expect(landRent).not.toContain("rent_period");
+			expect(landRent).toContain("land_area");
+			expect(landRent).toContain("land_purpose");
+			expect(landRent).toContain("rent_period");
+			expect(landRent).not.toContain("mortgage_ok"); // sale-only
+			expect(landRent).not.toContain("rooms");
 		});
 	});
 

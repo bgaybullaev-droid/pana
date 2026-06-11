@@ -133,8 +133,8 @@ class TestPartialPinWidens:
         assert _filter_is_applicable("rent_period", "apartment", None) is True
         # commercial without dt → rent filter applies (commercial_rent has it).
         assert _filter_is_applicable("rent_period", "commercial", None) is True
-        # land without dt → rent filter DROPS (no land_rent combo).
-        assert _filter_is_applicable("rent_period", "land", None) is False
+        # land without dt → rent filter applies too (land × rent is legal).
+        assert _filter_is_applicable("rent_period", "land", None) is True
 
     def test_mortgage_applies_when_only_pt_given(self):
         # Sale-finance is in the allowlist for every property_type on sell.
@@ -164,9 +164,17 @@ class TestPartialPinWidens:
 
 
 class TestMappingCoverage:
+    # price_per_sqm was dropped from the commercial base in the Phase-1 UX
+    # pass, but its filter mapping stays: old saved searches may still carry
+    # price_per_sqm_min/max, and the mapping makes _filter_is_applicable
+    # silently drop them (removing it would hit the default-open branch and
+    # make the filter apply everywhere instead).
+    _RETIRED_COLUMNS = frozenset({"price_per_sqm"})
+
     def test_every_mapped_filter_maps_to_a_known_matrix_field(self):
         """Every filter in _FILTER_TO_FIELD must correspond to a field that
-        appears in the visibility matrix for at least one combo."""
+        appears in the visibility matrix for at least one combo (or be an
+        explicitly retired column kept for legacy saved searches)."""
         from app.api.v1.listings import _VISIBILITY_MATRIX
 
         all_visible_fields: set[str] = set()
@@ -177,6 +185,7 @@ class TestMappingCoverage:
             (fk, field)
             for fk, field in _FILTER_TO_FIELD.items()
             if field not in all_visible_fields
+            and field not in self._RETIRED_COLUMNS
         ]
         assert not orphans, (
             f"Filter keys mapped to columns that aren't in the visibility "
