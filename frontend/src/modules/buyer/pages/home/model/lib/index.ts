@@ -28,6 +28,18 @@ export const buildFeedParams = (
 	price_max: filters.price_max,
 	region: filters.region,
 	district: filters.district,
+	area_min: filters.area_min,
+	area_max: filters.area_max,
+	floor_min: filters.floor_min,
+	floor_max: filters.floor_max,
+	total_floors_min: filters.total_floors_min,
+	total_floors_max: filters.total_floors_max,
+	not_first_floor: filters.not_first_floor,
+	not_last_floor: filters.not_last_floor,
+	building_type: filters.building_type,
+	condition: filters.condition,
+	has_photo: filters.has_photo,
+	posted_within: filters.posted_within,
 	sort: toFeedSort(filters.sort),
 });
 
@@ -47,6 +59,18 @@ export const isParamsMatchingFilters = (
 		params.price_max === filters.price_max &&
 		compare(params.region, filters.region) &&
 		compare(params.district, filters.district) &&
+		params.area_min === filters.area_min &&
+		params.area_max === filters.area_max &&
+		params.floor_min === filters.floor_min &&
+		params.floor_max === filters.floor_max &&
+		params.total_floors_min === filters.total_floors_min &&
+		params.total_floors_max === filters.total_floors_max &&
+		params.not_first_floor === filters.not_first_floor &&
+		params.not_last_floor === filters.not_last_floor &&
+		params.building_type === filters.building_type &&
+		compare(params.condition, filters.condition) &&
+		params.has_photo === filters.has_photo &&
+		params.posted_within === filters.posted_within &&
 		params.sort === toFeedSort(filters.sort)
 	);
 };

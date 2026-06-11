@@ -169,6 +169,74 @@ class TestListingFeed:
         resp = await client.get("/api/v1/listings/feed", params={"sort": "bogus"})
         assert resp.status_code == 422
 
+    # ── Wave-1 attribute filters ────────────────────────────────────────
+    async def test_feed_area_range(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"area_min": 30, "area_max": 200}
+        )
+        assert resp.status_code == 200
+        assert "items" in resp.json()
+
+    async def test_feed_floor_range(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"floor_min": 2, "floor_max": 9}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_total_floors_range(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed",
+            params={"total_floors_min": 5, "total_floors_max": 16},
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_not_first_floor(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"not_first_floor": "true"}
+        )
+        assert resp.status_code == 200
+        # Every returned row must be on a known floor other than 1.
+        for item in resp.json()["items"]:
+            if item.get("floor") is not None:
+                assert item["floor"] != 1
+
+    async def test_feed_not_last_floor(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"not_last_floor": "true"}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_building_type(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"building_type": "new"}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_rejects_invalid_building_type(self, client: AsyncClient):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"building_type": "bogus"}
+        )
+        assert resp.status_code == 422
+
+    async def test_feed_condition_multi(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed",
+            params=[("condition", "euro"), ("condition", "cosmetic")],
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_has_photo(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"has_photo": "true"}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_posted_within(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"posted_within": 7}
+        )
+        assert resp.status_code == 200
+
 
 class TestCreateListing:
     """POST /api/v1/listings"""

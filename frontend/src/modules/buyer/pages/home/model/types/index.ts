@@ -16,18 +16,19 @@ export interface HomeFilters {
   /** Applied feed ordering; undefined = default relevance ("recommended"). */
   sort?: Exclude<HomeSort, "recommended">;
 
-  // --- MOCKUP FILTERS (hidden in the Drawer until /listings/feed supports them) ---
+  // --- Wave-1 attribute filters (all server-backed at /listings/feed) ---
   area_min?: number;
   area_max?: number;
-  building_type?: string[];
+  floor_min?: number;
+  floor_max?: number;
+  total_floors_min?: number;
+  total_floors_max?: number;
+  not_first_floor?: boolean;
+  not_last_floor?: boolean;
+  /** "new" | "secondary". */
+  building_type?: "new" | "secondary";
   condition?: string[];
-  house_type?: string[];
-  house_condition?: string[];
-  furnished?: string[];
-  amenities?: string[];
-  water_supply?: string[];
-  electricity?: string[];
-  heating?: string[];
-  gas_supply?: string[];
-  sewage?: string[];
+  has_photo?: boolean;
+  /** Freshness window in days (1 | 7 | 30). */
+  posted_within?: number;
 }

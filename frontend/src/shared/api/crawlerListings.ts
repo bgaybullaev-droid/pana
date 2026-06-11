@@ -32,6 +32,20 @@ export interface UnifiedFeedParams {
   price_max?: number;
   region?: string[];
   district?: string[];
+  // Wave-1 attribute filters
+  area_min?: number;
+  area_max?: number;
+  floor_min?: number;
+  floor_max?: number;
+  total_floors_min?: number;
+  total_floors_max?: number;
+  not_first_floor?: boolean;
+  not_last_floor?: boolean;
+  building_type?: 'new' | 'secondary';
+  condition?: string[];
+  has_photo?: boolean;
+  /** Freshness window in days (1 | 7 | 30). */
+  posted_within?: number;
   sort?: FeedSort;
 }
 
@@ -52,6 +66,18 @@ export const fetchUnifiedFeed = async (
   if (params.price_max !== undefined) queryParams.price_max = params.price_max;
   if (params.region && params.region.length > 0) queryParams.region = params.region;
   if (params.district && params.district.length > 0) queryParams.district = params.district;
+  if (params.area_min !== undefined) queryParams.area_min = params.area_min;
+  if (params.area_max !== undefined) queryParams.area_max = params.area_max;
+  if (params.floor_min !== undefined) queryParams.floor_min = params.floor_min;
+  if (params.floor_max !== undefined) queryParams.floor_max = params.floor_max;
+  if (params.total_floors_min !== undefined) queryParams.total_floors_min = params.total_floors_min;
+  if (params.total_floors_max !== undefined) queryParams.total_floors_max = params.total_floors_max;
+  if (params.not_first_floor) queryParams.not_first_floor = true;
+  if (params.not_last_floor) queryParams.not_last_floor = true;
+  if (params.building_type) queryParams.building_type = params.building_type;
+  if (params.condition && params.condition.length > 0) queryParams.condition = params.condition;
+  if (params.has_photo) queryParams.has_photo = true;
+  if (params.posted_within !== undefined) queryParams.posted_within = params.posted_within;
   if (params.sort) queryParams.sort = params.sort;
 
   const response = await apiClient.get<PaginatedResponse<UnifiedListingListItem>>(

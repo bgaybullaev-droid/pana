@@ -7,7 +7,7 @@ from typing import List, Literal, Optional, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -2059,6 +2059,19 @@ async def resolve_listing(
     raise HTTPException(status_code=404, detail="Listing not found in any source")
 
 
+def _jsonb_has_items(col):
+    """SQL predicate: a JSONB column holds a non-empty array.
+
+    The `jsonb_typeof` guard keeps `jsonb_array_length` from erroring on
+    rows where the column is NULL or stores a non-array value.
+    """
+    return and_(
+        col.isnot(None),
+        func.jsonb_typeof(col) == "array",
+        func.jsonb_array_length(col) > 0,
+    )
+
+
 @router.get("/feed", response_model=PaginatedResponse[UnifiedListingListItem])
 async def listing_feed(
     page: int = Query(1, ge=1),
@@ -2074,6 +2087,18 @@ async def listing_feed(
     price_max: Optional[int] = Query(None, le=100000000),
     region: Optional[List[str]] = Query(None),
     district: Optional[List[str]] = Query(None),
+    area_min: Optional[float] = Query(None, ge=0, le=100000),
+    area_max: Optional[float] = Query(None, ge=0, le=100000),
+    floor_min: Optional[int] = Query(None, ge=-5, le=100),
+    floor_max: Optional[int] = Query(None, ge=-5, le=100),
+    total_floors_min: Optional[int] = Query(None, ge=1, le=100),
+    total_floors_max: Optional[int] = Query(None, ge=1, le=100),
+    not_first_floor: bool = Query(False),
+    not_last_floor: bool = Query(False),
+    building_type: Optional[Literal["new", "secondary"]] = Query(None),
+    condition: Optional[List[str]] = Query(None),
+    has_photo: bool = Query(False),
+    posted_within: Optional[int] = Query(None, ge=1, le=365),
     sort: Optional[str] = Query(None, pattern="^(newest|price_asc|price_desc)$"),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
@@ -2083,6 +2108,15 @@ async def listing_feed(
     `sort` orders the merged feed: `newest` (created_at desc), `price_asc`,
     `price_desc` (listings without a price go last). Omitted → personalised
     relevance ranking (legacy behaviour).
+
+    Wave-1 attribute filters (`area_*`, `floor_*`, `total_floors_*`,
+    `not_first_floor`, `not_last_floor`, `building_type`, `condition`,
+    `has_photo`, `posted_within`) are applied uniformly to all three
+    sources. A row whose value for a filtered field is NULL (e.g. a
+    crawled listing whose LLM extraction never captured the floor) is
+    excluded by that filter — the result counter reflects the narrowing.
+    `posted_within` counts days against `created_at`, which for crawled
+    rows is the import time, not the original post date.
     """
 
     # Build base queries with filters
@@ -2135,6 +2169,92 @@ async def listing_feed(
         main_query = main_query.where(Listing.district.in_(district))
         tg_query = tg_query.where(TelegramListing.district.in_(district))
         olx_query = olx_query.where(OLXListing.district.in_(district))
+
+    # ── Wave-1 attribute filters (apply to all three sources) ────────────
+    # The platform stores area as `area`; crawler tables use `area_sqm`.
+    if area_min is not None:
+        main_query = main_query.where(Listing.area >= area_min)
+        tg_query = tg_query.where(TelegramListing.area_sqm >= area_min)
+        olx_query = olx_query.where(OLXListing.area_sqm >= area_min)
+    if area_max is not None:
+        main_query = main_query.where(Listing.area <= area_max)
+        tg_query = tg_query.where(TelegramListing.area_sqm <= area_max)
+        olx_query = olx_query.where(OLXListing.area_sqm <= area_max)
+
+    # Apartment floor range
+    if floor_min is not None:
+        main_query = main_query.where(Listing.floor >= floor_min)
+        tg_query = tg_query.where(TelegramListing.floor >= floor_min)
+        olx_query = olx_query.where(OLXListing.floor >= floor_min)
+    if floor_max is not None:
+        main_query = main_query.where(Listing.floor <= floor_max)
+        tg_query = tg_query.where(TelegramListing.floor <= floor_max)
+        olx_query = olx_query.where(OLXListing.floor <= floor_max)
+
+    # Building storeys range
+    if total_floors_min is not None:
+        main_query = main_query.where(Listing.total_floors >= total_floors_min)
+        tg_query = tg_query.where(TelegramListing.total_floors >= total_floors_min)
+        olx_query = olx_query.where(OLXListing.total_floors >= total_floors_min)
+    if total_floors_max is not None:
+        main_query = main_query.where(Listing.total_floors <= total_floors_max)
+        tg_query = tg_query.where(TelegramListing.total_floors <= total_floors_max)
+        olx_query = olx_query.where(OLXListing.total_floors <= total_floors_max)
+
+    # "Not first floor" — floor must be known and not equal to 1.
+    if not_first_floor:
+        main_query = main_query.where(Listing.floor.isnot(None), Listing.floor != 1)
+        tg_query = tg_query.where(
+            TelegramListing.floor.isnot(None), TelegramListing.floor != 1
+        )
+        olx_query = olx_query.where(
+            OLXListing.floor.isnot(None), OLXListing.floor != 1
+        )
+
+    # "Not last floor" — floor and total_floors known and floor != total_floors.
+    if not_last_floor:
+        main_query = main_query.where(
+            Listing.floor.isnot(None),
+            Listing.total_floors.isnot(None),
+            Listing.floor != Listing.total_floors,
+        )
+        tg_query = tg_query.where(
+            TelegramListing.floor.isnot(None),
+            TelegramListing.total_floors.isnot(None),
+            TelegramListing.floor != TelegramListing.total_floors,
+        )
+        olx_query = olx_query.where(
+            OLXListing.floor.isnot(None),
+            OLXListing.total_floors.isnot(None),
+            OLXListing.floor != OLXListing.total_floors,
+        )
+
+    # New-build vs secondary. Crawler values are LLM free-text, so only rows
+    # whose value happens to be canonical ("new"/"secondary") match.
+    if building_type:
+        main_query = main_query.where(Listing.building_type == building_type)
+        tg_query = tg_query.where(TelegramListing.building_type == building_type)
+        olx_query = olx_query.where(OLXListing.building_type == building_type)
+
+    # Renovation/condition (multi-select OR-match via IN).
+    if condition:
+        main_query = main_query.where(Listing.condition.in_(condition))
+        tg_query = tg_query.where(TelegramListing.condition.in_(condition))
+        olx_query = olx_query.where(OLXListing.condition.in_(condition))
+
+    # Only listings that have at least one photo. Platform images live in a
+    # related table; crawler images are a JSONB array.
+    if has_photo:
+        main_query = main_query.where(Listing.images.any())
+        tg_query = tg_query.where(_jsonb_has_items(TelegramListing.images))
+        olx_query = olx_query.where(_jsonb_has_items(OLXListing.images))
+
+    # Freshness window against created_at (import time for crawled rows).
+    if posted_within:
+        cutoff = datetime.utcnow() - timedelta(days=posted_within)
+        main_query = main_query.where(Listing.created_at >= cutoff)
+        tg_query = tg_query.where(TelegramListing.created_at >= cutoff)
+        olx_query = olx_query.where(OLXListing.created_at >= cutoff)
 
     # Apply text search
     if q:

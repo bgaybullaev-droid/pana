@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from "react";
+import { CSSProperties, useEffect, useCallback, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ import {
 	Chip,
 	RangeSlider,
 	NumberInput,
+	Switch,
 	UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -35,19 +36,15 @@ import {
 	IconRulerMeasure,
 	IconTools,
 	IconBuilding,
-	IconHome,
-	IconArmchair,
+	IconStairs,
+	IconPhoto,
 	IconHeart,
 	IconHeartFilled,
 } from "@tabler/icons-react";
 import {
-	getConditionOpts,
-	getBuildingTypeOpts,
-	getHouseTypeOpts,
-	getAptAmenityOpts,
-	getHouseAmenityOpts,
-	getWaterSupplyOpts,
-} from "@shared/constants/mockupFilters";
+	getConditionFilterOpts,
+	getBuildingTypeFilterOpts,
+} from "@shared/constants/listingFilterOptions";
 import { DealTypeGrid, PropertyTypeGrid } from "@shared/ui/FilterCards";
 import { shadows, radii, surface } from "@app/styles/theme";
 import { PreferenceCard } from "@modules/buyer/feature/preferences/ui/PreferenceCard";
@@ -108,6 +105,21 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "@app/providers/useAuth";
 import { HomeBanners } from "@modules/buyer/feature/home-banners";
+
+// Shared pill/toggle style for single- and multi-select filter chips.
+const toggleChipStyle = (active: boolean): CSSProperties => ({
+	height: 36,
+	padding: "0 16px",
+	fontSize: 13,
+	fontWeight: 600,
+	borderRadius: 18,
+	backgroundColor: active ? "#228be6" : "#f1f3f5",
+	color: active ? "#fff" : "#495057",
+	display: "inline-flex",
+	alignItems: "center",
+	cursor: "pointer",
+	transition: "all 0.15s ease",
+});
 
 function Page() {
 	const { t } = useTranslation(["buyer", "seller"]);
@@ -336,9 +348,9 @@ function Page() {
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchParams]);
 
-	// One badge unit per filter GROUP (a price range is one filter, not two).
-	// Only server-honoured filters are counted — mockup fields are hidden in
-	// the drawer and must never inflate the badge.
+	// One badge unit per filter GROUP (a range is one filter, not two). Floor
+	// range, the not-first/not-last toggles and the storeys range share one
+	// card, so they count as a single group.
 	const activeFilterCount = [
 		filters.type?.length,
 		filters.property_type?.length,
@@ -346,6 +358,17 @@ function Page() {
 		filters.price_min || filters.price_max,
 		filters.region?.length,
 		filters.district?.length,
+		filters.area_min || filters.area_max,
+		filters.floor_min ||
+			filters.floor_max ||
+			filters.total_floors_min ||
+			filters.total_floors_max ||
+			filters.not_first_floor ||
+			filters.not_last_floor,
+		filters.building_type,
+		filters.condition?.length,
+		filters.has_photo,
+		filters.posted_within,
 	].filter(Boolean).length;
 
 	const handleCardClick = useCallback(
@@ -631,19 +654,6 @@ function Page() {
 	const sliderMax = isRentOnly ? 5000 : 500000;
 	const sliderStep = isRentOnly ? 100 : 5000;
 
-	// The home feed (/listings/feed) only honours type, property_type, rooms,
-	// price, region and district. Every section below is HIDDEN until the
-	// backend filters land — showing a control that silently does nothing
-	// erodes user trust faster than not having it at all.
-	const showMockup = {
-		buildingType: false,
-		condition: false,
-		amenities: false,
-		houseType: false,
-		utilities: false,
-		area: false,
-	};
-
 	const renderChipGroup = (
 		options: { value: string; label: string }[],
 		value: string[] = [],
@@ -659,30 +669,61 @@ function Page() {
 
 		return (
 			<Group gap={8} wrap="wrap">
-				{options.map((opt) => {
-					const isActive = value.includes(opt.value);
-					return (
-						<UnstyledButton
-							key={opt.value}
-							onClick={() => toggle(opt.value)}
-							style={{
-								height: 36,
-								padding: "0 16px",
-								fontSize: 13,
-								fontWeight: 600,
-								borderRadius: 18,
-								backgroundColor: isActive ? "#228be6" : "#f1f3f5",
-								color: isActive ? "#fff" : "#495057",
-								display: "inline-flex",
-								alignItems: "center",
-								cursor: "pointer",
-								transition: "all 0.15s ease",
-							}}
-						>
-							{opt.label}
-						</UnstyledButton>
-					);
-				})}
+				{options.map((opt) => (
+					<UnstyledButton
+						key={opt.value}
+						onClick={() => toggle(opt.value)}
+						style={toggleChipStyle(value.includes(opt.value))}
+					>
+						{opt.label}
+					</UnstyledButton>
+				))}
+			</Group>
+		);
+	};
+
+	// Paired "от / до" number inputs reused by the area, floor and storeys
+	// cards. Empty input clears the bound (undefined).
+	const renderNumberRange = (opts: {
+		minValue?: number;
+		maxValue?: number;
+		onMin: (v?: number) => void;
+		onMax: (v?: number) => void;
+		suffix?: string;
+		min?: number;
+	}) => {
+		const toNum = (v: number | string) =>
+			typeof v === "number" ? v : undefined;
+		return (
+			<Group grow gap={10}>
+				<NumberInput
+					label={t("filter.priceFrom")}
+					size="sm"
+					radius={10}
+					min={opts.min ?? 0}
+					allowNegative={false}
+					allowDecimal={false}
+					thousandSeparator=" "
+					inputMode="numeric"
+					hideControls
+					suffix={opts.suffix}
+					value={opts.minValue ?? ""}
+					onChange={(v) => opts.onMin(toNum(v))}
+				/>
+				<NumberInput
+					label={t("filter.priceTo")}
+					size="sm"
+					radius={10}
+					min={opts.min ?? 0}
+					allowNegative={false}
+					allowDecimal={false}
+					thousandSeparator=" "
+					inputMode="numeric"
+					hideControls
+					suffix={opts.suffix}
+					value={opts.maxValue ?? ""}
+					onChange={(v) => opts.onMax(toNum(v))}
+				/>
 			</Group>
 		);
 	};
@@ -947,84 +988,6 @@ function Page() {
 							</Box>
 						</PreferenceCard>
 
-						{/* Building Type (Mockup) */}
-						{showMockup.buildingType && (
-							<PreferenceCard
-								icon={IconBuilding}
-								iconColor="#FF6E01"
-								iconBg="#FFF4E6"
-								title={t("seller:createListing.buildingType")}
-								isActive={(draftFilters.building_type?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
-									setDraftFilters(p => ({ ...p, building_type: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* House Type (Mockup) */}
-						{showMockup.houseType && (
-							<PreferenceCard
-								icon={IconHome}
-								iconColor="#be4bdb"
-								iconBg="#f3f0ff"
-								title={t("seller:createListing.houseType")}
-								isActive={(draftFilters.house_type?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
-									setDraftFilters(p => ({ ...p, house_type: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* Area range (Mockup) */}
-						{showMockup.area && (
-						<PreferenceCard
-							icon={IconRulerMeasure}
-							iconColor="#40c057"
-							iconBg="#ebfbee"
-							title={t("seller:createListing.area")}
-							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
-						>
-							<Group justify="center" mb={12}>
-								<Box
-									style={{
-										backgroundColor: "#f3f0ff",
-										borderRadius: radii.md,
-										padding: "6px 16px",
-									}}
-								>
-									<Text size="sm" fw={700} c="green.7">
-										{t("filter.areaRange", { min: draftFilters.area_min || 0, max: draftFilters.area_max || 500 })}
-									</Text>
-								</Box>
-							</Group>
-							<Box px={8}>
-								<RangeSlider
-									color="green"
-									min={0}
-									max={500}
-									step={5}
-									value={[draftFilters.area_min || 0, draftFilters.area_max || 500]}
-									onChangeEnd={(value) => {
-										setDraftFilters((prev) => ({
-											...prev,
-											area_min: value[0] > 0 ? value[0] : undefined,
-											area_max: value[1] < 500 ? value[1] : undefined,
-										}));
-									}}
-									marks={[
-										{ value: 0, label: "0" },
-										{ value: 250, label: t("filter.areaMark", { value: 250 }) },
-										{ value: 500, label: t("filter.areaMark", { value: 500 }) },
-									]}
-									labelAlwaysOn={false}
-									mb={24}
-								/>
-							</Box>
-						</PreferenceCard>
-						)}
-
 						{/* Rooms */}
 						<PreferenceCard
 							icon={IconDoor}
@@ -1174,54 +1137,186 @@ function Page() {
 							)}
 						</PreferenceCard>
 
-						{/* Condition / Repair (Mockup) */}
-						{showMockup.condition && (
-							<PreferenceCard
-								icon={IconTools}
-								iconColor="#228be6"
-								iconBg="#e7f5ff"
-								title={t("seller:createListing.condition")}
-								isActive={(draftFilters.condition?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getConditionOpts(t), draftFilters.condition || [], (v) => 
-									setDraftFilters(p => ({ ...p, condition: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
+						{/* Area (m²) */}
+						<PreferenceCard
+							icon={IconRulerMeasure}
+							iconColor="#40c057"
+							iconBg="#ebfbee"
+							title={t("seller:createListing.area")}
+							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
+						>
+							{renderNumberRange({
+								minValue: draftFilters.area_min,
+								maxValue: draftFilters.area_max,
+								onMin: (v) => setDraftFilters((prev) => ({ ...prev, area_min: v })),
+								onMax: (v) => setDraftFilters((prev) => ({ ...prev, area_max: v })),
+								suffix: ` ${t("listing.area")}`,
+							})}
+						</PreferenceCard>
 
-						{/* Amenities & Utilities (Mockup) */}
-						{(showMockup.amenities || showMockup.utilities) && (
-							<PreferenceCard
-								icon={IconArmchair}
-								iconColor="#fcc419"
-								iconBg="#fff9db"
-								title={t("seller:createListing.amenitiesSection")}
-								isActive={(draftFilters.amenities?.length ?? 0) > 0 || (draftFilters.water_supply?.length ?? 0) > 0}
-							>
-								<Stack gap={16}>
-									{showMockup.amenities && (
-										<Box>
-											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inProperty")}</Text>
-											{renderChipGroup(getAptAmenityOpts(t), draftFilters.amenities || [], (v) => 
-												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
-											)}
-										</Box>
-									)}
-									{showMockup.utilities && (
-										<Box>
-											<Text size="sm" fw={500} mb={6}>{t("seller:createListing.inHouseProperty")}</Text>
-											{renderChipGroup(getHouseAmenityOpts(t), draftFilters.amenities || [], (v) => 
-												setDraftFilters(p => ({ ...p, amenities: v.length > 0 ? v : undefined }))
-											)}
-											<Text size="sm" fw={500} mt="md" mb={6}>{t("seller:createListing.waterSupply")}</Text>
-											{renderChipGroup(getWaterSupplyOpts(t), draftFilters.water_supply || [], (v) => 
-												setDraftFilters(p => ({ ...p, water_supply: v.length > 0 ? v : undefined }))
-											)}
-										</Box>
-									)}
-								</Stack>
-							</PreferenceCard>
-						)}
+						{/* Floor & storeys */}
+						<PreferenceCard
+							icon={IconStairs}
+							iconColor="#be4bdb"
+							iconBg="#f3f0ff"
+							title={t("filter.floorSection")}
+							isActive={
+								!!draftFilters.floor_min ||
+								!!draftFilters.floor_max ||
+								!!draftFilters.total_floors_min ||
+								!!draftFilters.total_floors_max ||
+								!!draftFilters.not_first_floor ||
+								!!draftFilters.not_last_floor
+							}
+						>
+							<Stack gap={14}>
+								<Box>
+									<Text size="sm" fw={500} mb={6}>
+										{t("seller:createListing.floor")}
+									</Text>
+									{renderNumberRange({
+										minValue: draftFilters.floor_min,
+										maxValue: draftFilters.floor_max,
+										onMin: (v) => setDraftFilters((prev) => ({ ...prev, floor_min: v })),
+										onMax: (v) => setDraftFilters((prev) => ({ ...prev, floor_max: v })),
+									})}
+								</Box>
+								<Group gap={8} wrap="wrap">
+									<UnstyledButton
+										onClick={() =>
+											setDraftFilters((prev) => ({
+												...prev,
+												not_first_floor: draftFilters.not_first_floor ? undefined : true,
+											}))
+										}
+										style={toggleChipStyle(!!draftFilters.not_first_floor)}
+									>
+										{t("filter.notFirstFloor")}
+									</UnstyledButton>
+									<UnstyledButton
+										onClick={() =>
+											setDraftFilters((prev) => ({
+												...prev,
+												not_last_floor: draftFilters.not_last_floor ? undefined : true,
+											}))
+										}
+										style={toggleChipStyle(!!draftFilters.not_last_floor)}
+									>
+										{t("filter.notLastFloor")}
+									</UnstyledButton>
+								</Group>
+								<Box>
+									<Text size="sm" fw={500} mb={6}>
+										{t("seller:createListing.totalFloors")}
+									</Text>
+									{renderNumberRange({
+										minValue: draftFilters.total_floors_min,
+										maxValue: draftFilters.total_floors_max,
+										onMin: (v) =>
+											setDraftFilters((prev) => ({ ...prev, total_floors_min: v })),
+										onMax: (v) =>
+											setDraftFilters((prev) => ({ ...prev, total_floors_max: v })),
+										min: 1,
+									})}
+								</Box>
+							</Stack>
+						</PreferenceCard>
+
+						{/* Building type (new / secondary) */}
+						<PreferenceCard
+							icon={IconBuilding}
+							iconColor="#FF6E01"
+							iconBg="#FFF4E6"
+							title={t("seller:createListing.buildingType")}
+							isActive={!!draftFilters.building_type}
+						>
+							<Group gap={8} wrap="wrap">
+								{getBuildingTypeFilterOpts(t).map((opt) => {
+									const active = draftFilters.building_type === opt.value;
+									return (
+										<UnstyledButton
+											key={opt.value}
+											onClick={() =>
+												setDraftFilters((prev) => ({
+													...prev,
+													building_type: active ? undefined : opt.value,
+												}))
+											}
+											style={toggleChipStyle(active)}
+										>
+											{opt.label}
+										</UnstyledButton>
+									);
+								})}
+							</Group>
+						</PreferenceCard>
+
+						{/* Condition / repair */}
+						<PreferenceCard
+							icon={IconTools}
+							iconColor="#228be6"
+							iconBg="#e7f5ff"
+							title={t("seller:createListing.condition")}
+							isActive={(draftFilters.condition?.length ?? 0) > 0}
+						>
+							{renderChipGroup(
+								getConditionFilterOpts(t),
+								draftFilters.condition || [],
+								(v) =>
+									setDraftFilters((prev) => ({
+										...prev,
+										condition: v.length > 0 ? v : undefined,
+									})),
+							)}
+						</PreferenceCard>
+
+						{/* Photo & freshness */}
+						<PreferenceCard
+							icon={IconPhoto}
+							iconColor="#15aabf"
+							iconBg="#e3fafc"
+							title={t("filter.extraSection")}
+							isActive={!!draftFilters.has_photo || !!draftFilters.posted_within}
+						>
+							<Switch
+								checked={!!draftFilters.has_photo}
+								onChange={(e) =>
+									setDraftFilters((prev) => ({
+										...prev,
+										has_photo: e.currentTarget.checked || undefined,
+									}))
+								}
+								label={t("filter.onlyWithPhoto")}
+								color="cyan"
+								mb={14}
+							/>
+							<Text size="sm" fw={500} mb={6}>
+								{t("filter.postedLabel")}
+							</Text>
+							<Group gap={8} wrap="wrap">
+								{([
+									[1, t("filter.posted1d")],
+									[7, t("filter.posted7d")],
+									[30, t("filter.posted30d")],
+								] as const).map(([days, label]) => {
+									const active = draftFilters.posted_within === days;
+									return (
+										<UnstyledButton
+											key={days}
+											onClick={() =>
+												setDraftFilters((prev) => ({
+													...prev,
+													posted_within: active ? undefined : days,
+												}))
+											}
+											style={toggleChipStyle(active)}
+										>
+											{label}
+										</UnstyledButton>
+									);
+								})}
+							</Group>
+						</PreferenceCard>
 					</Stack>
 				</Box>
 				
