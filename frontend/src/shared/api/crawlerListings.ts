@@ -46,6 +46,16 @@ export interface UnifiedFeedParams {
   has_photo?: boolean;
   /** Freshness window in days (1 | 7 | 30). */
   posted_within?: number;
+  // Deal-terms filters (platform-only: an active one restricts the feed to
+  // platform listings, since crawler sources lack these columns).
+  mortgage_ok?: boolean;
+  installment_ok?: boolean;
+  halol_ok?: boolean;
+  furnished?: boolean;
+  allowed_pets?: boolean;
+  allowed_students?: boolean;
+  utilities_incl?: boolean;
+  rent_period?: 'long_term' | 'daily';
   sort?: FeedSort;
 }
 
@@ -78,6 +88,14 @@ export const fetchUnifiedFeed = async (
   if (params.condition && params.condition.length > 0) queryParams.condition = params.condition;
   if (params.has_photo) queryParams.has_photo = true;
   if (params.posted_within !== undefined) queryParams.posted_within = params.posted_within;
+  if (params.mortgage_ok) queryParams.mortgage_ok = true;
+  if (params.installment_ok) queryParams.installment_ok = true;
+  if (params.halol_ok) queryParams.halol_ok = true;
+  if (params.furnished) queryParams.furnished = true;
+  if (params.allowed_pets) queryParams.allowed_pets = true;
+  if (params.allowed_students) queryParams.allowed_students = true;
+  if (params.utilities_incl) queryParams.utilities_incl = true;
+  if (params.rent_period) queryParams.rent_period = params.rent_period;
   if (params.sort) queryParams.sort = params.sort;
 
   const response = await apiClient.get<PaginatedResponse<UnifiedListingListItem>>(

@@ -7,7 +7,7 @@ from typing import List, Literal, Optional, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy import and_, delete, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -2099,6 +2099,17 @@ async def listing_feed(
     condition: Optional[List[str]] = Query(None),
     has_photo: bool = Query(False),
     posted_within: Optional[int] = Query(None, ge=1, le=365),
+    # Deal-terms filters — only the platform Listing table carries these
+    # columns; crawler sources have no equivalent, so an active deal-terms
+    # filter restricts the feed to platform listings (see below).
+    mortgage_ok: bool = Query(False),
+    installment_ok: bool = Query(False),
+    halol_ok: bool = Query(False),
+    furnished: bool = Query(False),
+    allowed_pets: bool = Query(False),
+    allowed_students: bool = Query(False),
+    utilities_incl: bool = Query(False),
+    rent_period: Optional[Literal["long_term", "daily"]] = Query(None),
     sort: Optional[str] = Query(None, pattern="^(newest|price_asc|price_desc)$"),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
@@ -2255,6 +2266,49 @@ async def listing_feed(
         main_query = main_query.where(Listing.created_at >= cutoff)
         tg_query = tg_query.where(TelegramListing.created_at >= cutoff)
         olx_query = olx_query.where(OLXListing.created_at >= cutoff)
+
+    # ── Deal-terms filters (platform-only) ───────────────────────────────
+    # These columns exist only on the platform Listing table. A crawler
+    # listing can never be *confirmed* to offer e.g. a mortgage, so when any
+    # deal-terms filter is active we restrict the feed to platform listings
+    # (the crawler queries are short-circuited to empty). The live result
+    # counter reflects this narrowing.
+    if mortgage_ok:
+        main_query = main_query.where(Listing.mortgage_ok.is_(True))
+    if installment_ok:
+        main_query = main_query.where(Listing.installment_ok.is_(True))
+    if halol_ok:
+        main_query = main_query.where(Listing.halol_ok.is_(True))
+    if furnished:
+        # Canonical "has furniture" — the seller form writes `furniture`
+        # (none/partial/full/built_in), not the legacy is_furnished boolean.
+        main_query = main_query.where(
+            Listing.furniture.in_(["partial", "full", "built_in"])
+        )
+    if allowed_pets:
+        main_query = main_query.where(Listing.allowed_pets.is_(True))
+    if allowed_students:
+        main_query = main_query.where(Listing.allowed_students.is_(True))
+    if utilities_incl:
+        main_query = main_query.where(Listing.utilities_incl.is_(True))
+    if rent_period:
+        main_query = main_query.where(Listing.rent_period == rent_period)
+
+    deal_terms_active = any(
+        [
+            mortgage_ok,
+            installment_ok,
+            halol_ok,
+            furnished,
+            allowed_pets,
+            allowed_students,
+            utilities_incl,
+            rent_period,
+        ]
+    )
+    if deal_terms_active:
+        tg_query = tg_query.where(false())
+        olx_query = olx_query.where(false())
 
     # Apply text search
     if q:

@@ -31,4 +31,14 @@ export interface HomeFilters {
   has_photo?: boolean;
   /** Freshness window in days (1 | 7 | 30). */
   posted_within?: number;
+
+  // --- Deal-terms filters (platform-only) ---
+  mortgage_ok?: boolean;
+  installment_ok?: boolean;
+  halol_ok?: boolean;
+  furnished?: boolean;
+  allowed_pets?: boolean;
+  allowed_students?: boolean;
+  utilities_incl?: boolean;
+  rent_period?: "long_term" | "daily";
 }

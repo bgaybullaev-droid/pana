@@ -40,6 +40,14 @@ export const buildFeedParams = (
 	condition: filters.condition,
 	has_photo: filters.has_photo,
 	posted_within: filters.posted_within,
+	mortgage_ok: filters.mortgage_ok,
+	installment_ok: filters.installment_ok,
+	halol_ok: filters.halol_ok,
+	furnished: filters.furnished,
+	allowed_pets: filters.allowed_pets,
+	allowed_students: filters.allowed_students,
+	utilities_incl: filters.utilities_incl,
+	rent_period: filters.rent_period,
 	sort: toFeedSort(filters.sort),
 });
 
@@ -71,6 +79,14 @@ export const isParamsMatchingFilters = (
 		compare(params.condition, filters.condition) &&
 		params.has_photo === filters.has_photo &&
 		params.posted_within === filters.posted_within &&
+		params.mortgage_ok === filters.mortgage_ok &&
+		params.installment_ok === filters.installment_ok &&
+		params.halol_ok === filters.halol_ok &&
+		params.furnished === filters.furnished &&
+		params.allowed_pets === filters.allowed_pets &&
+		params.allowed_students === filters.allowed_students &&
+		params.utilities_incl === filters.utilities_incl &&
+		params.rent_period === filters.rent_period &&
 		params.sort === toFeedSort(filters.sort)
 	);
 };

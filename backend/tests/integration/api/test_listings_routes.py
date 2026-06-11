@@ -237,6 +237,43 @@ class TestListingFeed:
         )
         assert resp.status_code == 200
 
+    # ── Deal-terms filters (platform-only) ──────────────────────────────
+    async def test_feed_mortgage_ok(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"mortgage_ok": "true"}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_furnished(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"furnished": "true"}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_rent_period(self, client: AsyncClient, test_listing):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"rent_period": "long_term"}
+        )
+        assert resp.status_code == 200
+
+    async def test_feed_rejects_invalid_rent_period(self, client: AsyncClient):
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"rent_period": "weekly"}
+        )
+        assert resp.status_code == 422
+
+    async def test_feed_deal_terms_exclude_crawler(
+        self, client: AsyncClient, test_listing
+    ):
+        # An active deal-terms filter must restrict the feed to platform
+        # listings — crawler sources can't satisfy these columns.
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"halol_ok": "true"}
+        )
+        assert resp.status_code == 200
+        for item in resp.json()["items"]:
+            assert item["source"] == "main"
+
 
 class TestCreateListing:
     """POST /api/v1/listings"""

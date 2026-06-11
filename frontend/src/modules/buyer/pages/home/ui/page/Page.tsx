@@ -38,6 +38,8 @@ import {
 	IconBuilding,
 	IconStairs,
 	IconPhoto,
+	IconReceipt2,
+	IconKey,
 	IconHeart,
 	IconHeartFilled,
 } from "@tabler/icons-react";
@@ -369,6 +371,12 @@ function Page() {
 		filters.condition?.length,
 		filters.has_photo,
 		filters.posted_within,
+		filters.mortgage_ok || filters.installment_ok || filters.halol_ok,
+		filters.furnished ||
+			filters.allowed_pets ||
+			filters.allowed_students ||
+			filters.utilities_incl ||
+			filters.rent_period,
 	].filter(Boolean).length;
 
 	const handleCardClick = useCallback(
@@ -654,6 +662,14 @@ function Page() {
 	const sliderMax = isRentOnly ? 5000 : 500000;
 	const sliderStep = isRentOnly ? 100 : 5000;
 
+	// Deal-terms cards are contextual: sale terms (mortgage/installment/halal)
+	// only when a sale is in scope, rent terms only when a rent is. No deal
+	// type selected = both could apply, so show both.
+	const isSaleContext =
+		!draftFilters.type || draftFilters.type.includes("sell");
+	const isRentContext =
+		!draftFilters.type || draftFilters.type.includes("rent");
+
 	const renderChipGroup = (
 		options: { value: string; label: string }[],
 		value: string[] = [],
@@ -727,6 +743,82 @@ function Page() {
 			</Group>
 		);
 	};
+
+	// Deal-terms toggle chips. Each setter names its field explicitly (no
+	// computed keys) so the patch stays assignable to HomeFilters.
+	const saleTermChips = [
+		{
+			active: !!draftFilters.mortgage_ok,
+			label: t("seller:createListing.mortgageOk"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					mortgage_ok: p.mortgage_ok ? undefined : true,
+				})),
+		},
+		{
+			active: !!draftFilters.installment_ok,
+			label: t("seller:createListing.installmentOk"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					installment_ok: p.installment_ok ? undefined : true,
+				})),
+		},
+		{
+			active: !!draftFilters.halol_ok,
+			label: t("seller:createListing.halolOk"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					halol_ok: p.halol_ok ? undefined : true,
+				})),
+		},
+	];
+
+	const rentTermChips = [
+		{
+			active: !!draftFilters.furnished,
+			label: t("filter.furnished"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					furnished: p.furnished ? undefined : true,
+				})),
+		},
+		{
+			active: !!draftFilters.allowed_pets,
+			label: t("seller:createListing.allowedPetsLabel"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					allowed_pets: p.allowed_pets ? undefined : true,
+				})),
+		},
+		{
+			active: !!draftFilters.allowed_students,
+			label: t("seller:createListing.allowedStudentsLabel"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					allowed_students: p.allowed_students ? undefined : true,
+				})),
+		},
+		{
+			active: !!draftFilters.utilities_incl,
+			label: t("seller:createListing.utilitiesInclLabel"),
+			toggle: () =>
+				setDraftFilters((p) => ({
+					...p,
+					utilities_incl: p.utilities_incl ? undefined : true,
+				})),
+		},
+	];
+
+	const rentPeriodChips = [
+		{ value: "long_term" as const, label: t("seller:createListing.rentPeriodLongTerm") },
+		{ value: "daily" as const, label: t("seller:createListing.rentPeriodDaily") },
+	];
 
 	const FilterDrawer = (
 		<Drawer
@@ -1317,6 +1409,88 @@ function Page() {
 								})}
 							</Group>
 						</PreferenceCard>
+
+						{/* Sale terms — mortgage / installment / halal (platform-only) */}
+						{isSaleContext && (
+						<PreferenceCard
+							icon={IconReceipt2}
+							iconColor="#fa5252"
+							iconBg="#fff5f5"
+							title={t("filter.saleTerms")}
+							isActive={
+								!!draftFilters.mortgage_ok ||
+								!!draftFilters.installment_ok ||
+								!!draftFilters.halol_ok
+							}
+						>
+							<Group gap={8} wrap="wrap">
+								{saleTermChips.map((c) => (
+									<UnstyledButton
+										key={c.label}
+										onClick={c.toggle}
+										style={toggleChipStyle(c.active)}
+									>
+										{c.label}
+									</UnstyledButton>
+								))}
+							</Group>
+						</PreferenceCard>
+						)}
+
+						{/* Rent terms — furniture / pets / students / utilities / period (platform-only) */}
+						{isRentContext && (
+						<PreferenceCard
+							icon={IconKey}
+							iconColor="#0ca678"
+							iconBg="#e6fcf5"
+							title={t("filter.rentTerms")}
+							isActive={
+								!!draftFilters.furnished ||
+								!!draftFilters.allowed_pets ||
+								!!draftFilters.allowed_students ||
+								!!draftFilters.utilities_incl ||
+								!!draftFilters.rent_period
+							}
+						>
+							<Stack gap={12}>
+								<Group gap={8} wrap="wrap">
+									{rentTermChips.map((c) => (
+										<UnstyledButton
+											key={c.label}
+											onClick={c.toggle}
+											style={toggleChipStyle(c.active)}
+										>
+											{c.label}
+										</UnstyledButton>
+									))}
+								</Group>
+								<Box>
+									<Text size="sm" fw={500} mb={6}>
+										{t("seller:createListing.rentPeriodLabel")}
+									</Text>
+									<Group gap={8} wrap="wrap">
+										{rentPeriodChips.map((c) => {
+											const active = draftFilters.rent_period === c.value;
+											return (
+												<UnstyledButton
+													key={c.value}
+													onClick={() =>
+														setDraftFilters((prev) => ({
+															...prev,
+															rent_period: active ? undefined : c.value,
+														}))
+													}
+													style={toggleChipStyle(active)}
+												>
+													{c.label}
+												</UnstyledButton>
+											);
+										})}
+									</Group>
+								</Box>
+							</Stack>
+						</PreferenceCard>
+						)}
 					</Stack>
 				</Box>
 				
