@@ -322,4 +322,66 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Listing-form reveal primitives ──
+   One-shot mount animations for conditionally-rendered fields/sections.
+   Mostly opacity/transform (compositor-only); the height unfold is the
+   grid-rows trick, so no JS ever measures the DOM. Browsers too old to
+   interpolate grid-template-rows just play the fade. */
+@keyframes ucm-unfold {
+  from { grid-template-rows: 0fr; }
+  to   { grid-template-rows: 1fr; }
+}
+
+@keyframes ucm-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes ucm-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.ucm-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: ucm-unfold 220ms ease-out, ucm-fade-in 220ms ease-out;
+}
+
+/* Clip only while unfolding — once settled (data-settled, set on
+   animationend) the wrapper must not clip card shadows or dropdowns. */
+.ucm-reveal-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ucm-reveal[data-settled] .ucm-reveal-inner {
+  overflow: visible;
+}
+
+.ucm-fade-fast {
+  animation: ucm-fade-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ucm-reveal,
+  .ucm-fade-fast {
+    animation: none;
+  }
+  .ucm-reveal-inner {
+    overflow: visible;
+  }
+}
+
+/* AI-description «thinking» affordances (listing form) */
+@keyframes aiBorderFlow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+@keyframes aiSparklePulse {
+  0%, 100% { opacity: .45; transform: scale(.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
 }

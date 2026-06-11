@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FormSection } from "@shared/ui/FormSection";
+import { Reveal, RevealGate } from "@shared/ui/Reveal";
 import { ChipSelect } from "@shared/ui/ChipSelect";
 import { ChipMultiSelect } from "@shared/ui/ChipMultiSelect";
 import { PhoneInput } from "@shared/ui/PhoneInput";
@@ -60,6 +61,9 @@ interface ListingFormFieldsProps {
 	onDescriptionChangeOverride?: (val: string) => void;
 	/** AI generation in flight — skeleton overlay on the description field. */
 	descriptionLoading?: boolean;
+	/** Remount key for the description content; changing it (active AI
+	 *  language tab) replays a quick fade on the textarea. */
+	descriptionContentKey?: string;
 	/** Per-section completeness (useListingCompleteness). Omit → render as before. */
 	sectionStates?: Record<SectionKey, SectionState>;
 }
@@ -75,6 +79,7 @@ export function ListingFormFields({
 	descriptionValueOverride,
 	onDescriptionChangeOverride,
 	descriptionLoading,
+	descriptionContentKey,
 	sectionStates,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
@@ -165,6 +170,23 @@ export function ListingFormFields({
 		descriptionValueOverride !== undefined
 			? descriptionValueOverride
 			: (form.values.description ?? "");
+
+	// AI overlay lifecycle: "on" while generation runs, then a short
+	// "closing" phase so the gradient frame and progress veil fade out and
+	// the finished text lands as a crossfade instead of a hard pop.
+	const [aiOverlay, setAiOverlay] = useState<"off" | "on" | "closing">(
+		descriptionLoading ? "on" : "off",
+	);
+	useEffect(() => {
+		if (descriptionLoading) setAiOverlay("on");
+		else setAiOverlay((s) => (s === "on" ? "closing" : s));
+	}, [descriptionLoading]);
+	useEffect(() => {
+		if (aiOverlay !== "closing") return;
+		const t = window.setTimeout(() => setAiOverlay("off"), 240);
+		return () => window.clearTimeout(t);
+	}, [aiOverlay]);
+	const frameActive = aiOverlay !== "off";
 
 	// Block C V2.0 (C4) — verified-phones picker. Lists every phone the
 	// seller has confirmed on /seller/phones; selecting one writes it back
@@ -625,7 +647,7 @@ export function ListingFormFields({
 	};
 
 	return (
-		<>
+		<RevealGate>
 			{/* ── Type ── */}
 			<div {...sectionAnchor("type")}>
 			<FormSection
@@ -654,6 +676,7 @@ export function ListingFormFields({
 				    «what exactly is it» before sizes (OLX/Avito/Cian ask
 				    вторичка/новостройка, тип дома, офис/склад at category level). */}
 				{show.commercialType && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.commercialTypeLabel")}
 						required
@@ -664,16 +687,20 @@ export function ListingFormFields({
 						}
 						error={form.errors.commercial_type as string}
 					/>
+				</Reveal>
 				)}
 				{show.houseType && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.houseType")}
 						options={houseTypeOpts}
 						value={form.values.house_type}
 						onChange={(val) => set("house_type", val as string | undefined)}
 					/>
+				</Reveal>
 				)}
 				{show.marketType && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.marketTypeLabel")}
 						required
@@ -682,6 +709,7 @@ export function ListingFormFields({
 						onChange={(val) => set("market_type", val as string | undefined)}
 						error={form.errors.market_type as string}
 					/>
+				</Reveal>
 				)}
 				<ChipSelect
 					label={t("createListing.dealType")}
@@ -700,6 +728,7 @@ export function ListingFormFields({
 				{/* Rent group — lives right under the deal type so it appears the
 				    moment «Аренда» is picked (was in the Price section before). */}
 				{show.rentPeriod && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.rentPeriodLabel")}
 						required
@@ -730,8 +759,10 @@ export function ListingFormFields({
 						}}
 						error={form.errors.rent_period as string}
 					/>
+				</Reveal>
 				)}
 				{show.minRentMonths && form.values.rent_period === "long_term" && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.minRentMonthsLabel")}
 						required
@@ -749,6 +780,7 @@ export function ListingFormFields({
 						customPlaceholder="2, 9, 24..."
 						error={form.errors.min_rent_months as string}
 					/>
+				</Reveal>
 				)}
 				{/* S3 — urgent_flag (always-visible, defaults to false). */}
 				<Switch
@@ -773,6 +805,7 @@ export function ListingFormFields({
 				show.floor ||
 				show.totalFloors ||
 				show.ceilingHeight) && (
+			<Reveal>
 			<div {...sectionAnchor("parameters")}>
 			<FormSection
 				title={t("createListing.parameters")}
@@ -781,6 +814,7 @@ export function ListingFormFields({
 			>
 				{/* Land area — first for houses and land */}
 				{show.landArea && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.landArea")}
 						options={landAreaOpts}
@@ -789,8 +823,10 @@ export function ListingFormFields({
 						customInputMode="decimal"
 						customPlaceholder="25, 50..."
 					/>
+				</Reveal>
 				)}
 				{show.rooms && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.rooms")}
 						required
@@ -801,8 +837,10 @@ export function ListingFormFields({
 						customPlaceholder="7, 8, 10..."
 						error={form.errors.rooms as string}
 					/>
+				</Reveal>
 				)}
 				{show.area && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.totalArea")}
 						required
@@ -813,8 +851,10 @@ export function ListingFormFields({
 						customPlaceholder="94.5, 120..."
 						error={form.errors.area as string}
 					/>
+				</Reveal>
 				)}
 				{show.livingArea && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.livingArea")}
 						options={livingAreaOpts}
@@ -822,8 +862,10 @@ export function ListingFormFields({
 						onChange={(val) => set("living_area", val as number | undefined)}
 						customInputMode="decimal"
 					/>
+				</Reveal>
 				)}
 				{show.kitchenArea && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.kitchenArea")}
 						options={kitchenAreaOpts}
@@ -831,9 +873,11 @@ export function ListingFormFields({
 						onChange={(val) => set("kitchen_area", val as number | undefined)}
 						customInputMode="decimal"
 					/>
+				</Reveal>
 				)}
 				{/* Floor — apartments/commercial only, never for houses */}
 				{show.floor && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.floor")}
 						required
@@ -844,9 +888,11 @@ export function ListingFormFields({
 						customPlaceholder="10, 15..."
 						error={form.errors.floor as string}
 					/>
+				</Reveal>
 				)}
 				{/* Total floors — after individual floor */}
 				{show.totalFloors && (
+				<Reveal>
 					<ChipSelect
 						label={
 							pt === "house"
@@ -861,9 +907,11 @@ export function ListingFormFields({
 						customPlaceholder="24, 30..."
 						error={form.errors.total_floors as string}
 					/>
+				</Reveal>
 				)}
 				{/* Ceiling height — optional, all property types except land */}
 				{show.ceilingHeight && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.ceilingHeightLabel")}
 						options={ceilingHeightOpts}
@@ -874,9 +922,11 @@ export function ListingFormFields({
 						customInputMode="decimal"
 						customPlaceholder="2.8, 4.5..."
 					/>
+				</Reveal>
 				)}
 			</FormSection>
 			</div>
+			</Reveal>
 			)}
 
 			{/* ── Apartment Attributes (apartment only) ── */}
@@ -888,6 +938,7 @@ export function ListingFormFields({
 					show.balcony ||
 					show.listingSubtype ||
 					show.floorPlanUrl) && (
+			<Reveal>
 				<div {...sectionAnchor("aptAttributes")}>
 				<FormSection
 					title={t("createListing.aptAttributes")}
@@ -895,6 +946,7 @@ export function ListingFormFields({
 					{...sectionStatusProps("aptAttributes")}
 				>
 					{show.condition && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.condition")}
 							required
@@ -903,8 +955,10 @@ export function ListingFormFields({
 							onChange={(val) => set("condition", val as string | undefined)}
 							error={form.errors.condition as string}
 						/>
+					</Reveal>
 					)}
 					{show.furniture && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.furnitureLabel")}
 							required
@@ -913,8 +967,10 @@ export function ListingFormFields({
 							onChange={(val) => set("furniture", val as string | undefined)}
 							error={form.errors.furniture as string}
 						/>
+					</Reveal>
 					)}
 					{show.wallMaterial && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.wallMaterialLabel")}
 							options={wallMaterialOpts}
@@ -923,8 +979,10 @@ export function ListingFormFields({
 								set("wall_material", val as string | undefined)
 							}
 						/>
+					</Reveal>
 					)}
 					{show.listingSubtype && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.listingSubtypeLabel")}
 							options={listingSubtypeOpts}
@@ -933,16 +991,20 @@ export function ListingFormFields({
 								set("listing_subtype", val as string | undefined)
 							}
 						/>
+					</Reveal>
 					)}
 					{show.balcony && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.balconyLabel")}
 							options={balconyOpts}
 							value={form.values.balcony}
 							onChange={(val) => set("balcony", val as string | undefined)}
 						/>
+					</Reveal>
 					)}
 					{show.floorPlanUrl && (
+					<Reveal>
 						<TextInput
 							label={optionalLabel(t("createListing.floorPlanUrlLabel"))}
 							placeholder={t("createListing.floorPlanUrlPlaceholder")}
@@ -951,13 +1013,16 @@ export function ListingFormFields({
 								set("floor_plan_url", e.currentTarget.value || undefined)
 							}
 						/>
+					</Reveal>
 					)}
 				</FormSection>
 				</div>
+			</Reveal>
 			)}
 
 			{/* ── House-Specific Attributes ── */}
 			{(show.houseType || show.garage || show.basement) && (
+			<Reveal>
 				<div {...sectionAnchor("houseAttributes")}>
 				<FormSection
 					title={t("createListing.houseAttributes")}
@@ -967,6 +1032,7 @@ export function ListingFormFields({
 					{/* house_type lifted into the Type section as the classifier;
 					    show.houseType still gates the house-only multiselects. */}
 					{show.houseType && (
+					<Reveal>
 						<ChipMultiSelect
 							label={t("createListing.houseCondition")}
 							description={t("createListing.multipleAllowed")}
@@ -974,8 +1040,10 @@ export function ListingFormFields({
 							value={form.values.house_condition}
 							onChange={(val) => set("house_condition", val)}
 						/>
+					</Reveal>
 					)}
 					{show.houseType && (
+					<Reveal>
 						<ChipMultiSelect
 							label={t("createListing.locationType")}
 							description={t("createListing.multipleAllowed")}
@@ -983,8 +1051,10 @@ export function ListingFormFields({
 							value={form.values.location_type}
 							onChange={(val) => set("location_type", val)}
 						/>
+					</Reveal>
 					)}
 					{show.furniture && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.furnitureLabel")}
 							required
@@ -993,8 +1063,10 @@ export function ListingFormFields({
 							onChange={(val) => set("furniture", val as string | undefined)}
 							error={form.errors.furniture as string}
 						/>
+					</Reveal>
 					)}
 					{show.wallMaterial && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.wallMaterialLabel")}
 							options={wallMaterialOpts}
@@ -1003,9 +1075,11 @@ export function ListingFormFields({
 								set("wall_material", val as string | undefined)
 							}
 						/>
+					</Reveal>
 					)}
 					{/* S6 — house polish booleans */}
 					{show.garage && (
+					<Reveal>
 						<Switch
 							label={t("createListing.garageLabel")}
 							checked={form.values.garage === true}
@@ -1014,8 +1088,10 @@ export function ListingFormFields({
 							}
 							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 						/>
+					</Reveal>
 					)}
 					{show.basement && (
+					<Reveal>
 						<Switch
 							label={t("createListing.basementLabel")}
 							checked={form.values.basement === true}
@@ -1024,13 +1100,16 @@ export function ListingFormFields({
 							}
 							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 						/>
+					</Reveal>
 					)}
 				</FormSection>
 				</div>
+			</Reveal>
 			)}
 
 			{/* ── Utilities (House only) ── */}
 			{show.utilities && (
+			<Reveal>
 				<div {...sectionAnchor("utilities")}>
 				<FormSection
 					title={t("createListing.utilities")}
@@ -1071,6 +1150,7 @@ export function ListingFormFields({
 					/>
 				</FormSection>
 				</div>
+			</Reveal>
 			)}
 
 			{/* ── Land Purpose + S6 land polish (Land only) ── */}
@@ -1078,6 +1158,7 @@ export function ListingFormFields({
 				show.buildingsExist ||
 				show.fence ||
 				show.landShape) && (
+			<Reveal>
 				<div {...sectionAnchor("landPurpose")}>
 				<FormSection
 					title={t("createListing.landPurposeSection")}
@@ -1085,22 +1166,27 @@ export function ListingFormFields({
 					{...sectionStatusProps("landPurpose")}
 				>
 					{show.landPurpose && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.landPurpose")}
 							options={landPurposeOpts}
 							value={form.values.land_purpose}
 							onChange={(val) => set("land_purpose", val as string | undefined)}
 						/>
+					</Reveal>
 					)}
 					{show.landShape && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.landShapeLabel")}
 							options={landShapeOpts}
 							value={form.values.land_shape}
 							onChange={(val) => set("land_shape", val as string | undefined)}
 						/>
+					</Reveal>
 					)}
 					{show.buildingsExist && (
+					<Reveal>
 						<Switch
 							label={t("createListing.buildingsExistLabel")}
 							checked={form.values.buildings_exist === true}
@@ -1109,8 +1195,10 @@ export function ListingFormFields({
 							}
 							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 						/>
+					</Reveal>
 					)}
 					{show.fence && (
+					<Reveal>
 						<Switch
 							label={t("createListing.fenceLabel")}
 							checked={form.values.fence === true}
@@ -1119,14 +1207,17 @@ export function ListingFormFields({
 							}
 							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 						/>
+					</Reveal>
 					)}
 				</FormSection>
 				</div>
+			</Reveal>
 			)}
 
 			{/* ── Commercial Attributes (S4) ── */}
 			{/* commercial_type lifted into the Type section as the classifier. */}
 			{(show.entrance || show.parkingComm || show.buildingClass) && (
+			<Reveal>
 				<div {...sectionAnchor("commercial")}>
 				<FormSection
 					title={t("createListing.commercialSection")}
@@ -1134,6 +1225,7 @@ export function ListingFormFields({
 					{...sectionStatusProps("commercial")}
 				>
 					{show.buildingClass && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.buildingClassLabel")}
 							options={buildingClassOpts}
@@ -1142,16 +1234,20 @@ export function ListingFormFields({
 								set("building_class", val as string | undefined)
 							}
 						/>
+					</Reveal>
 					)}
 					{show.entrance && (
+					<Reveal>
 						<ChipSelect
 							label={t("createListing.entranceLabel")}
 							options={entranceOpts}
 							value={form.values.entrance}
 							onChange={(val) => set("entrance", val as string | undefined)}
 						/>
+					</Reveal>
 					)}
 					{show.parkingComm && (
+					<Reveal>
 						<Switch
 							label={t("createListing.parkingCommLabel")}
 							checked={form.values.parking_comm === true}
@@ -1160,13 +1256,16 @@ export function ListingFormFields({
 							}
 							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 						/>
+					</Reveal>
 					)}
 				</FormSection>
 				</div>
+			</Reveal>
 			)}
 
 			{/* ── Amenities ── */}
 			{(show.aptAmenities || show.houseAmenities || show.nearbyAmenities) && (
+			<Reveal>
 				<div {...sectionAnchor("amenities")}>
 				<FormSection
 					title={t("createListing.amenitiesSection")}
@@ -1174,6 +1273,7 @@ export function ListingFormFields({
 					{...sectionStatusProps("amenities")}
 				>
 					{show.aptAmenities && (
+					<Reveal>
 						<ChipMultiSelect
 							label={t("createListing.inProperty")}
 							description={t("createListing.multipleAllowed")}
@@ -1181,8 +1281,10 @@ export function ListingFormFields({
 							value={form.values.amenities}
 							onChange={(val) => set("amenities", val)}
 						/>
+					</Reveal>
 					)}
 					{show.houseAmenities && (
+					<Reveal>
 						<ChipMultiSelect
 							label={t("createListing.inHouseProperty")}
 							description={t("createListing.multipleAllowed")}
@@ -1190,8 +1292,10 @@ export function ListingFormFields({
 							value={form.values.amenities}
 							onChange={(val) => set("amenities", val)}
 						/>
+					</Reveal>
 					)}
 					{show.nearbyAmenities && (
+					<Reveal>
 						<ChipMultiSelect
 							label={t("createListing.nearby")}
 							description={t("createListing.multipleAllowed")}
@@ -1199,9 +1303,11 @@ export function ListingFormFields({
 							value={form.values.nearby_amenities}
 							onChange={(val) => set("nearby_amenities", val)}
 						/>
+					</Reveal>
 					)}
 				</FormSection>
 				</div>
+			</Reveal>
 			)}
 
 			{/* ── Location ── */}
@@ -1229,6 +1335,7 @@ export function ListingFormFields({
 					error={form.errors.region as string}
 				/>
 				{form.values.region && districts.length > 0 && (
+				<Reveal>
 					<ChipSelect
 						label={t("createListing.district")}
 						required
@@ -1252,8 +1359,10 @@ export function ListingFormFields({
 						}}
 						error={form.errors.district as string}
 					/>
+				</Reveal>
 				)}
 				{districtChosen && (
+				<Reveal>
 					<MicrodistrictAutocomplete
 						label={optionalLabel(t("createListing.microdistrictLabel"))}
 						placeholder={t("createListing.microdistrictPlaceholder")}
@@ -1261,11 +1370,13 @@ export function ListingFormFields({
 						value={form.values.microdistrict || undefined}
 						onChange={(val) => set("microdistrict", val)}
 					/>
+				</Reveal>
 				)}
 				{/* S3 — metro_station: shown only after the user picks a district
 				    that has stations (prevents the full 49-station list appearing
 				    immediately when Tashkent is selected). */}
 				{show.metroStation && metroDistrictHasStations && (
+				<Reveal>
 					<MetroStationAutocomplete
 						label={optionalLabel(t("createListing.metroStationLabel"))}
 						placeholder={t(
@@ -1276,11 +1387,13 @@ export function ListingFormFields({
 						value={form.values.metro_station}
 						onChange={(key) => set("metro_station", key)}
 					/>
+				</Reveal>
 				)}
 				{/* S3 — landmark / PR-G — catalog hints (район→ориентир cascade).
 				    Free-text is always accepted; landmark_id wiring is a
 				    follow-up, so the form still submits the free-text name. */}
 				{districtChosen && (
+				<Reveal>
 					<LandmarkAutocomplete
 						label={optionalLabel(t("createListing.landmarkLabel"))}
 						placeholder={t("createListing.landmarkPlaceholder")}
@@ -1289,9 +1402,11 @@ export function ListingFormFields({
 						value={{ landmark_id: undefined, landmark: form.values.landmark }}
 						onChange={({ landmark }) => set("landmark", landmark)}
 					/>
+				</Reveal>
 				)}
 				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house) */}
 				{show.jkName && districtChosen && (
+				<Reveal>
 					<HousingComplexAutocomplete
 						label={optionalLabel(t("createListing.jkNameLabel"))}
 						placeholder={t("createListing.jkNamePlaceholder")}
@@ -1306,6 +1421,7 @@ export function ListingFormFields({
 							set("jk_name", jk_name);
 						}}
 					/>
+				</Reveal>
 				)}
 				<Box>
 					<Text size="sm" fw={500} mb={6}>
@@ -1332,12 +1448,15 @@ export function ListingFormFields({
 						/>
 					</Suspense>
 					{form.errors.latitude && (
+					<Reveal>
 						<Text size="xs" c="red" mt={4}>
 							{form.errors.latitude as string}
 						</Text>
+					</Reveal>
 					)}
 				</Box>
 				{form.values.address ? (
+				<Reveal>
 					<Box>
 						<Text size="sm" fw={500} mb={4} c="dimmed">
 							{t("createListing.addressLabel")}
@@ -1346,6 +1465,7 @@ export function ListingFormFields({
 							{form.values.address}
 						</Text>
 					</Box>
+				</Reveal>
 				) : null}
 			</FormSection>
 			</div>
@@ -1359,34 +1479,43 @@ export function ListingFormFields({
 			>
 				{beforeDescriptionContent}
 				<Box>
-					<style>{`
-						@keyframes aiBorderFlow {
-							0%   { background-position: 0% 50%; }
-							100% { background-position: 300% 50%; }
-						}
-						@keyframes aiSparklePulse {
-							0%, 100% { opacity: .45; transform: scale(.9); }
-							50%      { opacity: 1;   transform: scale(1.1); }
-						}
-					`}</style>
 					{/* While AI works the field gets an animated gradient frame
 					    (Apple-Intelligence-style «thinking» affordance) with a
-					    pulsing sparkle + status centered inside the field. */}
+					    pulsing sparkle + status centered inside the field. The
+					    frame and the progress veil fade in/out via the aiOverlay
+					    lifecycle, so the finished text lands as a crossfade.
+					    Keyframes live in index.css. */}
 					<Box
-						style={
-							descriptionLoading
-								? {
-										position: "relative",
-										padding: 2,
-										borderRadius: 10,
-										background:
-											"linear-gradient(120deg, #4dabf7, #9775fa, #38d9a9, #4dabf7)",
-										backgroundSize: "300% 100%",
-										animation: "aiBorderFlow 2.5s linear infinite",
-									}
-								: { position: "relative" }
-						}
+						style={{
+							position: "relative",
+							padding: frameActive ? 2 : 0,
+							borderRadius: 10,
+							transition: "padding 150ms ease",
+						}}
 					>
+						{frameActive && (
+							<Box
+								style={{
+									position: "absolute",
+									inset: 0,
+									borderRadius: 10,
+									background:
+										"linear-gradient(120deg, #4dabf7, #9775fa, #38d9a9, #4dabf7)",
+									backgroundSize: "300% 100%",
+									animation:
+										aiOverlay === "closing"
+											? "aiBorderFlow 2.5s linear infinite, ucm-fade-out 240ms ease forwards"
+											: "aiBorderFlow 2.5s linear infinite, ucm-fade-in 180ms ease",
+								}}
+							/>
+						)}
+						{/* Keyed by the active AI language so switching tabs replays
+						    a quick fade — the text reads as flipping languages. */}
+						<Box
+							key={descriptionContentKey}
+							className="ucm-fade-fast"
+							style={{ position: "relative" }}
+						>
 						<Textarea
 							placeholder={t("createListing.descriptionPlaceholder")}
 							maxLength={descriptionValueOverride !== undefined ? undefined : 500}
@@ -1407,7 +1536,7 @@ export function ListingFormFields({
 								input: {
 									minHeight: 80,
 									paddingRight: 32,
-									...(descriptionLoading
+									...(frameActive
 										? { borderRadius: 8, borderColor: "transparent" }
 										: {}),
 								},
@@ -1433,11 +1562,11 @@ export function ListingFormFields({
 								<IconX size={14} />
 							</ActionIcon>
 						)}
-						{descriptionLoading && (
+						{frameActive && (
 							<Box
 								style={{
 									position: "absolute",
-									inset: 2,
+									inset: 0,
 									borderRadius: 8,
 									backgroundColor: "rgba(255,255,255,0.96)",
 									display: "flex",
@@ -1445,6 +1574,10 @@ export function ListingFormFields({
 									alignItems: "center",
 									justifyContent: "center",
 									gap: 4,
+									animation:
+										aiOverlay === "closing"
+											? "ucm-fade-out 240ms ease forwards"
+											: "ucm-fade-in 180ms ease",
 								}}
 							>
 								<IconSparkles
@@ -1460,6 +1593,7 @@ export function ListingFormFields({
 								</Text>
 							</Box>
 						)}
+						</Box>
 					</Box>
 					{descriptionValueOverride === undefined && !descriptionLoading && (
 						<Box
@@ -1652,6 +1786,6 @@ export function ListingFormFields({
 				)}
 			</FormSection>
 			</div>
-		</>
+		</RevealGate>
 	);
 }

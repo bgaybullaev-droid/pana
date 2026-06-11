@@ -574,6 +574,7 @@ function Stage1() {
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}
 							afterDescriptionContent={aiSlots.afterDescriptionContent}
 							descriptionLoading={aiSlots.descriptionLoading}
+							descriptionContentKey={aiSlots.descriptionContentKey}
 						/>
 
 					</Stack>

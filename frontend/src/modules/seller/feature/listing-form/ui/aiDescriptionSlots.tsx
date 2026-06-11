@@ -36,6 +36,7 @@ import {
 	IconSparkles,
 } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
+import { Reveal } from "@shared/ui/Reveal";
 
 export type AiLang = "ru" | "uz" | "uz_cyrl";
 
@@ -72,6 +73,9 @@ export interface AiDescriptionSlots {
 	afterDescriptionContent: ReactNode;
 	/** While true the description textarea renders a progress overlay. */
 	descriptionLoading: boolean;
+	/** Active AI language — keys the description content so switching
+	 *  tabs replays a quick fade on the textarea. */
+	descriptionContentKey?: string;
 }
 
 /**
@@ -127,8 +131,11 @@ function WishesDisclosure({
 export function buildAiDescriptionSlots(
 	p: AiDescriptionSlotsParams,
 ): AiDescriptionSlots {
+	// Reveal: the banner + tabs unfold above the field when the first AI
+	// text lands, instead of popping in and shoving the textarea down.
 	const beforeDescriptionContent = p.hasAi ? (
-		<Box style={{ animation: "aiFadeIn 200ms ease" }}>
+		<Reveal>
+		<Box>
 			<Group gap={6} mb={8} wrap="nowrap">
 				<IconSparkles
 					size={14}
@@ -154,17 +161,11 @@ export function buildAiDescriptionSlots(
 				data={AI_LANG_TABS.map(({ value, label }) => ({ value, label }))}
 			/>
 		</Box>
+		</Reveal>
 	) : undefined;
 
 	const afterDescriptionContent = (
 		<Box mt={8}>
-			<style>{`
-				@keyframes aiFadeIn {
-					from { opacity: 0; transform: translateY(2px); }
-					to   { opacity: 1; transform: none; }
-				}
-			`}</style>
-
 			{/* Wishes — same slot in every state, so nothing jumps */}
 			<WishesDisclosure
 				t={p.t}
@@ -174,6 +175,7 @@ export function buildAiDescriptionSlots(
 
 			{/* Timed out (initial generation only) */}
 			{!p.hasAi && p.pollTimedOut ? (
+				<Reveal>
 				<Alert
 					icon={<IconInfoCircle size={16} />}
 					color="orange"
@@ -207,13 +209,15 @@ export function buildAiDescriptionSlots(
 						</Button>
 					</Group>
 				</Alert>
+				</Reveal>
 			) : (
 				<>
 					{/* One full-width action in a fixed slot: primary CTA before
-					    the first generation, light regenerate after it. */}
+					    the first generation, light regenerate after it. The key
+					    remounts the box so the swap plays a quick crossfade. */}
 					<Box
 						key={p.hasAi ? "regenerate" : "generate"}
-						style={{ animation: "aiFadeIn 200ms ease" }}
+						className="ucm-fade-fast"
 					>
 						{!p.hasAi ? (
 							<Button
@@ -262,5 +266,6 @@ export function buildAiDescriptionSlots(
 		onDescriptionChangeOverride: p.hasAi ? p.onActiveTextChange : undefined,
 		afterDescriptionContent,
 		descriptionLoading: !p.hasAi && p.isPolling,
+		descriptionContentKey: p.activeTab,
 	};
 }

@@ -39,7 +39,7 @@ export function FormSection({ title, required, children, bg, status, statusLabel
           {required && <span style={{ color: 'var(--mantine-color-red-filled)' }}> *</span>}
         </Text>
         {status === 'complete' && (
-          <Group gap={4} wrap="nowrap">
+          <Group gap={4} wrap="nowrap" className="ucm-fade-fast">
             <IconCircleCheck size={14} color="#40c057" stroke={2.5} />
             <Text size="xs" fw={600} c="green.7">
               {statusLabel}
@@ -47,7 +47,7 @@ export function FormSection({ title, required, children, bg, status, statusLabel
           </Group>
         )}
         {status === 'error' && (
-          <Group gap={4} wrap="nowrap">
+          <Group gap={4} wrap="nowrap" className="ucm-fade-fast">
             <IconAlertCircle size={14} color="#fa5252" stroke={2.5} />
             <Text size="xs" fw={600} c="red.7">
               {statusLabel}
