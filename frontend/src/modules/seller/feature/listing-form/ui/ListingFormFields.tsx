@@ -5,6 +5,7 @@ import {
 	Textarea,
 	NumberInput,
 	Box,
+	Group,
 	Text,
 	Switch,
 	TextInput,
@@ -38,6 +39,10 @@ import type { SectionKey, SectionState } from "../lib/requiredness";
 // P5 sub-gate (blueprint §2.2): metro_station is only meaningful inside
 // Tashkent. Mirrors backend `_clear_incompatible_fields` rule P5.
 const TASHKENT_REGION = "toshkent_shahri";
+
+// Sentinel value for the «+ Добавить контакт» action row appended to the
+// verified-phones dropdown — picking it navigates instead of selecting.
+const ADD_CONTACT_OPTION = "__add_contact__";
 
 const MapPicker = lazy(() =>
 	import("@shared/ui/MapPicker").then((m) => ({ default: m.MapPicker })),
@@ -120,7 +125,9 @@ export function ListingFormFields({
 			landShape: isVisible("land_shape", pt, dt),
 			balcony: isVisible("balcony", pt, dt),
 			listingSubtype: isVisible("listing_subtype", pt, dt),
-			floorPlanUrl: isVisible("floor_plan_url", pt, dt),
+			// Floor plan is parked until a later product stage — to bring it
+			// back replace `false` with isVisible("floor_plan_url", pt, dt).
+			floorPlanUrl: false as boolean,
 			// S2 — rent group (matrix-gated to rent × non-land). Required by
 			// both frontend validation and backend publish.
 			rentPeriod: isVisible("rent_period", pt, dt),
@@ -138,6 +145,13 @@ export function ListingFormFields({
 			),
 		[form.values.region, form.values.district],
 	);
+
+	// Location cascade: microdistrict / landmark / housing complex only
+	// appear once a district is picked (or right after the region when the
+	// region has no district list to offer).
+	const districtChosen =
+		!!form.values.district ||
+		(!!form.values.region && districts.length === 0);
 
 	// Block C V2.0 (C4) — verified-phones picker. Lists every phone the
 	// seller has confirmed on /seller/phones; selecting one writes it back
@@ -185,6 +199,8 @@ export function ListingFormFields({
 		{ value: "4", label: "4" },
 		{ value: "5", label: "5" },
 		{ value: "6", label: "6" },
+		{ value: "7", label: "7" },
+		{ value: "8", label: "8" },
 	];
 
 	const areaOpts = [
@@ -249,6 +265,14 @@ export function ListingFormFields({
 		{ value: "12", label: "12" },
 		{ value: "16", label: "16" },
 		{ value: "20", label: "20" },
+	];
+
+	const ceilingHeightOpts = [
+		{ value: "2.5", label: "2.5 м" },
+		{ value: "2.7", label: "2.7 м" },
+		{ value: "3", label: "3 м" },
+		{ value: "3.5", label: "3.5 м" },
+		{ value: "4", label: "4 м" },
 	];
 
 	// House-specific options
@@ -586,6 +610,51 @@ export function ListingFormFields({
 					}}
 					error={form.errors.type as string}
 				/>
+				{/* Rent group — lives right under the deal type so it appears the
+				    moment «Аренда» is picked (was in the Price section before). */}
+				{show.rentPeriod && (
+					<ChipSelect
+						label={t("createListing.rentPeriodLabel")}
+						required
+						options={[
+							{
+								value: "long_term",
+								label: t("createListing.rentPeriodLongTerm"),
+							},
+							{ value: "daily", label: t("createListing.rentPeriodDaily") },
+						]}
+						value={form.values.rent_period}
+						onChange={(val) => {
+							const next = val as string | undefined;
+							set("rent_period", next);
+							// P4 sub-gate: min_rent_months only applies to long_term —
+							// drop a stale value when switching away.
+							if (next !== "long_term" && form.values.min_rent_months) {
+								set("min_rent_months", undefined);
+							}
+						}}
+						error={form.errors.rent_period as string}
+					/>
+				)}
+				{show.minRentMonths && form.values.rent_period === "long_term" && (
+					<ChipSelect
+						label={t("createListing.minRentMonthsLabel")}
+						required
+						options={[
+							{ value: "1", label: "1" },
+							{ value: "3", label: "3" },
+							{ value: "6", label: "6" },
+							{ value: "12", label: "12" },
+						]}
+						value={form.values.min_rent_months}
+						onChange={(val) =>
+							set("min_rent_months", val as number | undefined)
+						}
+						customInputMode="numeric"
+						customPlaceholder="2, 9, 24..."
+						error={form.errors.min_rent_months as string}
+					/>
+				)}
 				{/* S3 — urgent_flag (always-visible, defaults to false). */}
 				<Switch
 					label={t("createListing.urgentFlag")}
@@ -700,17 +769,15 @@ export function ListingFormFields({
 				)}
 				{/* Ceiling height — optional, all property types except land */}
 				{show.ceilingHeight && (
-					<NumberInput
-						label={optionalLabel(t("createListing.ceilingHeightLabel"))}
-						min={0.1}
-						max={30}
-						step={0.1}
-						decimalScale={1}
-						hideControls
-						value={form.values.ceiling_height ?? ""}
+					<ChipSelect
+						label={t("createListing.ceilingHeightLabel")}
+						options={ceilingHeightOpts}
+						value={form.values.ceiling_height}
 						onChange={(val) =>
-							set("ceiling_height", typeof val === "number" ? val : undefined)
+							set("ceiling_height", val as number | undefined)
 						}
+						customInputMode="decimal"
+						customPlaceholder="2.8, 4.5..."
 					/>
 				)}
 			</FormSection>
@@ -1121,13 +1188,15 @@ export function ListingFormFields({
 						error={form.errors.district as string}
 					/>
 				)}
-				<MicrodistrictAutocomplete
-					label={optionalLabel(t("createListing.microdistrictLabel"))}
-					placeholder={t("createListing.microdistrictPlaceholder")}
-					district={form.values.district || undefined}
-					value={form.values.microdistrict || undefined}
-					onChange={(val) => set("microdistrict", val)}
-				/>
+				{districtChosen && (
+					<MicrodistrictAutocomplete
+						label={optionalLabel(t("createListing.microdistrictLabel"))}
+						placeholder={t("createListing.microdistrictPlaceholder")}
+						district={form.values.district || undefined}
+						value={form.values.microdistrict || undefined}
+						onChange={(val) => set("microdistrict", val)}
+					/>
+				)}
 				{/* S3 — metro_station: shown only after the user picks a district
 				    that has stations (prevents the full 49-station list appearing
 				    immediately when Tashkent is selected). */}
@@ -1146,16 +1215,18 @@ export function ListingFormFields({
 				{/* S3 — landmark / PR-G — catalog hints (район→ориентир cascade).
 				    Free-text is always accepted; landmark_id wiring is a
 				    follow-up, so the form still submits the free-text name. */}
-				<LandmarkAutocomplete
-					label={optionalLabel(t("createListing.landmarkLabel"))}
-					placeholder={t("createListing.landmarkPlaceholder")}
-					region={form.values.region || undefined}
-					district={form.values.district || undefined}
-					value={{ landmark_id: undefined, landmark: form.values.landmark }}
-					onChange={({ landmark }) => set("landmark", landmark)}
-				/>
+				{districtChosen && (
+					<LandmarkAutocomplete
+						label={optionalLabel(t("createListing.landmarkLabel"))}
+						placeholder={t("createListing.landmarkPlaceholder")}
+						region={form.values.region || undefined}
+						district={form.values.district || undefined}
+						value={{ landmark_id: undefined, landmark: form.values.landmark }}
+						onChange={({ landmark }) => set("landmark", landmark)}
+					/>
+				)}
 				{/* S3 — jk_name / S7 — jk_id (matrix-gated to apartment + house) */}
-				{show.jkName && (
+				{show.jkName && districtChosen && (
 					<HousingComplexAutocomplete
 						label={optionalLabel(t("createListing.jkNameLabel"))}
 						placeholder={t("createListing.jkNamePlaceholder")}
@@ -1287,41 +1358,44 @@ export function ListingFormFields({
 				bg={sectionBg}
 				{...sectionStatusProps("price")}
 			>
-				<Box>
+				{/* Price input + negotiable toggle in one row: the field comes
+				    first, the switch sits to its right. When «Договорная» is on
+				    the input is disabled (buildListingData sends price: 0). */}
+				<Group wrap="nowrap" gap="sm" align="flex-end">
+					<NumberInput
+						label={t("createListing.priceLabel")}
+						required
+						min={0}
+						allowNegative={false}
+						allowDecimal={false}
+						thousandSeparator=" "
+						inputMode="numeric"
+						hideControls
+						disabled={form.values.is_negotiable}
+						style={{ flex: 1 }}
+						error={form.errors.price}
+						rightSection={
+							form.values.price != null && !form.values.is_negotiable ? (
+								<ActionIcon
+									variant="transparent"
+									color="gray"
+									size="sm"
+									onClick={() => set("price", undefined)}
+								>
+									<IconX size={14} />
+								</ActionIcon>
+							) : null
+						}
+						{...form.getInputProps("price")}
+					/>
 					<Switch
 						label={t("createListing.negotiable")}
 						checked={form.values.is_negotiable}
 						onChange={(e) => set("is_negotiable", e.currentTarget.checked)}
-						mb={10}
+						mb={8}
 						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
 					/>
-					{!form.values.is_negotiable && (
-						<NumberInput
-							label={t("createListing.priceLabel")}
-							required
-							min={0}
-							allowNegative={false}
-							allowDecimal={false}
-							thousandSeparator=" "
-							inputMode="decimal"
-							hideControls
-							error={form.errors.price}
-							rightSection={
-								form.values.price != null ? (
-									<ActionIcon
-										variant="transparent"
-										color="gray"
-										size="sm"
-										onClick={() => set("price", undefined)}
-									>
-										<IconX size={14} />
-									</ActionIcon>
-								) : null
-							}
-							{...form.getInputProps("price")}
-						/>
-					)}
-				</Box>
+				</Group>
 				<ChipSelect
 					label={t("createListing.currencyLabel")}
 					showOptionalHint={false}
@@ -1329,49 +1403,6 @@ export function ListingFormFields({
 					value={form.values.currency}
 					onChange={(val) => set("currency", (val as "USD" | "UZS") || "USD")}
 				/>
-				{show.rentPeriod && (
-					<ChipSelect
-						label={t("createListing.rentPeriodLabel")}
-						required
-						options={[
-							{
-								value: "long_term",
-								label: t("createListing.rentPeriodLongTerm"),
-							},
-							{ value: "daily", label: t("createListing.rentPeriodDaily") },
-						]}
-						value={form.values.rent_period}
-						onChange={(val) => {
-							const next = val as string | undefined;
-							set("rent_period", next);
-							// P4 sub-gate: min_rent_months only applies to long_term —
-							// drop a stale value when switching away.
-							if (next !== "long_term" && form.values.min_rent_months) {
-								set("min_rent_months", undefined);
-							}
-						}}
-						error={form.errors.rent_period as string}
-					/>
-				)}
-				{show.minRentMonths && form.values.rent_period === "long_term" && (
-					<ChipSelect
-						label={t("createListing.minRentMonthsLabel")}
-						required
-						options={[
-							{ value: "1", label: "1" },
-							{ value: "3", label: "3" },
-							{ value: "6", label: "6" },
-							{ value: "12", label: "12" },
-						]}
-						value={form.values.min_rent_months}
-						onChange={(val) =>
-							set("min_rent_months", val as number | undefined)
-						}
-						customInputMode="numeric"
-						customPlaceholder="2, 9, 24..."
-						error={form.errors.min_rent_months as string}
-					/>
-				)}
 			</FormSection>
 			</div>
 
@@ -1393,39 +1424,67 @@ export function ListingFormFields({
 						description={t("phones.contactPhoneHint", {
 							defaultValue: "Можно выбрать любой из ваших подтверждённых номеров",
 						})}
-						data={verifiedPhones.map((p) => ({
-							value: p.phone,
-							label: p.is_primary
-								? `${p.phone} (${t("phones.primaryBadge", { defaultValue: "Основной" })})`
-								: p.phone,
-						}))}
+						data={[
+							...verifiedPhones.map((p) => ({
+								value: p.phone,
+								label: p.is_primary
+									? `${p.phone} (${t("phones.primaryBadge", { defaultValue: "Основной" })})`
+									: p.phone,
+							})),
+							// Action row pinned to the bottom of the dropdown.
+							{
+								value: ADD_CONTACT_OPTION,
+								label: t("listingForm.addContactLink", {
+									defaultValue: "+ Добавить контакт",
+								}),
+							},
+						]}
 						value={
 							verifiedPhones.some((p) => p.phone === form.values.phone)
 								? form.values.phone
 								: null
 						}
-						onChange={(val) => set("phone", val || "")}
+						onChange={(val) => {
+							if (val === ADD_CONTACT_OPTION) {
+								navigate("/edit-profile");
+								return;
+							}
+							set("phone", val || "");
+						}}
+						renderOption={({ option }) =>
+							option.value === ADD_CONTACT_OPTION ? (
+								<Text size="sm" c="blue.6" fw={600}>
+									{option.label}
+								</Text>
+							) : (
+								<Text size="sm">{option.label}</Text>
+							)
+						}
 						clearable={false}
 					/>
 				) : (
-					<PhoneInput
-						label={t("createListing.phoneLabel")}
-						placeholder="+998 XX XXX XX XX"
-						description={t("createListing.phoneDescription")}
-						value={form.values.phone}
-						onChange={(val) => set("phone", val)}
-						error={form.errors.phone as string}
-						onClear={() => set("phone", "")}
-					/>
+					<>
+						<PhoneInput
+							label={t("createListing.phoneLabel")}
+							placeholder="+998 XX XXX XX XX"
+							description={t("createListing.phoneDescription")}
+							value={form.values.phone}
+							onChange={(val) => set("phone", val)}
+							error={form.errors.phone as string}
+							onClear={() => set("phone", "")}
+						/>
+						<Anchor
+							component="button"
+							size="sm"
+							onClick={() => navigate("/edit-profile")}
+							style={{ display: "block", marginTop: 4 }}
+						>
+							{t("listingForm.addContactLink", {
+								defaultValue: "+ Добавить контакт",
+							})}
+						</Anchor>
+					</>
 				)}
-				<Anchor
-					component="button"
-					size="sm"
-					onClick={() => navigate("/edit-profile")}
-					style={{ display: "block", marginTop: 4 }}
-				>
-					{t("listingForm.addContactLink", { defaultValue: "+ Добавить контакт" })}
-				</Anchor>
 			</FormSection>
 			</div>
 		</>

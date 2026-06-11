@@ -188,6 +188,10 @@ export function fieldSection(
 ): SectionKey {
 	switch (field) {
 		case "type":
+		case "rent_period":
+		case "min_rent_months":
+			// The rent group renders inside the Type section (right under
+			// the deal-type chips), so its requiredness counts there too.
 			return "type";
 		case "rooms":
 		case "area":
@@ -208,8 +212,6 @@ export function fieldSection(
 		case "latitude":
 			return "location";
 		case "price":
-		case "rent_period":
-		case "min_rent_months":
 			return "price";
 	}
 }

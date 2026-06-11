@@ -20,12 +20,10 @@ interface ChipSelectProps {
 function ChipButton({
 	label,
 	active,
-	dashed,
 	onClick,
 }: {
 	label: string;
 	active: boolean;
-	dashed?: boolean;
 	onClick: () => void;
 }) {
 	return (
@@ -39,7 +37,6 @@ function ChipButton({
 				borderRadius: 18,
 				backgroundColor: active ? "#228be6" : "#f1f3f5",
 				color: active ? "#fff" : "#495057",
-				border: !active && dashed ? "1px dashed #ced4da" : "none",
 				display: "inline-flex",
 				alignItems: "center",
 				cursor: "pointer",
@@ -67,44 +64,28 @@ export function ChipSelect({
 	const stringVal = value != null ? String(value) : "";
 	const isPredefined = options.some((o) => o.value === stringVal);
 
-	// "Other" mode: explicitly toggled by the user, OR auto-detected when
-	// the current value doesn't match any predefined option.
-	const [otherOpen, setOtherOpen] = useState(false);
+	// Free-form input below the chips: always visible (no "Other" toggle),
+	// so the user can tap straight into it and the keyboard opens at once.
 	const [customText, setCustomText] = useState("");
 
-	// The custom input is visible when:
-	// 1. User explicitly clicked "Other", OR
-	// 2. The current value exists but isn't in the predefined list (editing existing data)
+	// A value that came from outside the predefined list (e.g. edit-mode
+	// pre-fill) is shown in the custom input.
 	const isCustomValue = stringVal !== "" && !isPredefined;
-	const showCustomInput = otherOpen || isCustomValue;
 
 	const handleOptionClick = (optValue: string) => {
 		// Toggle: click same option → deselect
 		if (stringVal === optValue) {
+			setCustomText("");
 			onChange(undefined);
 			return;
 		}
-		// Select predefined → close "Other" mode
-		setOtherOpen(false);
+		// Select predefined → drop any custom text
 		setCustomText("");
 		if (customInputMode === "numeric" || customInputMode === "decimal") {
 			const num = Number(optValue);
 			onChange(isNaN(num) ? optValue : num);
 		} else {
 			onChange(optValue);
-		}
-	};
-
-	const handleOtherClick = () => {
-		if (otherOpen) {
-			// Close "Other": clear custom value
-			setOtherOpen(false);
-			setCustomText("");
-			onChange(undefined);
-		} else {
-			// Open "Other": clear predefined selection
-			setOtherOpen(true);
-			onChange(undefined);
 		}
 	};
 
@@ -163,42 +144,23 @@ export function ChipSelect({
 						{opt.breakAfter && <Box style={{ flexBasis: "100%", height: 0 }} />}
 					</div>
 				))}
-				{customInputMode && (
-					<ChipButton
-						label={t("createListing.other", { ns: "seller" })}
-						active={showCustomInput}
-						dashed={!showCustomInput}
-						onClick={handleOtherClick}
-					/>
-				)}
 			</Group>
 
-			{/* Custom input — visible only when "Other" is active */}
+			{/* Free-form value — always available right below the chips */}
 			{customInputMode && (
-				<Box
-					style={{
-						maxHeight: showCustomInput ? 60 : 0,
-						opacity: showCustomInput ? 1 : 0,
-						overflow: "hidden",
-						transition: "max-height 0.2s ease, opacity 0.2s ease",
+				<TextInput
+					mt={10}
+					placeholder={
+						customPlaceholder || t("createListing.enterValue", { ns: "seller" })
+					}
+					inputMode={customInputMode}
+					value={isCustomValue ? stringVal : customText}
+					onChange={(e) => handleCustomChange(e.currentTarget.value)}
+					radius="md"
+					styles={{
+						input: { height: 40, fontSize: 14 },
 					}}
-				>
-					<TextInput
-						mt={10}
-						placeholder={
-							customPlaceholder ||
-							t("createListing.enterValue", { ns: "seller" })
-						}
-						inputMode={customInputMode}
-						value={isCustomValue ? stringVal : customText}
-						onChange={(e) => handleCustomChange(e.currentTarget.value)}
-						autoFocus={showCustomInput}
-						radius="md"
-						styles={{
-							input: { height: 40, fontSize: 14 },
-						}}
-					/>
-				</Box>
+				/>
 			)}
 
 			{error && (
