@@ -282,23 +282,26 @@ describe("CreateListingPage", () => {
 		expect(screen.getByTestId("field-phone")).toBeTruthy();
 	});
 
-	it("should render submit/publish button", async () => {
+	it("should render submit/publish button with the remaining counter", async () => {
 		const { CreateListing } = await import("../ui/page/Page");
 		renderPage(<CreateListing.Page />);
-		expect(screen.getByText("createListing.nextButton")).toBeTruthy();
+		// Empty form → smart CTA shows «Ещё N полей» instead of «Далее».
+		expect(screen.getByText("createListing.ctaRemaining")).toBeTruthy();
 	});
 
-	it("should render the required-progress line", async () => {
+	it("counter lives inside the CTA, old progress line is gone", async () => {
 		const { CreateListing } = await import("../ui/page/Page");
 		renderPage(<CreateListing.Page />);
-		expect(screen.getByText("createListing.requiredProgress")).toBeTruthy();
+		expect(screen.getByText("createListing.ctaRemaining")).toBeTruthy();
+		expect(screen.queryByText("createListing.requiredProgress")).toBeNull();
+		expect(screen.queryByText("createListing.unfilledFieldsSummary")).toBeNull();
 	});
 
 	it("next button stays enabled while the form is incomplete", async () => {
 		const { CreateListing } = await import("../ui/page/Page");
 		renderPage(<CreateListing.Page />);
 		const button = screen
-			.getByText("createListing.nextButton")
+			.getByText("createListing.ctaRemaining")
 			.closest("button");
 		expect(button).toBeTruthy();
 		expect(button!.disabled).toBe(false);

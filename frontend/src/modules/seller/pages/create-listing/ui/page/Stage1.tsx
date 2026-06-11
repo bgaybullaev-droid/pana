@@ -25,7 +25,6 @@ import {
 	Text,
 	Badge,
 	ActionIcon,
-	UnstyledButton,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -50,6 +49,7 @@ import {
 } from "@modules/seller/feature/listing-form/ui/listingDraftStorage";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
 import { useListingCompleteness } from "@modules/seller/feature/listing-form/ui/useListingCompleteness";
+import { RequiredProgressRing } from "@modules/seller/feature/listing-form/ui/RequiredProgressRing";
 import { scrollToSection } from "@modules/seller/feature/listing-form/lib/scrollToSection";
 import {
 	buildAiDescriptionSlots,
@@ -331,10 +331,6 @@ function Stage1() {
 		}
 	};
 
-	const errorCount =
-		Object.keys(form.errors).length +
-		(images.length === 0 && imageError ? 1 : 0);
-
 	const generateButtonStyle = {
 		root: {
 			backgroundColor: readyToProceed
@@ -394,6 +390,10 @@ function Stage1() {
 					0%   { transform: scale(1); }
 					50%  { transform: scale(1.04); }
 					100% { transform: scale(1); }
+				}
+				@keyframes ctaSwap {
+					from { opacity: 0; transform: translateY(2px); }
+					to   { opacity: 1; transform: none; }
 				}
 			`}</style>
 			<Container px="md" pt="md" pb={80}>
@@ -598,33 +598,6 @@ function Stage1() {
 							margin: "0 auto",
 						}}
 					>
-						{errorCount > 0 && (
-							<UnstyledButton
-								onClick={() => {
-									if (firstIncompleteSection) {
-										scrollToSection(firstIncompleteSection);
-									}
-								}}
-								style={{
-									display: "block",
-									width: "100%",
-									backgroundColor: "#fee2e2",
-									border: "1px solid #fca5a5",
-									padding: "10px 16px",
-									borderRadius: 20,
-									marginBottom: 12,
-									pointerEvents: "auto",
-									boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-									cursor: "pointer",
-								}}
-							>
-								<Text size="xs" c="red.8" fw={500} ta="center">
-									{t("createListing.unfilledFieldsSummary", {
-										count: errorCount,
-									})}
-								</Text>
-							</UnstyledButton>
-						)}
 						<Box
 							style={{
 								display: "flex",
@@ -684,24 +657,40 @@ function Stage1() {
 								}}
 								styles={generateButtonStyle}
 							>
-								{isUploading
-									? t("createListing.uploadingPhotos")
-									: t("createListing.nextButton", "Далее →")}
+								{/* Smart CTA: while required fields remain, the button
+								    itself shows a mini progress ring + «Ещё N полей»
+								    (tap still validates + scrolls to the first gap);
+								    once complete it morphs into «Далее →». */}
+								{isUploading ? (
+									t("createListing.uploadingPhotos")
+								) : readyToProceed ? (
+									<span
+										key="cta-ready"
+										style={{ animation: "ctaSwap 200ms ease" }}
+									>
+										{t("createListing.nextButton", "Далее →")}
+									</span>
+								) : (
+									<span
+										key="cta-remaining"
+										style={{
+											display: "inline-flex",
+											alignItems: "center",
+											gap: 8,
+											animation: "ctaSwap 200ms ease",
+										}}
+									>
+										<RequiredProgressRing
+											filled={progress.filled}
+											total={progress.total}
+										/>
+										{t("createListing.ctaRemaining", {
+											count: progress.total - progress.filled,
+										})}
+									</span>
+								)}
 							</Button>
 						</Box>
-						<Text
-							size="11px"
-							c={readyToProceed ? "green.7" : "dimmed"}
-							fw={readyToProceed ? 600 : 400}
-							ta="center"
-							mt={6}
-							style={{ pointerEvents: "auto" }}
-						>
-							{t("createListing.requiredProgress", {
-								filled: progress.filled,
-								total: progress.total,
-							})}
-						</Text>
 					</Box>
 				</Box>
 			</Container>

@@ -235,8 +235,11 @@ describe("EditListingPage", () => {
 		(model.$isLoadingEdit as any)["@@unitShape"] = () => false;
 
 		const { EditListing } = await import("../ui/page/Page");
-		renderPage(<EditListing.Page />);
-		expect(screen.getByText("editListing.save")).toBeTruthy();
+		const { container } = renderPage(<EditListing.Page />);
+		// The smart CTA renders «Ещё N полей» while the (empty) form is
+		// incomplete and «Сохранить» once complete — assert the submit
+		// button itself, independent of the label state.
+		expect(container.querySelector('button[type="submit"]')).toBeTruthy();
 	});
 
 	it("should have back navigation button", async () => {
@@ -251,14 +254,17 @@ describe("EditListingPage", () => {
 		expect(actionIcons.length).toBeGreaterThan(0);
 	});
 
-	it("should render the required-progress line", async () => {
+	it("CTA shows the remaining counter while the form is incomplete", async () => {
 		const model = await import("@shared/state/listing/model");
 		(model.$isLoadingEdit as any).getState = () => false;
 		(model.$isLoadingEdit as any)["@@unitShape"] = () => false;
 
 		const { EditListing } = await import("../ui/page/Page");
 		renderPage(<EditListing.Page />);
-		expect(screen.getByText("createListing.requiredProgress")).toBeTruthy();
+		// Empty form → smart CTA shows «Ещё N полей»; the old standalone
+		// progress line under the buttons is gone.
+		expect(screen.getByText("createListing.ctaRemaining")).toBeTruthy();
+		expect(screen.queryByText("createListing.requiredProgress")).toBeNull();
 	});
 
 	it("should display image count badge", async () => {

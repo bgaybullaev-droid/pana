@@ -142,6 +142,8 @@
 	"createListing.sectionRemaining_one": "{{count}} та қолди",
 	"createListing.sectionRemaining_other": "{{count}} та қолди",
 	"createListing.requiredProgress": "Мажбурий майдонлар: {{filled}} / {{total}}",
+	"createListing.ctaRemaining_one": "Яна {{count}} та майдон",
+	"createListing.ctaRemaining_other": "Яна {{count}} та майдон",
 	"createListing.parameters": "Параметрлар",
 	"createListing.studio": "Студия",
 	"createListing.rooms": "Хоналар",

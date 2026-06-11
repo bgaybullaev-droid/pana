@@ -57,6 +57,7 @@ import {
 import { useListingForm } from "@modules/seller/feature/listing-form/ui/useListingForm";
 import { ListingFormFields } from "@modules/seller/feature/listing-form/ui/ListingFormFields";
 import { useListingCompleteness } from "@modules/seller/feature/listing-form/ui/useListingCompleteness";
+import { RequiredProgressRing } from "@modules/seller/feature/listing-form/ui/RequiredProgressRing";
 import { scrollToSection } from "@modules/seller/feature/listing-form/lib/scrollToSection";
 import {
 	buildAiDescriptionSlots,
@@ -490,10 +491,6 @@ function Page() {
 		);
 	}
 
-	const errorCount =
-		Object.keys(form.errors).length +
-		(totalImageCount === 0 && imageError ? 1 : 0);
-
 	// Photos section status — same labels ListingFormFields uses internally.
 	const photosState = sectionStates.photos;
 	const photosStatusProps =
@@ -880,33 +877,12 @@ function Page() {
 							margin: "0 auto",
 						}}
 					>
-						{errorCount > 0 && (
-							<UnstyledButton
-								onClick={() => {
-									if (firstIncompleteSection) {
-										scrollToSection(firstIncompleteSection);
-									}
-								}}
-								style={{
-									display: "block",
-									width: "100%",
-									backgroundColor: "#fee2e2",
-									border: "1px solid #fca5a5",
-									padding: "10px 16px",
-									borderRadius: 20,
-									marginBottom: 12,
-									pointerEvents: "auto",
-									boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-									cursor: "pointer",
-								}}
-							>
-								<Text size="xs" c="red.8" fw={500} ta="center">
-									{t("createListing.unfilledFieldsSummary", {
-										count: errorCount,
-									})}
-								</Text>
-							</UnstyledButton>
-						)}
+						<style>{`
+							@keyframes ctaSwap {
+								from { opacity: 0; transform: translateY(2px); }
+								to   { opacity: 1; transform: none; }
+							}
+						`}</style>
 						<Box
 							style={{
 								display: "flex",
@@ -956,26 +932,38 @@ function Page() {
 									},
 								}}
 							>
-								{isUploading
-									? t("createListing.uploadingPhotos")
-									: t("editListing.save")}
+								{/* Smart CTA: shows a mini progress ring + «Ещё N полей»
+								    while required fields remain, «Сохранить» when done. */}
+								{isUploading ? (
+									t("createListing.uploadingPhotos")
+								) : progress.filled === progress.total ? (
+									<span
+										key="cta-ready"
+										style={{ animation: "ctaSwap 200ms ease" }}
+									>
+										{t("editListing.save")}
+									</span>
+								) : (
+									<span
+										key="cta-remaining"
+										style={{
+											display: "inline-flex",
+											alignItems: "center",
+											gap: 8,
+											animation: "ctaSwap 200ms ease",
+										}}
+									>
+										<RequiredProgressRing
+											filled={progress.filled}
+											total={progress.total}
+										/>
+										{t("createListing.ctaRemaining", {
+											count: progress.total - progress.filled,
+										})}
+									</span>
+								)}
 							</Button>
 						</Box>
-						<Text
-							size="11px"
-							c={
-								progress.filled === progress.total ? "green.7" : "dimmed"
-							}
-							fw={progress.filled === progress.total ? 600 : 400}
-							ta="center"
-							mt={6}
-							style={{ pointerEvents: "auto" }}
-						>
-							{t("createListing.requiredProgress", {
-								filled: progress.filled,
-								total: progress.total,
-							})}
-						</Text>
 					</Box>
 				</Box>
 			</Container>

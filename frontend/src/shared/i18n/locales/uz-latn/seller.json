@@ -142,6 +142,8 @@
 	"createListing.sectionRemaining_one": "{{count}} ta qoldi",
 	"createListing.sectionRemaining_other": "{{count}} ta qoldi",
 	"createListing.requiredProgress": "Majburiy maydonlar: {{filled}} / {{total}}",
+	"createListing.ctaRemaining_one": "Yana {{count}} ta maydon",
+	"createListing.ctaRemaining_other": "Yana {{count}} ta maydon",
 	"createListing.parameters": "Parametrlar",
 	"createListing.studio": "Studiya",
 	"createListing.rooms": "Xonalar",
