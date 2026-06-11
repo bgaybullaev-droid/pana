@@ -423,7 +423,7 @@ export function Layout() {
 					style={{
 						flex: 1,
 						overflow: "auto",
-						paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))",
+						paddingBottom: "calc(60px + var(--safe-area-inset-bottom))",
 					}}
 					className="hide-scrollbar"
 				>
@@ -463,8 +463,18 @@ export function Layout() {
 					}}
 					zIndex={10001}
 				>
-					{/* Scrollable area */}
-					<Box style={{ flex: 1, overflowY: "auto", maxWidth: 980, margin: "0 auto", width: "100%" }} px="md" pt="md">
+					{/* Scrollable area — top padding clears the fullscreen system zone */}
+					<Box
+						style={{
+							flex: 1,
+							overflowY: "auto",
+							maxWidth: 980,
+							margin: "0 auto",
+							width: "100%",
+							paddingTop: "calc(var(--app-top-inset) + 16px)",
+						}}
+						px="md"
+					>
 						{/* History — filtered by current query, in a card */}
 						{(() => {
 							const filtered = searchQuery
@@ -639,7 +649,7 @@ export function Layout() {
 						px="md"
 						py="sm"
 						style={{
-							paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+							paddingBottom: "calc(var(--safe-area-inset-bottom) + 8px)",
 							borderTop: "1px solid #f1f3f5",
 							flexShrink: 0,
 							maxWidth: 980,

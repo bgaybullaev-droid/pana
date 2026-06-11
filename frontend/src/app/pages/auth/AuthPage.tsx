@@ -61,6 +61,7 @@ export function AuthPage() {
 					justifyContent: "space-between",
 					position: "relative",
 					zIndex: 10,
+					paddingTop: "calc(var(--app-top-inset) + 12px)",
 				}}
 			>
 				<ActionIcon

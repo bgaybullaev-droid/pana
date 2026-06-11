@@ -30,6 +30,7 @@ export function PageBar({ title, onBack, actions, badge, leftSlot }: PageBarProp
 				marginLeft: "calc(-50vw + 50%)",
 				marginRight: "calc(-50vw + 50%)",
 				width: "100vw",
+				paddingTop: "var(--app-top-inset)",
 			}}
 		>
 			<Box

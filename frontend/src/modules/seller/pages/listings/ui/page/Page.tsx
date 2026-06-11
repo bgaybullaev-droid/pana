@@ -865,7 +865,7 @@ function Page() {
 					right: 0,
 					pointerEvents: "none",
 					zIndex: 100,
-					paddingBottom: "env(safe-area-inset-bottom, 0px)",
+					paddingBottom: "var(--safe-area-inset-bottom)",
 				}}
 			>
 				<Box

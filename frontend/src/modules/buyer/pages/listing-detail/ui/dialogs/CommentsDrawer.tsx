@@ -357,7 +357,7 @@ export const CommentsDrawer: FC<CommentsDrawerProps> = ({
         py="sm"
         style={{
           borderTop: '1px solid var(--mantine-color-gray-2)',
-          paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(12px + var(--safe-area-inset-bottom))',
         }}
       >
         {/* Reply indicator */}

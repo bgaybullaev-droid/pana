@@ -274,8 +274,8 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 					// vertical centre axis. Crawled preview keeps the old layout.
 					bottom:
 						mode === "buyer"
-							? "calc(env(safe-area-inset-bottom, 0px) + 195px)"
-							: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
+							? "calc(var(--safe-area-inset-bottom) + 195px)"
+							: "calc(var(--safe-area-inset-bottom) + 120px)",
 					right: 12,
 					width: mode === "buyer" ? 45 : 56,
 					opacity: showInfo ? 1 : 0,
@@ -400,7 +400,7 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 				pos="absolute"
 				left={0}
 				right={80}
-				style={{ zIndex: 10, bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
+				style={{ zIndex: 10, bottom: "calc(var(--safe-area-inset-bottom) + 24px)" }}
 				px={12}
 			>
 				<Transition mounted={showInfo} transition="fade" duration={300}>

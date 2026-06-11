@@ -94,7 +94,7 @@ export const FilterPanel: FC<FilterPanelProps> = ({ onApply }) => {
 						bottom: 0,
 						left: 0,
 						right: 0,
-						paddingBottom: "env(safe-area-inset-bottom, 0px)",
+						paddingBottom: "var(--safe-area-inset-bottom)",
 						zIndex: 10001,
 						pointerEvents: "none",
 					}}

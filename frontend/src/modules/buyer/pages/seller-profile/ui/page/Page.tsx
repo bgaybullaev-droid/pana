@@ -115,10 +115,11 @@ function Page() {
 				overflow: "auto",
 			}}
 		>
-			{/* ── Compact Cover Area ── */}
+			{/* ── Compact Cover Area — gradient extends under the fullscreen
+			    system zone, controls sit below it ── */}
 			<Box
-				h={120}
 				style={{
+					height: "calc(120px + var(--app-top-inset))",
 					background: "linear-gradient(135deg, #228be6, #1864ab)",
 					position: "relative",
 					borderBottomLeftRadius: 24,
@@ -132,7 +133,7 @@ function Page() {
 					onClick={() => navigate(-1)}
 					style={{
 						position: "absolute",
-						top: 12,
+						top: "calc(var(--app-top-inset) + 12px)",
 						left: 12,
 						zIndex: 2,
 						backgroundColor: "rgba(255, 255, 255, 0.65)",

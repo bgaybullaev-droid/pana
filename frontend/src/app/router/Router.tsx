@@ -114,8 +114,11 @@ function TelegramBackButtonManager() {
 		// old clients just won't have an in-app back button.
 		if (!webApp?.BackButton || !webApp.isVersionAtLeast?.("6.1")) return;
 
-		// Root paths where we only want to display "Close" natively
-		const rootPaths = ["/", "/search", "/favorites", "/profile", "/auth"];
+		// Paths where we only want to display "Close" natively. Top-level
+		// tabs (Favorites, Settings) intentionally show Back instead — it
+		// returns the user to the section they came from, matching the
+		// Android system-back convention (tab → home → exit).
+		const rootPaths = ["/", "/search", "/auth"];
 		const isRootPath = rootPaths.includes(location.pathname);
 
 		if (!isRootPath) {
@@ -125,7 +128,13 @@ function TelegramBackButtonManager() {
 		}
 
 		const handleBackClick = () => {
-			navigate(-1);
+			// Direct deep-link entries have no in-app history (idx 0) —
+			// going back would leave the SPA, so route to home instead.
+			if (window.history.state && window.history.state.idx > 0) {
+				navigate(-1);
+			} else {
+				navigate("/", { replace: true });
+			}
 		};
 
 		webApp.BackButton.onClick(handleBackClick);

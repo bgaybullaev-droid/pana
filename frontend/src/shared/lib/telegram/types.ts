@@ -73,6 +73,14 @@ export interface BackButton {
   hide: () => BackButton;
 }
 
+/** Insets in px reported by the Telegram client (Bot API 8.0+). */
+export interface SafeAreaInset {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
 export interface HapticFeedback {
   impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => HapticFeedback;
   notificationOccurred: (type: 'error' | 'success' | 'warning') => HapticFeedback;
@@ -101,6 +109,13 @@ export interface WebApp {
   headerColor: string;
   backgroundColor: string;
   isClosingConfirmationEnabled: boolean;
+  /** Bot API 8.0+ fullscreen state; undefined on older clients. */
+  isFullscreen?: boolean;
+  /** Device safe area (notch / status bar / home indicator). Bot API 8.0+. */
+  safeAreaInset?: SafeAreaInset;
+  /** Area occupied by Telegram's own UI (fullscreen controls). Bot API 8.0+. */
+  contentSafeAreaInset?: SafeAreaInset;
+  isVerticalSwipesEnabled?: boolean;
   BackButton: BackButton;
   MainButton: MainButton;
   HapticFeedback: HapticFeedback;
@@ -144,6 +159,12 @@ export interface WebApp {
   ready: () => void;
   expand: () => void;
   close: () => void;
+  /** Bot API 8.0+; no-ops guarded by isVersionAtLeast at call sites. */
+  requestFullscreen?: () => void;
+  exitFullscreen?: () => void;
+  /** Bot API 7.7+ — keep vertical swipes scrolling content, not minimizing. */
+  disableVerticalSwipes?: () => void;
+  enableVerticalSwipes?: () => void;
 }
 
 declare global {

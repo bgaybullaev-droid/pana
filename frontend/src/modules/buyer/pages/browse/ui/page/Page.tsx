@@ -82,7 +82,7 @@ function Page() {
 				onClick={handleBack}
 				style={{
 					position: "fixed",
-					top: 12,
+					top: "calc(var(--app-top-inset) + 12px)",
 					left: 12,
 					zIndex: 99,
 					backgroundColor: "rgba(255, 255, 255, 0.65)",

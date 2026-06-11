@@ -34,18 +34,25 @@ export function TabBar({ title, actions, children, blur }: TabBarProps) {
 				position: "sticky",
 				top: 0,
 				zIndex: 100,
-				...bg,
-				borderBottom: "1px solid rgba(0,0,0,0.06)",
 				marginLeft: "calc(-50vw + 50%)",
 				marginRight: "calc(-50vw + 50%)",
 				width: "100vw",
-				transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-				transition: "transform 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
-				willChange: "transform",
 				pointerEvents: headerVisible ? "auto" : "none",
 			}}
 		>
-			{children || (
+			{/* Collapsible panel — pads itself below the device status bar +
+			    Telegram's fullscreen controls and slides away on scroll. */}
+			<Box
+				style={{
+					...bg,
+					paddingTop: "var(--app-top-inset)",
+					borderBottom: "1px solid rgba(0,0,0,0.06)",
+					transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+					transition: "transform 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
+					willChange: "transform",
+				}}
+			>
+				{children || (
 				<Box
 					style={{
 						maxWidth: 980,
@@ -84,7 +91,24 @@ export function TabBar({ title, actions, children, blur }: TabBarProps) {
 						</Box>
 					)}
 				</Box>
-			)}
+				)}
+			</Box>
+			{/* Status-bar scrim — stays put when the panel collapses so the
+			    system clock and Telegram's fullscreen buttons remain readable
+			    over scrolling content. Zero-height outside fullscreen. */}
+			<Box
+				style={{
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					height: "var(--app-top-inset)",
+					backgroundColor: "rgba(255, 255, 255, 0.72)",
+					backdropFilter: "blur(20px) saturate(180%)",
+					WebkitBackdropFilter: "blur(20px) saturate(180%)",
+					pointerEvents: "none",
+				}}
+			/>
 		</Box>
 	);
 }

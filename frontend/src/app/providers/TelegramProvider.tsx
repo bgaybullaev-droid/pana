@@ -39,6 +39,13 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
 				tg.ready();
 				tg.expand();
 
+				// Bot API 7.7+: a vertical swipe on the feed must scroll the
+				// content, not minimize the Mini App (critical in fullscreen).
+				// The user can still close via Telegram's own controls.
+				if (tg.isVersionAtLeast?.("7.7")) {
+					tg.disableVerticalSwipes?.();
+				}
+
 				if (tg.themeParams) {
 					document.documentElement.style.setProperty(
 						"--tg-theme-bg-color",
