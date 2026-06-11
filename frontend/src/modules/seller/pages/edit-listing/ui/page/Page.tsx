@@ -390,7 +390,11 @@ function Page() {
 		setAiEdits({ ru: "", uz: "", uz_cyrl: "" });
 		setAiRegenerating(true);
 		try {
-			await regenerateDraftFx({ id, triggered_by: "manual_retry" });
+			await regenerateDraftFx({
+				id,
+				triggered_by: "manual_retry",
+				wishes: aiWishes.trim() || undefined,
+			});
 			setAiPolling(true);
 			webApp?.HapticFeedback.impactOccurred("light");
 		} catch {
@@ -510,7 +514,12 @@ function Page() {
 	// Shared AI-description block — same source on the create page. The
 	// listing already exists here, so generation is always allowed (no
 	// minimum-params gate) and the button spinner tracks regeneration.
-	const hasAi = aiEdits.ru.length > 0;
+	// Any language having text keeps the AI editor (tabs) open — clearing
+	// all three via the field's ✕ falls back to the manual description.
+	const hasAi =
+		aiEdits.ru.length > 0 ||
+		aiEdits.uz.length > 0 ||
+		aiEdits.uz_cyrl.length > 0;
 	const aiSlots = buildAiDescriptionSlots({
 		t,
 		hasAi,
@@ -527,9 +536,6 @@ function Page() {
 			setAiEdits((prev) => ({ ...prev, [aiActiveTab]: val })),
 		onGenerate: handleAiGenerate,
 		onManualRefresh: handleAiRefresh,
-		// Drop the AI texts; the field falls back to the listing's manual
-		// description (form.values.description stays untouched here).
-		onResetToManual: () => setAiEdits({ ru: "", uz: "", uz_cyrl: "" }),
 	});
 
 	return (

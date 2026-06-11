@@ -231,7 +231,12 @@ def _truncate_raw_text(text: str, budget: int = _F1_RAW_TEXT_BUDGET_CHARS) -> st
     return f"{head}\n[…]\n{tail}"
 
 
-def _build_prompt(listing: Listing, *, template_body: Optional[str] = None) -> str:
+def _build_prompt(
+    listing: Listing,
+    *,
+    template_body: Optional[str] = None,
+    wishes: Optional[str] = None,
+) -> str:
     """Build a single-shot prompt that asks for all three locales at once.
 
     Block F F5: when ``template_body`` is supplied (loaded from the
@@ -255,6 +260,13 @@ def _build_prompt(listing: Listing, *, template_body: Optional[str] = None) -> s
         )
     raw = _truncate_raw_text(raw_scrubbed)
     params = _params_block(listing)
+    # Seller wishes ride inside the params block so both the DB-stored
+    # template and the inline fallback pick them up without changes.
+    if wishes and wishes.strip():
+        params += (
+            "\n- seller_wishes (пожелания продавца — учесть в тексте): "
+            f'"{wishes.strip()[:500]}"'
+        )
 
     # The DB-stored prompt is production's source of truth; the shared
     # constant is the fallback used only when no active prompt_templates
@@ -414,7 +426,10 @@ class _GenerateDescriptionTask(celery_app.Task):
     max_retries=3,
 )
 def generate_listing_description(
-    self, listing_id: str, triggered_by: str = "auto_parser"
+    self,
+    listing_id: str,
+    triggered_by: str = "auto_parser",
+    wishes: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Sync entry; dispatches to the async coroutine via asyncio.run.
 
@@ -423,11 +438,16 @@ def generate_listing_description(
         manual         — F1 Stage 1 "Сгенерировать объявление"
         param_change   — F1 Stage 2 regenerate after param drift
         manual_retry   — admin/seller-initiated re-gen of an existing listing
+
+    ``wishes`` — free-text seller wishes forwarded into the prompt
+    (pass-through from the create/regenerate endpoints, not persisted).
     """
-    return asyncio.run(_run(self, listing_id, triggered_by))
+    return asyncio.run(_run(self, listing_id, triggered_by, wishes))
 
 
-async def _run(task, listing_id: str, triggered_by: str) -> Dict[str, Any]:
+async def _run(
+    task, listing_id: str, triggered_by: str, wishes: Optional[str] = None
+) -> Dict[str, Any]:
     from app.db.session import async_session_factory  # local import: cycle
     from app.services.prompt_registry import (
         PromptNotConfigured,
@@ -486,6 +506,7 @@ async def _run(task, listing_id: str, triggered_by: str) -> Dict[str, Any]:
         prompt = _build_prompt(
             listing,
             template_body=active_template.body if active_template else None,
+            wishes=wishes,
         )
         model = (active_template.model_hint if active_template else None) or "gpt-4o-mini"
 

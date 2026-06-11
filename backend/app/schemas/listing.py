@@ -209,6 +209,9 @@ class ListingCreate(ListingBase):
     """Schema for creating a listing."""
 
     images: List[ListingImageCreate] = Field(..., min_length=1, max_length=10)
+    # Block F — free-text seller wishes forwarded into the AI prompt of the
+    # initial generation. Pass-through only: not persisted on the listing.
+    ai_wishes: Optional[str] = Field(None, max_length=500)
 
 
 class ListingUpdate(BaseModel):
@@ -805,6 +808,9 @@ class RegenerateRequest(BaseModel):
         default="manual_retry",
         pattern=r"^(manual_retry|param_change)$",
     )
+    # Free-text seller wishes forwarded into the AI prompt (pass-through,
+    # not persisted) — lets the seller refine and regenerate iteratively.
+    wishes: Optional[str] = Field(None, max_length=500)
 
 
 class RegenerateResponse(BaseModel):

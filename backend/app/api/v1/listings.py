@@ -3288,7 +3288,9 @@ async def create_draft_listing(
     from app.workers.tasks.ai_generation import generate_listing_description
 
     try:
-        generate_listing_description.delay(str(listing.id), triggered_by="manual")
+        generate_listing_description.delay(
+            str(listing.id), triggered_by="manual", wishes=data.ai_wishes
+        )
         logger.info(
             "listing.draft.created seller=%s listing=%s images=%d",
             seller.id,
@@ -3397,7 +3399,7 @@ async def regenerate_listing_text(
 
     try:
         generate_listing_description.delay(
-            str(listing.id), triggered_by=data.triggered_by
+            str(listing.id), triggered_by=data.triggered_by, wishes=data.wishes
         )
         logger.info(
             "listing.regenerate.queued listing=%s triggered_by=%s",

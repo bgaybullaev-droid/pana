@@ -6,14 +6,12 @@ import {
 	NumberInput,
 	Box,
 	Group,
-	Loader,
-	Skeleton,
 	Text,
 	Switch,
 	TextInput,
 	Select,
 } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
+import { IconSparkles, IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
@@ -159,6 +157,14 @@ export function ListingFormFields({
 	const districtChosen =
 		!!form.values.district ||
 		(!!form.values.region && districts.length === 0);
+
+	// Text shown in the description field — AI override (per-language) when
+	// present, plain form value otherwise. Drives both the textarea and the
+	// one-tap clear button.
+	const descriptionText =
+		descriptionValueOverride !== undefined
+			? descriptionValueOverride
+			: (form.values.description ?? "");
 
 	// Block C V2.0 (C4) — verified-phones picker. Lists every phone the
 	// seller has confirmed on /seller/phones; selecting one writes it back
@@ -1353,15 +1359,38 @@ export function ListingFormFields({
 			>
 				{beforeDescriptionContent}
 				<Box>
-					<Box style={{ position: "relative" }}>
+					<style>{`
+						@keyframes aiBorderFlow {
+							0%   { background-position: 0% 50%; }
+							100% { background-position: 300% 50%; }
+						}
+						@keyframes aiSparklePulse {
+							0%, 100% { opacity: .45; transform: scale(.9); }
+							50%      { opacity: 1;   transform: scale(1.1); }
+						}
+					`}</style>
+					{/* While AI works the field gets an animated gradient frame
+					    (Apple-Intelligence-style «thinking» affordance) with a
+					    pulsing sparkle + status centered inside the field. */}
+					<Box
+						style={
+							descriptionLoading
+								? {
+										position: "relative",
+										padding: 2,
+										borderRadius: 10,
+										background:
+											"linear-gradient(120deg, #4dabf7, #9775fa, #38d9a9, #4dabf7)",
+										backgroundSize: "300% 100%",
+										animation: "aiBorderFlow 2.5s linear infinite",
+									}
+								: { position: "relative" }
+						}
+					>
 						<Textarea
 							placeholder={t("createListing.descriptionPlaceholder")}
 							maxLength={descriptionValueOverride !== undefined ? undefined : 500}
-							value={
-								descriptionValueOverride !== undefined
-									? descriptionValueOverride
-									: (form.values.description ?? "")
-							}
+							value={descriptionText}
 							onChange={(e) => {
 								if (onDescriptionChangeOverride) {
 									onDescriptionChangeOverride(e.currentTarget.value);
@@ -1374,40 +1403,65 @@ export function ListingFormFields({
 							disabled={descriptionLoading}
 							autosize
 							minRows={3}
-							styles={{ input: { minHeight: 80 } }}
+							styles={{
+								input: {
+									minHeight: 80,
+									paddingRight: 32,
+									...(descriptionLoading
+										? { borderRadius: 8, borderColor: "transparent" }
+										: {}),
+								},
+							}}
 						/>
-						{/* AI progress lives inside the field (industry pattern):
-						    pulsing skeleton lines + caption over the textarea. */}
+						{/* One-tap clear of the current text (top-right corner) */}
+						{!descriptionLoading && descriptionText.length > 0 && (
+							<ActionIcon
+								variant="subtle"
+								color="gray"
+								size="sm"
+								radius="xl"
+								aria-label={t("createListing.clearDescription", "Очистить")}
+								onClick={() => {
+									if (onDescriptionChangeOverride) {
+										onDescriptionChangeOverride("");
+									} else {
+										set("description", "");
+									}
+								}}
+								style={{ position: "absolute", top: 6, right: 6 }}
+							>
+								<IconX size={14} />
+							</ActionIcon>
+						)}
 						{descriptionLoading && (
 							<Box
 								style={{
 									position: "absolute",
-									inset: 0,
+									inset: 2,
 									borderRadius: 8,
-									backgroundColor: "rgba(255,255,255,0.92)",
+									backgroundColor: "rgba(255,255,255,0.96)",
 									display: "flex",
 									flexDirection: "column",
+									alignItems: "center",
 									justifyContent: "center",
-									gap: 8,
-									padding: "14px 16px",
+									gap: 4,
 								}}
 							>
-								<Skeleton height={9} width="92%" radius="xl" />
-								<Skeleton height={9} width="100%" radius="xl" />
-								<Skeleton height={9} width="74%" radius="xl" />
-								<Group gap={8} mt={4}>
-									<Loader size="xs" color="blue" />
-									<Text size="xs" fw={600} c="blue.7">
-										{t(
-											"createListing.generatingText",
-											"Составляем описание… ≈15 сек",
-										)}
-									</Text>
-								</Group>
+								<IconSparkles
+									size={26}
+									color="#4dabf7"
+									style={{ animation: "aiSparklePulse 1.4s ease-in-out infinite" }}
+								/>
+								<Text size="sm" fw={600} c="blue.6">
+									{t("createListing.generatingText", "Составляем описание…")}
+								</Text>
+								<Text size="xs" c="dimmed">
+									{t("createListing.generatingHint", "обычно ~15 секунд")}
+								</Text>
 							</Box>
 						)}
 					</Box>
-					{descriptionValueOverride === undefined && (
+					{descriptionValueOverride === undefined && !descriptionLoading && (
 						<Box
 							style={{
 								display: "flex",

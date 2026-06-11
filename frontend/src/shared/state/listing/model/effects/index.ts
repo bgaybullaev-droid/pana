@@ -86,13 +86,16 @@ export const regenerateDraftFx = createEffect(
   async ({
     id,
     triggered_by = 'manual_retry',
+    wishes,
   }: {
     id: string;
     triggered_by?: 'manual_retry' | 'param_change';
+    /** Seller wishes forwarded into the AI prompt (pass-through). */
+    wishes?: string;
   }) => {
     const response = await apiClient.post<{ status: string }>(
       `/listings/${id}/regenerate`,
-      { triggered_by },
+      { triggered_by, wishes },
     );
     return response.data;
   },

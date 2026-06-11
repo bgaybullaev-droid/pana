@@ -182,14 +182,21 @@ function Stage1() {
 		});
 	const readyToProceed = isComplete && !isUploading;
 
-	const hasAi = edits.ru.length > 0;
+	// Any language having text keeps the AI editor (tabs) open — clearing
+	// all three via the field's ✕ returns the block to the generate CTA.
+	const hasAi =
+		edits.ru.length > 0 || edits.uz.length > 0 || edits.uz_cyrl.length > 0;
 
 	// Keep form.values.description in sync with the RU AI description so
-	// the submit payload always has the latest edited text.
+	// the submit payload always has the latest edited text. Also syncs the
+	// non-empty → empty transition (✕ clear), but not the initial "" so a
+	// restored draft description isn't wiped on mount.
+	const prevEditsRu = useRef("");
 	useEffect(() => {
-		if (edits.ru) {
+		if (edits.ru || prevEditsRu.current) {
 			form.setFieldValue("description", edits.ru);
 		}
+		prevEditsRu.current = edits.ru;
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [edits.ru]);
 
@@ -208,7 +215,11 @@ function Stage1() {
 		if (draftId) {
 			// Draft already exists (came back from Stage 2 or already generated)
 			try {
-				await regenerateDraftFx({ id: draftId, triggered_by: "manual_retry" });
+				await regenerateDraftFx({
+					id: draftId,
+					triggered_by: "manual_retry",
+					wishes: wishes.trim() || undefined,
+				});
 				webApp?.HapticFeedback.impactOccurred("light");
 			} catch {
 				notifications.show({
@@ -256,6 +267,7 @@ function Stage1() {
 		const listingData: ListingCreateData = {
 			...buildListingData(form.values),
 			images: uploadedImages,
+			ai_wishes: wishes.trim() || undefined,
 		};
 
 		try {
@@ -299,6 +311,7 @@ function Stage1() {
 		const listingData: ListingCreateData = {
 			...buildListingData(values),
 			images: uploadedImages,
+			ai_wishes: wishes.trim() || undefined,
 		};
 
 		try {
@@ -372,12 +385,6 @@ function Stage1() {
 		onActiveTextChange: (val) => editDescription({ lang: activeTab, value: val }),
 		onGenerate: handleGenerate,
 		onManualRefresh: handleManualRefresh,
-		onResetToManual: () => {
-			(["ru", "uz", "uz_cyrl"] as const).forEach((lang) =>
-				editDescription({ lang, value: "" }),
-			);
-			form.setFieldValue("description", "");
-		},
 	});
 
 	return (

@@ -12,6 +12,8 @@ export interface ListingCreateData {
 	property_type: "apartment" | "house" | "commercial" | "land";
 	title?: string;
 	description?: string;
+	/** Seller wishes forwarded into the AI prompt (pass-through, not stored). */
+	ai_wishes?: string;
 	price: number;
 	currency: "USD" | "UZS";
 	rooms?: number;
