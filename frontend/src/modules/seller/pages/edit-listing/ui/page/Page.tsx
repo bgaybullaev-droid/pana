@@ -518,8 +518,6 @@ function Page() {
 		pollTimedOut: aiTimedOut,
 		isRegenerating: aiRegenerating,
 		generateLoading: aiRegenerating,
-		generateDisabled: false,
-		showDisabledHint: false,
 		wishes: aiWishes,
 		onWishesChange: setAiWishes,
 		activeTab: aiActiveTab,
@@ -529,6 +527,9 @@ function Page() {
 			setAiEdits((prev) => ({ ...prev, [aiActiveTab]: val })),
 		onGenerate: handleAiGenerate,
 		onManualRefresh: handleAiRefresh,
+		// Drop the AI texts; the field falls back to the listing's manual
+		// description (form.values.description stays untouched here).
+		onResetToManual: () => setAiEdits({ ru: "", uz: "", uz_cyrl: "" }),
 	});
 
 	return (
@@ -848,6 +849,7 @@ function Page() {
 							descriptionValueOverride={aiSlots.descriptionValueOverride}
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}
 							afterDescriptionContent={aiSlots.afterDescriptionContent}
+							descriptionLoading={aiSlots.descriptionLoading}
 						/>
 
 					</Stack>

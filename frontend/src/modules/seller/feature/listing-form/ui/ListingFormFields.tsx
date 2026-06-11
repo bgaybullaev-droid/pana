@@ -6,6 +6,8 @@ import {
 	NumberInput,
 	Box,
 	Group,
+	Loader,
+	Skeleton,
 	Text,
 	Switch,
 	TextInput,
@@ -58,6 +60,8 @@ interface ListingFormFieldsProps {
 	afterDescriptionContent?: React.ReactNode;
 	descriptionValueOverride?: string;
 	onDescriptionChangeOverride?: (val: string) => void;
+	/** AI generation in flight — skeleton overlay on the description field. */
+	descriptionLoading?: boolean;
 	/** Per-section completeness (useListingCompleteness). Omit → render as before. */
 	sectionStates?: Record<SectionKey, SectionState>;
 }
@@ -72,6 +76,7 @@ export function ListingFormFields({
 	afterDescriptionContent,
 	descriptionValueOverride,
 	onDescriptionChangeOverride,
+	descriptionLoading,
 	sectionStates,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
@@ -628,11 +633,7 @@ export function ListingFormFields({
 					options={[
 						{ value: "apartment", label: t("propertyTypes.apartment") },
 						{ value: "house", label: t("propertyTypes.house") },
-						{
-							value: "land",
-							label: t("propertyTypes.land"),
-							breakAfter: true,
-						},
+						{ value: "land", label: t("propertyTypes.land") },
 						{ value: "commercial", label: t("propertyTypes.commercial") },
 					]}
 					value={form.values.property_type}
@@ -1352,27 +1353,60 @@ export function ListingFormFields({
 			>
 				{beforeDescriptionContent}
 				<Box>
-					<Textarea
-						placeholder={t("createListing.descriptionPlaceholder")}
-						maxLength={descriptionValueOverride !== undefined ? undefined : 500}
-						value={
-							descriptionValueOverride !== undefined
-								? descriptionValueOverride
-								: (form.values.description ?? "")
-						}
-						onChange={(e) => {
-							if (onDescriptionChangeOverride) {
-								onDescriptionChangeOverride(e.currentTarget.value);
-							} else {
-								form.getInputProps("description").onChange(e);
+					<Box style={{ position: "relative" }}>
+						<Textarea
+							placeholder={t("createListing.descriptionPlaceholder")}
+							maxLength={descriptionValueOverride !== undefined ? undefined : 500}
+							value={
+								descriptionValueOverride !== undefined
+									? descriptionValueOverride
+									: (form.values.description ?? "")
 							}
-						}}
-						onBlur={form.getInputProps("description").onBlur}
-						error={form.errors.description as string | undefined}
-						autosize
-						minRows={3}
-						styles={{ input: { minHeight: 80 } }}
-					/>
+							onChange={(e) => {
+								if (onDescriptionChangeOverride) {
+									onDescriptionChangeOverride(e.currentTarget.value);
+								} else {
+									form.getInputProps("description").onChange(e);
+								}
+							}}
+							onBlur={form.getInputProps("description").onBlur}
+							error={form.errors.description as string | undefined}
+							disabled={descriptionLoading}
+							autosize
+							minRows={3}
+							styles={{ input: { minHeight: 80 } }}
+						/>
+						{/* AI progress lives inside the field (industry pattern):
+						    pulsing skeleton lines + caption over the textarea. */}
+						{descriptionLoading && (
+							<Box
+								style={{
+									position: "absolute",
+									inset: 0,
+									borderRadius: 8,
+									backgroundColor: "rgba(255,255,255,0.92)",
+									display: "flex",
+									flexDirection: "column",
+									justifyContent: "center",
+									gap: 8,
+									padding: "14px 16px",
+								}}
+							>
+								<Skeleton height={9} width="92%" radius="xl" />
+								<Skeleton height={9} width="100%" radius="xl" />
+								<Skeleton height={9} width="74%" radius="xl" />
+								<Group gap={8} mt={4}>
+									<Loader size="xs" color="blue" />
+									<Text size="xs" fw={600} c="blue.7">
+										{t(
+											"createListing.generatingText",
+											"Составляем описание… ≈15 сек",
+										)}
+									</Text>
+								</Group>
+							</Box>
+						)}
+					</Box>
 					{descriptionValueOverride === undefined && (
 						<Box
 							style={{
@@ -1416,44 +1450,58 @@ export function ListingFormFields({
 				bg={sectionBg}
 				{...sectionStatusProps("price")}
 			>
-				{/* Price input + negotiable toggle in one row: the field comes
-				    first, the switch sits to its right. When «Договорная» is on
-				    the input is disabled (buildListingData sends price: 0). */}
-				<Group wrap="nowrap" gap="sm" align="flex-end">
-					<NumberInput
-						label={priceLabel}
-						required
-						min={0}
-						allowNegative={false}
-						allowDecimal={false}
-						thousandSeparator=" "
-						inputMode="numeric"
-						hideControls
-						disabled={form.values.is_negotiable}
-						style={{ flex: 1 }}
-						error={form.errors.price}
-						rightSection={
-							form.values.price != null && !form.values.is_negotiable ? (
-								<ActionIcon
-									variant="transparent"
-									color="gray"
-									size="sm"
-									onClick={() => set("price", undefined)}
-								>
-									<IconX size={14} />
-								</ActionIcon>
-							) : null
-						}
-						{...form.getInputProps("price")}
-					/>
-					<Switch
-						label={t("createListing.negotiable")}
-						checked={form.values.is_negotiable}
-						onChange={(e) => set("is_negotiable", e.currentTarget.checked)}
-						mb={8}
-						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
-					/>
-				</Group>
+				{/* Price: label on its own full-width line (rent labels are long
+				    and must not wrap), then the input + negotiable toggle in one
+				    row. When «Договорная» is on the input is disabled
+				    (buildListingData sends price: 0). The chosen currency is
+				    made explicit inside the field: $ prefix / «сум» suffix. */}
+				<Box>
+					<Text size="sm" fw={500} mb={6}>
+						{priceLabel}
+						<Text span c="red" inherit>
+							{" "}
+							*
+						</Text>
+					</Text>
+					<Group wrap="nowrap" gap="sm" align="center">
+						<NumberInput
+							min={0}
+							allowNegative={false}
+							allowDecimal={false}
+							thousandSeparator=" "
+							inputMode="numeric"
+							hideControls
+							prefix={form.values.currency === "USD" ? "$ " : undefined}
+							suffix={
+								form.values.currency === "UZS"
+									? ` ${t("createListing.sumSuffix", "сум")}`
+									: undefined
+							}
+							disabled={form.values.is_negotiable}
+							style={{ flex: 1 }}
+							error={form.errors.price}
+							rightSection={
+								form.values.price != null && !form.values.is_negotiable ? (
+									<ActionIcon
+										variant="transparent"
+										color="gray"
+										size="sm"
+										onClick={() => set("price", undefined)}
+									>
+										<IconX size={14} />
+									</ActionIcon>
+								) : null
+							}
+							{...form.getInputProps("price")}
+						/>
+						<Switch
+							label={t("createListing.negotiable")}
+							checked={form.values.is_negotiable}
+							onChange={(e) => set("is_negotiable", e.currentTarget.checked)}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					</Group>
+				</Box>
 				<ChipSelect
 					label={t("createListing.currencyLabel")}
 					showOptionalHint={false}
@@ -1518,6 +1566,11 @@ export function ListingFormFields({
 								<Text size="sm">{option.label}</Text>
 							)
 						}
+						// The section sits at the page bottom: lift the dropdown
+						// above the fixed action bar (zIndex 10001) and cap its
+						// height so «+ Добавить контакт» is always reachable.
+						comboboxProps={{ zIndex: 10002 }}
+						maxDropdownHeight={240}
 						clearable={false}
 					/>
 				) : (

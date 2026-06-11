@@ -354,16 +354,16 @@ function Stage1() {
 					}
 				: { status: "neutral" as const };
 
-	// Shared AI-description block — same source on the edit page.
+	// Shared AI-description block — same source on the edit page. The CTA
+	// stays enabled even on an incomplete form: handleGenerate validates,
+	// paints incomplete sections red and scrolls to the first one.
 	const aiSlots = buildAiDescriptionSlots({
 		t,
 		hasAi,
 		isPolling,
 		pollTimedOut,
 		isRegenerating,
-		generateLoading: isCreatingDraft && !isPolling,
-		generateDisabled: !readyToProceed,
-		showDisabledHint: !readyToProceed,
+		generateLoading: (isCreatingDraft && !isPolling) || isUploading,
 		wishes,
 		onWishesChange: setWishes,
 		activeTab,
@@ -372,6 +372,12 @@ function Stage1() {
 		onActiveTextChange: (val) => editDescription({ lang: activeTab, value: val }),
 		onGenerate: handleGenerate,
 		onManualRefresh: handleManualRefresh,
+		onResetToManual: () => {
+			(["ru", "uz", "uz_cyrl"] as const).forEach((lang) =>
+				editDescription({ lang, value: "" }),
+			);
+			form.setFieldValue("description", "");
+		},
 	});
 
 	return (
@@ -560,6 +566,7 @@ function Stage1() {
 							descriptionValueOverride={aiSlots.descriptionValueOverride}
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}
 							afterDescriptionContent={aiSlots.afterDescriptionContent}
+							descriptionLoading={aiSlots.descriptionLoading}
 						/>
 
 					</Stack>
