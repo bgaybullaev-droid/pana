@@ -18,6 +18,7 @@ import { useTelegram } from '@app/providers/useTelegram';
 import { formatPrice } from '@app/styles/theme';
 import { getListingShareUrl } from '@shared/lib/constants';
 import { translateDistrict } from '@shared/lib/regions';
+import { rentPriceSuffixKey } from '@shared/lib/rentPriceSuffix';
 import type { ListingListItem } from '@shared/api/types';
 
 import 'swiper/css/pagination';
@@ -192,7 +193,7 @@ export const ListingCard: FC<ListingCardProps> = ({ listing }) => {
           {formatPrice(listing.price, listing.currency)}
           {listing.type === 'rent' && (
             <Text span size="sm" c="dimmed" fw={400}>
-              {' '}{t('listing.perMonth')}
+              {' '}{t(rentPriceSuffixKey(listing.rent_period, listing.property_type))}
             </Text>
           )}
         </Text>

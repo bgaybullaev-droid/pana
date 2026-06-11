@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { UnifiedListing } from "@shared/api/types";
 import { translateDistrict, translateRegion, normalizeLocationKey } from "@shared/lib/regions";
+import { rentPriceSuffixKey } from "@shared/lib/rentPriceSuffix";
 import { localizeMicrodistrict } from "@shared/constants/microdistricts";
 import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { CommentsDrawer } from "./CommentsDrawer";
@@ -525,6 +526,16 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 								<Box>
 									<Text fw={800} style={{ fontSize: 26, lineHeight: 1.1 }}>
 										{formattedPrice}
+										{listing.type === "rent" && (
+											<Text span size="sm" c="dimmed" fw={500}>
+												{t(
+													rentPriceSuffixKey(
+														listing.rent_period,
+														listing.property_type,
+													),
+												)}
+											</Text>
+										)}
 									</Text>
 									{listing.is_negotiable && (
 										<Text size="xs" c="green.7" fw={500}>

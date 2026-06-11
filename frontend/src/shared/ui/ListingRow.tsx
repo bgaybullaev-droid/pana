@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ListingImageThumbnail } from "./ListingImageThumbnail";
 import { formatPrice, radii, shadows, spacing, surface } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
+import { rentPriceSuffixKey } from "@shared/lib/rentPriceSuffix";
 
 interface ListingRowProps {
 	/** Image URL */
@@ -13,8 +14,12 @@ interface ListingRowProps {
 	price: number;
 	/** Currency */
 	currency?: string;
-	/** Is rent (show /month suffix) */
+	/** Is rent (show period suffix after the price) */
 	isRent?: boolean;
+	/** Rent period (long_term | daily) — picks /мес vs /сутки|/день */
+	rentPeriod?: string | null;
+	/** Property type — daily commercial reads «/день», housing «/сутки» */
+	propertyType?: string | null;
 	/** Description or title — 1 line truncated */
 	description?: string | null;
 	/** Number of rooms */
@@ -43,6 +48,8 @@ export function ListingRow({
 	price,
 	currency,
 	isRent,
+	rentPeriod,
+	propertyType,
 	description,
 	rooms,
 	area,
@@ -82,7 +89,7 @@ export function ListingRow({
 							{formatPrice(price, currency)}
 							{isRent && (
 								<Text span size="xs" fw={500} c="dimmed">
-									{t("common.perMonth")}
+									{t(rentPriceSuffixKey(rentPeriod, propertyType))}
 								</Text>
 							)}
 						</Text>

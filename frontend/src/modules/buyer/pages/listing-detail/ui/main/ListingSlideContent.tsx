@@ -31,6 +31,7 @@ import type { UnifiedListing } from "@shared/api/types";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "@app/styles/theme";
 import { translateDistrict, translateRegion } from "@shared/lib/regions";
+import { rentPriceSuffixKey } from "@shared/lib/rentPriceSuffix";
 import { trackContact } from "@shared/lib/viewTracking";
 import { DescriptionDrawer } from "../dialogs/DescriptionDrawer";
 import { MapDrawer } from "../dialogs/MapDrawer";
@@ -623,6 +624,22 @@ const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null);
 										style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
 									>
 										{formattedPrice}
+										{listing.type === "rent" && (
+											<Text
+												span
+												size="sm"
+												fw={600}
+												c="rgba(255,255,255,0.9)"
+												style={{ textShadow: shadow }}
+											>
+												{t(
+													rentPriceSuffixKey(
+														listing.rent_period,
+														listing.property_type,
+													),
+												)}
+											</Text>
+										)}
 									</Text>
 									{pricePerSqm != null && (
 										<Text

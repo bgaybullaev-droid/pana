@@ -63,6 +63,8 @@ export function FavoriteCard({ listing, onClick, onRemove }: FavoriteCardProps) 
       price={listing.price}
       currency={listing.currency}
       isRent={listing.type === 'rent'}
+      rentPeriod={listing.rent_period}
+      propertyType={listing.property_type}
       description={null}
       rooms={null}
       area={null}

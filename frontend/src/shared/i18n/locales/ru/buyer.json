@@ -16,6 +16,8 @@
   "common.buy": "Купить",
   "common.rentAction": "Снять",
   "common.perMonth": "/мес",
+  "common.perDay": "/сутки",
+  "common.perDayCommercial": "/день",
   "common.noImage": "Нет фото",
   "common.loading": "Загрузка...",
   "common.reset": "Сбросить",

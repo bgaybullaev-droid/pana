@@ -523,6 +523,20 @@ export function ListingFormFields({
 		{ value: "UZS", label: t("createListing.currencyUZS") },
 	];
 
+	// Rent prices are period-priced (industry pattern: Avito/Cian always
+	// name the period in the label). Daily wording differs: «за сутки» is
+	// housing vocabulary, commercial days are «за день».
+	const priceLabel =
+		dt === "rent"
+			? form.values.rent_period === "daily"
+				? pt === "commercial"
+					? t("createListing.rentPriceDayCommercialLabel")
+					: t("createListing.rentPriceDayLabel")
+				: form.values.rent_period === "long_term"
+					? t("createListing.rentPriceMonthLabel")
+					: t("createListing.rentPriceLabel")
+			: t("createListing.priceLabel");
+
 	const set = (key: string, val: any) => form.setFieldValue(key, val);
 
 	// Same dimmed "необязательно" hint ChipSelect/ChipMultiSelect render on
@@ -687,7 +701,15 @@ export function ListingFormFields({
 								value: "long_term",
 								label: t("createListing.rentPeriodLongTerm"),
 							},
-							{ value: "daily", label: t("createListing.rentPeriodDaily") },
+							{
+								value: "daily",
+								// «Посуточно» is housing vocabulary; commercial days
+								// are rented «на день» (halls, studios, venues).
+								label:
+									pt === "commercial"
+										? t("createListing.rentPeriodDailyCommercial")
+										: t("createListing.rentPeriodDaily"),
+							},
 						]}
 						value={form.values.rent_period}
 						onChange={(val) => {
@@ -1399,7 +1421,7 @@ export function ListingFormFields({
 				    the input is disabled (buildListingData sends price: 0). */}
 				<Group wrap="nowrap" gap="sm" align="flex-end">
 					<NumberInput
-						label={t("createListing.priceLabel")}
+						label={priceLabel}
 						required
 						min={0}
 						allowNegative={false}

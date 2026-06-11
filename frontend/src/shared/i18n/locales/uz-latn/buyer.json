@@ -16,6 +16,8 @@
   "common.buy": "Sotib olish",
   "common.rentAction": "Ijaraga olish",
   "common.perMonth": "/oy",
+  "common.perDay": "/sutka",
+  "common.perDayCommercial": "/kun",
   "common.noImage": "Rasm yo'q",
   "common.loading": "Yuklanmoqda...",
   "common.reset": "Tozalash",
