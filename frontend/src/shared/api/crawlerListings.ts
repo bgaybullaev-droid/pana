@@ -17,6 +17,9 @@ export const resolveListingById = async (id: string): Promise<UnifiedListing> =>
   return response.data;
 };
 
+/** Server-side ordering of the unified feed (omit for relevance ranking). */
+export type FeedSort = 'newest' | 'price_asc' | 'price_desc';
+
 export interface UnifiedFeedParams {
   page: number;
   per_page: number;
@@ -29,6 +32,7 @@ export interface UnifiedFeedParams {
   price_max?: number;
   region?: string[];
   district?: string[];
+  sort?: FeedSort;
 }
 
 export const fetchUnifiedFeed = async (
@@ -48,6 +52,7 @@ export const fetchUnifiedFeed = async (
   if (params.price_max !== undefined) queryParams.price_max = params.price_max;
   if (params.region && params.region.length > 0) queryParams.region = params.region;
   if (params.district && params.district.length > 0) queryParams.district = params.district;
+  if (params.sort) queryParams.sort = params.sort;
 
   const response = await apiClient.get<PaginatedResponse<UnifiedListingListItem>>(
     '/listings/feed',

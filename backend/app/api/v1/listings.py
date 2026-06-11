@@ -3,7 +3,7 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -2065,19 +2065,25 @@ async def listing_feed(
     per_page: int = Query(10, ge=1, le=50),
     exclude_id: Optional[UUID] = Query(None),
     q: Optional[str] = Query(None, max_length=200),
-    type: Optional[str] = Query(None, pattern="^(sell|rent)$"),
-    property_type: Optional[str] = Query(
-        None, pattern="^(apartment|house|commercial|land)$"
-    ),
+    type: Optional[List[Literal["sell", "rent"]]] = Query(None),
+    property_type: Optional[
+        List[Literal["apartment", "house", "commercial", "land"]]
+    ] = Query(None),
     rooms: Optional[List[int]] = Query(None),
     price_min: Optional[int] = Query(None, ge=0),
     price_max: Optional[int] = Query(None, le=100000000),
     region: Optional[List[str]] = Query(None),
     district: Optional[List[str]] = Query(None),
+    sort: Optional[str] = Query(None, pattern="^(newest|price_asc|price_desc)$"),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
-    """Mixed feed from all listing sources with unified search/filter support."""
+    """Mixed feed from all listing sources with unified search/filter support.
+
+    `sort` orders the merged feed: `newest` (created_at desc), `price_asc`,
+    `price_desc` (listings without a price go last). Omitted → personalised
+    relevance ranking (legacy behaviour).
+    """
 
     # Build base queries with filters
     main_query = select(Listing).where(
@@ -2090,17 +2096,17 @@ async def listing_feed(
         OLXListing.converted_listing_id.is_(None),
     )
 
-    # Apply type filter
+    # Apply type filter (multi-value: the UI offers sell+rent chips)
     if type:
-        main_query = main_query.where(Listing.type == type)
-        tg_query = tg_query.where(TelegramListing.listing_type == type)
-        olx_query = olx_query.where(OLXListing.listing_type == type)
+        main_query = main_query.where(Listing.type.in_(type))
+        tg_query = tg_query.where(TelegramListing.listing_type.in_(type))
+        olx_query = olx_query.where(OLXListing.listing_type.in_(type))
 
-    # Apply property_type filter
+    # Apply property_type filter (multi-value)
     if property_type:
-        main_query = main_query.where(Listing.property_type == property_type)
-        tg_query = tg_query.where(TelegramListing.property_type == property_type)
-        olx_query = olx_query.where(OLXListing.property_type == property_type)
+        main_query = main_query.where(Listing.property_type.in_(property_type))
+        tg_query = tg_query.where(TelegramListing.property_type.in_(property_type))
+        olx_query = olx_query.where(OLXListing.property_type.in_(property_type))
 
     # Apply rooms filter
     if rooms:
@@ -2174,20 +2180,32 @@ async def listing_feed(
         + (olx_count_res.scalar() or 0)
     )
 
-    # Fetch enough items from each table to fill the page after sorting
+    # Fetch enough items from each table to fill the page after sorting.
+    # Each per-source window MUST be ordered by the same key as the final
+    # merge sort — otherwise the global top of a price sort may fall outside
+    # a created_at-ordered window and silently disappear from the page.
     fetch_limit = per_page * page  # fetch enough for offset + page
+
+    if sort == "price_asc":
+        main_order = Listing.price.asc().nulls_last()
+        tg_order = TelegramListing.price.asc().nulls_last()
+        olx_order = OLXListing.price.asc().nulls_last()
+    elif sort == "price_desc":
+        main_order = Listing.price.desc().nulls_last()
+        tg_order = TelegramListing.price.desc().nulls_last()
+        olx_order = OLXListing.price.desc().nulls_last()
+    else:  # "newest" and the default relevance ranking both window by recency
+        main_order = Listing.created_at.desc()
+        tg_order = TelegramListing.created_at.desc()
+        olx_order = OLXListing.created_at.desc()
 
     main_res = await db.execute(
         main_query.options(selectinload(Listing.images))
-        .order_by(Listing.created_at.desc())
+        .order_by(main_order)
         .limit(fetch_limit)
     )
-    tg_res = await db.execute(
-        tg_query.order_by(TelegramListing.created_at.desc()).limit(fetch_limit)
-    )
-    olx_res = await db.execute(
-        olx_query.order_by(OLXListing.created_at.desc()).limit(fetch_limit)
-    )
+    tg_res = await db.execute(tg_query.order_by(tg_order).limit(fetch_limit))
+    olx_res = await db.execute(olx_query.order_by(olx_order).limit(fetch_limit))
 
     # Build unified list items
     items: List[UnifiedListingListItem] = []
@@ -2281,10 +2299,11 @@ async def listing_feed(
             )
         )
 
-    # Load user preferences and exchange rate for ranking (if authenticated)
+    # Load user preferences and exchange rate for ranking (if authenticated).
+    # Skipped for explicit sorts — relevance scoring is not used there.
     prefs = None
     usd_uzs_rate = 0.0
-    if current_user:
+    if current_user and sort is None:
         prefs_result = await db.execute(
             select(UserPreferences).where(UserPreferences.user_id == current_user.id)
         )
@@ -2326,8 +2345,29 @@ async def listing_feed(
                     score += 1
         return score
 
-    # Sort by relevance DESC, then created_at DESC
-    items.sort(key=lambda x: (-_relevance_score(x), -x.created_at.timestamp()))
+    # Order the merged list. Explicit sorts mirror the per-source SQL order;
+    # the default remains relevance DESC, then created_at DESC. Items without
+    # a price sink to the bottom of both price sorts.
+    if sort == "newest":
+        items.sort(key=lambda x: -x.created_at.timestamp())
+    elif sort == "price_asc":
+        items.sort(
+            key=lambda x: (
+                x.price is None,
+                float(x.price) if x.price is not None else 0.0,
+                -x.created_at.timestamp(),
+            )
+        )
+    elif sort == "price_desc":
+        items.sort(
+            key=lambda x: (
+                x.price is None,
+                -float(x.price) if x.price is not None else 0.0,
+                -x.created_at.timestamp(),
+            )
+        )
+    else:
+        items.sort(key=lambda x: (-_relevance_score(x), -x.created_at.timestamp()))
 
     # Paginate
     offset = (page - 1) * per_page

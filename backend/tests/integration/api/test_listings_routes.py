@@ -132,6 +132,43 @@ class TestListingFeed:
         )
         assert resp.status_code == 200
 
+    async def test_feed_with_multivalue_type(self, client: AsyncClient, test_listing):
+        # The buyer filter drawer offers multi-select chips; both values must
+        # be honoured (repeated query params), not just the first one.
+        resp = await client.get(
+            "/api/v1/listings/feed",
+            params=[("type", "sell"), ("type", "rent"), ("page", 1)],
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "items" in data
+
+    async def test_feed_rejects_invalid_type(self, client: AsyncClient):
+        resp = await client.get("/api/v1/listings/feed", params={"type": "bogus"})
+        assert resp.status_code == 422
+
+    async def test_feed_sort_newest(self, client: AsyncClient, test_listing):
+        resp = await client.get("/api/v1/listings/feed", params={"sort": "newest"})
+        assert resp.status_code == 200
+
+    async def test_feed_sort_price_asc(self, client: AsyncClient, test_listing):
+        resp = await client.get("/api/v1/listings/feed", params={"sort": "price_asc"})
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        prices = [i["price"] for i in items if i["price"] is not None]
+        assert prices == sorted(prices)
+
+    async def test_feed_sort_price_desc(self, client: AsyncClient, test_listing):
+        resp = await client.get("/api/v1/listings/feed", params={"sort": "price_desc"})
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        prices = [i["price"] for i in items if i["price"] is not None]
+        assert prices == sorted(prices, reverse=True)
+
+    async def test_feed_rejects_invalid_sort(self, client: AsyncClient):
+        resp = await client.get("/api/v1/listings/feed", params={"sort": "bogus"})
+        assert resp.status_code == 422
+
 
 class TestCreateListing:
     """POST /api/v1/listings"""

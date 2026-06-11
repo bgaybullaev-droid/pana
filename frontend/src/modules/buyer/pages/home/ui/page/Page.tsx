@@ -16,6 +16,7 @@ import {
 	Button,
 	Chip,
 	RangeSlider,
+	NumberInput,
 	UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -61,6 +62,7 @@ import {
 	getListingDetailUrl,
 	type SourcedListingListItem,
 } from "@shared/lib/crawlerAdapter";
+import { fetchUnifiedFeed } from "@shared/api/crawlerListings";
 import { $userStats } from "@shared/state/user/model";
 import {
 	seedListingIds,
@@ -88,10 +90,13 @@ import {
 	toggleFavorite,
 	searchQueryChanged,
 	filtersChanged,
+	filtersReplaced,
 	applyFilters,
 	clearFilters,
 	tabChanged,
+	buildFeedParams,
 	type HomeFilters,
+	type HomeSort,
 	type HomeTab,
 } from "../../model";
 import {
@@ -147,13 +152,17 @@ function Page() {
 	const { isAuthenticated } = useAuth();
 
 	// Declare sort/filter local state BEFORE saved-search logic so sortBy is in scope
-	const [sortBy, setSortBy] = useState<string>("recommended");
+	const [sortBy, setSortBy] = useState<HomeSort>("recommended");
 	const [viewMode] = useState<"grid" | "masonry">("grid");
 	const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
 		0, 500000,
 	]);
 	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 	const [draftFilters, setDraftFilters] = useState<HomeFilters>(filters);
+	// Live result count for the draft filters, shown on the Apply button.
+	const [draftResultsCount, setDraftResultsCount] = useState<number | null>(
+		null,
+	);
 
 	// ── Saved Searches ──────────────────────────────────────────────────────
 	const savedSearches = useUnit($savedSearches);
@@ -254,6 +263,7 @@ function Page() {
 	useEffect(() => {
 		if (drawerOpened) {
 			setDraftFilters(filters);
+			setSortBy(filters.sort ?? "recommended");
 			const min = filters.price_min || 0;
 			const isRentOnly = filters.type?.length === 1 && filters.type[0] === "rent";
 			const max = filters.price_max || (isRentOnly ? 5000 : 500000);
@@ -261,6 +271,28 @@ function Page() {
 			setSelectedRegion(filters.region?.[0] || null);
 		}
 	}, [drawerOpened, filters]);
+
+	// Live count of listings matching the draft (debounced). Drives the
+	// "Показать N" label so the user sees the result size BEFORE applying —
+	// and notices immediately when a combination yields zero results.
+	useEffect(() => {
+		if (!drawerOpened) return;
+		let cancelled = false;
+		const timer = setTimeout(() => {
+			fetchUnifiedFeed({ ...buildFeedParams(1, draftFilters), per_page: 1 })
+				.then((res) => {
+					if (!cancelled) setDraftResultsCount(res.total);
+				})
+				.catch(() => {
+					// Count is a progressive enhancement — fall back to plain "Apply".
+					if (!cancelled) setDraftResultsCount(null);
+				});
+		}, 350);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [drawerOpened, draftFilters]);
 
 	// Initialize from URL params
 	useEffect(() => {
@@ -304,28 +336,16 @@ function Page() {
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchParams]);
 
+	// One badge unit per filter GROUP (a price range is one filter, not two).
+	// Only server-honoured filters are counted — mockup fields are hidden in
+	// the drawer and must never inflate the badge.
 	const activeFilterCount = [
 		filters.type?.length,
 		filters.property_type?.length,
 		filters.rooms?.length,
-		filters.price_min,
-		filters.price_max,
+		filters.price_min || filters.price_max,
 		filters.region?.length,
 		filters.district?.length,
-		// Mockups
-		filters.area_min,
-		filters.area_max,
-		filters.building_type?.length,
-		filters.condition?.length,
-		filters.house_type?.length,
-		filters.house_condition?.length,
-		filters.furnished?.length,
-		filters.amenities?.length,
-		filters.water_supply?.length,
-		filters.electricity?.length,
-		filters.heating?.length,
-		filters.gas_supply?.length,
-		filters.sewage?.length,
 	].filter(Boolean).length;
 
 	const handleCardClick = useCallback(
@@ -386,15 +406,23 @@ function Page() {
 	};
 
 	const handleApplyDraft = () => {
-		filtersChanged(draftFilters);
+		// Replace (not merge) so a reset draft actually clears applied filters.
+		filtersReplaced({
+			...draftFilters,
+			sort: sortBy === "recommended" ? undefined : sortBy,
+		});
 		applyFiltersAndClearScroll();
 		closeDrawer();
 	};
 
-	const handleClearDraft = () => {
-		handleClearFilters();
-		setDraftFilters({});
-		closeDrawer();
+	// Reset ONLY the draft: the drawer stays open and the applied filters /
+	// feed are untouched until the user presses Apply. The search query is
+	// not a drawer control, so it survives the reset.
+	const handleResetDraft = () => {
+		setDraftFilters(draftFilters.q ? { q: draftFilters.q } : {});
+		setSortBy("recommended");
+		setLocalPriceRange([0, 500000]);
+		setSelectedRegion(null);
 	};
 
 	const handleTypeChange = (value: string) => {
@@ -405,8 +433,8 @@ function Page() {
 			newTypes.push(value as any);
 		}
 
-		const isRentOnly = newTypes.length === 1 && newTypes[0] === "rent";
-		const newMax = isRentOnly ? 5000 : 500000;
+		const isRentOnlyNext = newTypes.length === 1 && newTypes[0] === "rent";
+		const newMax = isRentOnlyNext ? 5000 : 500000;
 		setLocalPriceRange([0, newMax]);
 		setDraftFilters((prev) => ({
 			...prev,
@@ -596,23 +624,24 @@ function Page() {
 			? "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
 			: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
 
-	const ptArray = draftFilters.property_type || [];
-	const isApt = ptArray.includes("apartment");
-	const isHouse = ptArray.includes("house");
-	const isCom = ptArray.includes("commercial");
-	const hasAnyType = ptArray.length > 0;
+	// Price slider bounds depend on the drafted deal type: rent-only budgets
+	// live on a much smaller scale than purchase prices.
+	const isRentOnly =
+		draftFilters.type?.length === 1 && draftFilters.type[0] === "rent";
+	const sliderMax = isRentOnly ? 5000 : 500000;
+	const sliderStep = isRentOnly ? 100 : 5000;
 
-	// Filters wired to backend (A2 hybrid): building_type, condition, amenities
-	// are filtered server-side at /listings. house_type, utilities, water_supply,
-	// house_condition do NOT have a server-side filter yet, so we keep those
-	// sections hidden until the backend lands.
+	// The home feed (/listings/feed) only honours type, property_type, rooms,
+	// price, region and district. Every section below is HIDDEN until the
+	// backend filters land — showing a control that silently does nothing
+	// erodes user trust faster than not having it at all.
 	const showMockup = {
-		buildingType: !hasAnyType || isApt,
-		condition: !hasAnyType || isApt || isCom || isHouse,
-		amenities: !hasAnyType || isApt || isHouse || isCom,
-		// hidden: no backend filter yet
+		buildingType: false,
+		condition: false,
+		amenities: false,
 		houseType: false,
 		utilities: false,
+		area: false,
 	};
 
 	const renderChipGroup = (
@@ -737,7 +766,10 @@ function Page() {
 						WebkitOverflowScrolling: "touch",
 					}}
 				>
-					<Stack gap="md" pb={80} px="md">
+					{/* pb must clear the floating footer: 56px buttons + 16px paddings
+					    + iOS safe-area inset (up to ~34px), otherwise the last card's
+					    controls hide behind the buttons. */}
+					<Stack gap="md" pb={140} px="md">
 						{/* Sorting */}
 						<PreferenceCard
 							icon={IconArrowsSort}
@@ -749,7 +781,7 @@ function Page() {
 							<Chip.Group
 								multiple={false}
 								value={sortBy}
-								onChange={(value) => setSortBy(value as string)}
+								onChange={(value) => setSortBy(value as HomeSort)}
 							>
 								<Group gap={8} wrap="wrap">
 									{(
@@ -777,6 +809,278 @@ function Page() {
 											{t(`search.sort.${option}`)}
 										</Chip>
 									))}
+								</Group>
+							</Chip.Group>
+						</PreferenceCard>
+
+						{/* Deal type — placed ABOVE price: the price scale depends on it
+						    (rent budgets vs purchase prices), so the user picks the deal
+						    first and never has an entered price silently reset. */}
+						<PreferenceCard
+							icon={IconTags}
+							iconColor="#228be6"
+							iconBg="#e7f5ff"
+							title={t("preferences.listingType")}
+							description={t("preferences.desc.listingType")}
+							isActive={(draftFilters.type?.length ?? 0) > 0}
+						>
+							<DealTypeGrid
+								value={draftFilters.type || []}
+								onChange={handleTypeChange}
+							/>
+						</PreferenceCard>
+
+						{/* Property type */}
+						<PreferenceCard
+							icon={IconBuildingEstate}
+							iconColor="#40c057"
+							iconBg="#ebfbee"
+							title={t("preferences.propertyType")}
+							description={t("preferences.desc.propertyType")}
+							isActive={(draftFilters.property_type?.length ?? 0) > 0}
+						>
+							<PropertyTypeGrid
+								value={draftFilters.property_type || []}
+								onChange={handleQuickFilter}
+							/>
+						</PreferenceCard>
+
+						{/* Price range — text inputs for precision (a finger on a
+						    $0–500k slider moves in ~$1.5k/px jumps), slider for feel. */}
+						<PreferenceCard
+							icon={IconCash}
+							iconColor="#be4bdb"
+							iconBg="#f3f0ff"
+							title={t("preferences.priceRange")}
+							description={t("preferences.desc.priceRange")}
+							isActive={!!draftFilters.price_min || !!draftFilters.price_max}
+						>
+							<Group grow mb={12} gap={10}>
+								<NumberInput
+									label={t("filter.priceFrom")}
+									size="sm"
+									radius={10}
+									min={0}
+									allowNegative={false}
+									allowDecimal={false}
+									thousandSeparator=" "
+									inputMode="numeric"
+									hideControls
+									prefix="$ "
+									placeholder="$ 0"
+									value={localPriceRange[0] > 0 ? localPriceRange[0] : ""}
+									onChange={(v) => {
+										const min = typeof v === "number" ? Math.max(0, v) : 0;
+										setLocalPriceRange(([, hi]) => [min, hi]);
+										setDraftFilters((prev) => ({
+											...prev,
+											price_min: min > 0 ? min : undefined,
+										}));
+									}}
+								/>
+								<NumberInput
+									label={t("filter.priceTo")}
+									size="sm"
+									radius={10}
+									min={0}
+									allowNegative={false}
+									allowDecimal={false}
+									thousandSeparator=" "
+									inputMode="numeric"
+									hideControls
+									prefix="$ "
+									placeholder={`$ ${sliderMax.toLocaleString("ru-RU")}`}
+									value={
+										localPriceRange[1] < sliderMax ? localPriceRange[1] : ""
+									}
+									onChange={(v) => {
+										// Empty / cleared input = no upper bound. Typed values
+										// above the slider scale are kept verbatim — that is
+										// the whole point of having a text field.
+										const max =
+											typeof v === "number" && v > 0 ? v : sliderMax;
+										setLocalPriceRange(([lo]) => [lo, max]);
+										setDraftFilters((prev) => ({
+											...prev,
+											price_max: max === sliderMax ? undefined : max,
+										}));
+									}}
+								/>
+							</Group>
+							<Box px={8}>
+								<RangeSlider
+									color="violet"
+									min={0}
+									max={sliderMax}
+									step={sliderStep}
+									value={[
+										Math.min(localPriceRange[0], sliderMax),
+										Math.min(localPriceRange[1], sliderMax),
+									]}
+									onChange={(value) =>
+										setLocalPriceRange(value as [number, number])
+									}
+									onChangeEnd={(value) => {
+										setDraftFilters((prev) => ({
+											...prev,
+											price_min: value[0] > 0 ? value[0] : undefined,
+											price_max:
+												value[1] < sliderMax ? value[1] : undefined,
+										}));
+									}}
+									marks={
+										isRentOnly
+											? [
+													{ value: 0, label: "$0" },
+													{ value: 2500, label: "$2.5k" },
+													{ value: 5000, label: "$5k+" },
+												]
+											: [
+													{ value: 0, label: "$0" },
+													{ value: 250000, label: "$250k" },
+													{ value: 500000, label: "$500k+" },
+												]
+									}
+									labelAlwaysOn={false}
+									mb={24}
+								/>
+							</Box>
+						</PreferenceCard>
+
+						{/* Building Type (Mockup) */}
+						{showMockup.buildingType && (
+							<PreferenceCard
+								icon={IconBuilding}
+								iconColor="#FF6E01"
+								iconBg="#FFF4E6"
+								title={t("seller:createListing.buildingType")}
+								isActive={(draftFilters.building_type?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
+									setDraftFilters(p => ({ ...p, building_type: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* House Type (Mockup) */}
+						{showMockup.houseType && (
+							<PreferenceCard
+								icon={IconHome}
+								iconColor="#be4bdb"
+								iconBg="#f3f0ff"
+								title={t("seller:createListing.houseType")}
+								isActive={(draftFilters.house_type?.length ?? 0) > 0}
+							>
+								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
+									setDraftFilters(p => ({ ...p, house_type: v.length > 0 ? v : undefined }))
+								)}
+							</PreferenceCard>
+						)}
+
+						{/* Area range (Mockup) */}
+						{showMockup.area && (
+						<PreferenceCard
+							icon={IconRulerMeasure}
+							iconColor="#40c057"
+							iconBg="#ebfbee"
+							title={t("seller:createListing.area")}
+							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
+						>
+							<Group justify="center" mb={12}>
+								<Box
+									style={{
+										backgroundColor: "#f3f0ff",
+										borderRadius: radii.md,
+										padding: "6px 16px",
+									}}
+								>
+									<Text size="sm" fw={700} c="green.7">
+										{t("filter.areaRange", { min: draftFilters.area_min || 0, max: draftFilters.area_max || 500 })}
+									</Text>
+								</Box>
+							</Group>
+							<Box px={8}>
+								<RangeSlider
+									color="green"
+									min={0}
+									max={500}
+									step={5}
+									value={[draftFilters.area_min || 0, draftFilters.area_max || 500]}
+									onChangeEnd={(value) => {
+										setDraftFilters((prev) => ({
+											...prev,
+											area_min: value[0] > 0 ? value[0] : undefined,
+											area_max: value[1] < 500 ? value[1] : undefined,
+										}));
+									}}
+									marks={[
+										{ value: 0, label: "0" },
+										{ value: 250, label: t("filter.areaMark", { value: 250 }) },
+										{ value: 500, label: t("filter.areaMark", { value: 500 }) },
+									]}
+									labelAlwaysOn={false}
+									mb={24}
+								/>
+							</Box>
+						</PreferenceCard>
+						)}
+
+						{/* Rooms */}
+						<PreferenceCard
+							icon={IconDoor}
+							iconColor="#ff922b"
+							iconBg="#fff4e6"
+							title={t("preferences.rooms")}
+							description={t("preferences.desc.rooms")}
+							isActive={(draftFilters.rooms?.length ?? 0) > 0}
+						>
+							<Chip.Group
+								multiple
+								value={draftFilters.rooms?.map(String) || []}
+								onChange={(values) => {
+									setDraftFilters((prev) => ({
+										...prev,
+										rooms:
+											values.length > 0
+												? values.map((v) => (v === "0" ? 0 : parseInt(v)))
+												: undefined,
+									}));
+								}}
+							>
+								<Group gap={8}>
+									{ROOMS_OPTIONS_KEYS.map((room) => {
+										const val = room === "studio" ? "0" : room;
+										const isActive = (
+											draftFilters.rooms?.map(String) || []
+										).includes(val);
+										return (
+											<Chip
+												key={room}
+												value={val}
+												color="blue"
+												variant="light"
+												styles={{
+													iconWrapper: { display: "none" },
+													label: {
+														borderRadius: radii.md,
+														fontWeight: 600,
+														fontSize: 13,
+														padding: "8px 16px",
+														height: 38,
+														display: "flex",
+														alignItems: "center",
+														border: isActive
+															? "1.5px solid #228be6"
+															: "1.5px solid #e9ecef",
+													},
+												}}
+											>
+												{room === "studio"
+													? t("common.roomsOption.studio")
+													: room}
+											</Chip>
+										);
+									})}
 								</Group>
 							</Chip.Group>
 						</PreferenceCard>
@@ -870,237 +1174,6 @@ function Page() {
 							)}
 						</PreferenceCard>
 
-						{/* Price range */}
-						<PreferenceCard
-							icon={IconCash}
-							iconColor="#be4bdb"
-							iconBg="#f3f0ff"
-							title={t("preferences.priceRange")}
-							description={t("preferences.desc.priceRange")}
-							isActive={!!draftFilters.price_min || !!draftFilters.price_max}
-						>
-							<Group justify="center" mb={12}>
-								<Box
-									style={{
-										backgroundColor: "#f3f0ff",
-										borderRadius: radii.md,
-										padding: "6px 16px",
-									}}
-								>
-									<Text size="sm" fw={700} c="violet.7">
-										${localPriceRange[0].toLocaleString("ru-RU")} — $
-										{localPriceRange[1].toLocaleString("ru-RU")}
-									</Text>
-								</Box>
-							</Group>
-							<Box px={8}>
-								{(() => {
-									const isRentOnly = draftFilters.type?.length === 1 && draftFilters.type[0] === "rent";
-									return (
-										<RangeSlider
-											color="violet"
-											min={0}
-											max={isRentOnly ? 5000 : 500000}
-											step={isRentOnly ? 100 : 5000}
-											value={localPriceRange}
-											onChange={(value) =>
-												setLocalPriceRange(value as [number, number])
-											}
-											onChangeEnd={(value) => {
-												const maxDefault = isRentOnly ? 5000 : 500000;
-												setDraftFilters((prev) => ({
-													...prev,
-													price_min: value[0] > 0 ? value[0] : undefined,
-													price_max: value[1] < maxDefault ? value[1] : undefined,
-												}));
-											}}
-											marks={
-												isRentOnly
-													? [
-															{ value: 0, label: "$0" },
-															{ value: 2500, label: "$2.5k" },
-															{ value: 5000, label: "$5k" },
-														]
-													: [
-															{ value: 0, label: "$0" },
-															{ value: 250000, label: "$250k" },
-															{ value: 500000, label: "$500k" },
-														]
-											}
-											labelAlwaysOn={false}
-											mb={24}
-										/>
-									);
-								})()}
-							</Box>
-						</PreferenceCard>
-
-						{/* Deal type */}
-						<PreferenceCard
-							icon={IconTags}
-							iconColor="#228be6"
-							iconBg="#e7f5ff"
-							title={t("preferences.listingType")}
-							description={t("preferences.desc.listingType")}
-							isActive={(draftFilters.type?.length ?? 0) > 0}
-						>
-							<DealTypeGrid
-								value={draftFilters.type || []}
-								onChange={handleTypeChange}
-							/>
-						</PreferenceCard>
-
-						{/* Property type */}
-						<PreferenceCard
-							icon={IconBuildingEstate}
-							iconColor="#40c057"
-							iconBg="#ebfbee"
-							title={t("preferences.propertyType")}
-							description={t("preferences.desc.propertyType")}
-							isActive={(draftFilters.property_type?.length ?? 0) > 0}
-						>
-							<PropertyTypeGrid
-								value={draftFilters.property_type || []}
-								onChange={handleQuickFilter}
-							/>
-						</PreferenceCard>
-
-						{/* Building Type (Mockup) */}
-						{showMockup.buildingType && (
-							<PreferenceCard
-								icon={IconBuilding}
-								iconColor="#FF6E01"
-								iconBg="#FFF4E6"
-								title={t("seller:createListing.buildingType")}
-								isActive={(draftFilters.building_type?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getBuildingTypeOpts(t), draftFilters.building_type || [], (v) => 
-									setDraftFilters(p => ({ ...p, building_type: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* House Type (Mockup) */}
-						{showMockup.houseType && (
-							<PreferenceCard
-								icon={IconHome}
-								iconColor="#be4bdb"
-								iconBg="#f3f0ff"
-								title={t("seller:createListing.houseType")}
-								isActive={(draftFilters.house_type?.length ?? 0) > 0}
-							>
-								{renderChipGroup(getHouseTypeOpts(t), draftFilters.house_type || [], (v) => 
-									setDraftFilters(p => ({ ...p, house_type: v.length > 0 ? v : undefined }))
-								)}
-							</PreferenceCard>
-						)}
-
-						{/* Area range (Mockup) */}
-						<PreferenceCard
-							icon={IconRulerMeasure}
-							iconColor="#40c057"
-							iconBg="#ebfbee"
-							title={t("seller:createListing.area")}
-							isActive={!!draftFilters.area_min || !!draftFilters.area_max}
-						>
-							<Group justify="center" mb={12}>
-								<Box
-									style={{
-										backgroundColor: "#f3f0ff",
-										borderRadius: radii.md,
-										padding: "6px 16px",
-									}}
-								>
-									<Text size="sm" fw={700} c="green.7">
-										{t("filter.areaRange", { min: draftFilters.area_min || 0, max: draftFilters.area_max || 500 })}
-									</Text>
-								</Box>
-							</Group>
-							<Box px={8}>
-								<RangeSlider
-									color="green"
-									min={0}
-									max={500}
-									step={5}
-									value={[draftFilters.area_min || 0, draftFilters.area_max || 500]}
-									onChangeEnd={(value) => {
-										setDraftFilters((prev) => ({
-											...prev,
-											area_min: value[0] > 0 ? value[0] : undefined,
-											area_max: value[1] < 500 ? value[1] : undefined,
-										}));
-									}}
-									marks={[
-										{ value: 0, label: "0" },
-										{ value: 250, label: t("filter.areaMark", { value: 250 }) },
-										{ value: 500, label: t("filter.areaMark", { value: 500 }) },
-									]}
-									labelAlwaysOn={false}
-									mb={24}
-								/>
-							</Box>
-						</PreferenceCard>
-
-						{/* Rooms */}
-						<PreferenceCard
-							icon={IconDoor}
-							iconColor="#ff922b"
-							iconBg="#fff4e6"
-							title={t("preferences.rooms")}
-							description={t("preferences.desc.rooms")}
-							isActive={(draftFilters.rooms?.length ?? 0) > 0}
-						>
-							<Chip.Group
-								multiple
-								value={draftFilters.rooms?.map(String) || []}
-								onChange={(values) => {
-									setDraftFilters((prev) => ({
-										...prev,
-										rooms:
-											values.length > 0
-												? values.map((v) => (v === "0" ? 0 : parseInt(v)))
-												: undefined,
-									}));
-								}}
-							>
-								<Group gap={8}>
-									{ROOMS_OPTIONS_KEYS.map((room) => {
-										const val = room === "studio" ? "0" : room;
-										const isActive = (
-											draftFilters.rooms?.map(String) || []
-										).includes(val);
-										return (
-											<Chip
-												key={room}
-												value={val}
-												color="blue"
-												variant="light"
-												styles={{
-													iconWrapper: { display: "none" },
-													label: {
-														borderRadius: radii.md,
-														fontWeight: 600,
-														fontSize: 13,
-														padding: "8px 16px",
-														height: 38,
-														display: "flex",
-														alignItems: "center",
-														border: isActive
-															? "1.5px solid #228be6"
-															: "1.5px solid #e9ecef",
-													},
-												}}
-											>
-												{room === "studio"
-													? t("common.roomsOption.studio")
-													: room}
-											</Chip>
-										);
-									})}
-								</Group>
-							</Chip.Group>
-						</PreferenceCard>
-
 						{/* Condition / Repair (Mockup) */}
 						{showMockup.condition && (
 							<PreferenceCard
@@ -1187,13 +1260,13 @@ function Page() {
 								c="#495057"
 								fw={600}
 								fz={14}
-								onClick={handleClearDraft}
+								onClick={handleResetDraft}
 								styles={{
 									root: {
-										backgroundColor: "rgba(255, 255, 255, 0.55)",
-										backdropFilter: "blur(20px) saturate(180%)",
-										WebkitBackdropFilter: "blur(20px) saturate(180%)",
-										border: "1px solid rgba(0, 0, 0, 0.12)",
+										// Solid surfaces: translucent buttons over scrolling
+										// content made both labels hard to read (WCAG fail).
+										backgroundColor: "#ffffff",
+										border: "1px solid #dee2e6",
 										boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
 									},
 								}}
@@ -1209,16 +1282,17 @@ function Page() {
 								fz={14}
 								onClick={handleApplyDraft}
 								styles={{
-									root: { 
-										backgroundColor: "rgba(64, 167, 227, 0.55)",
-										backdropFilter: "blur(20px) saturate(180%)",
-										WebkitBackdropFilter: "blur(20px) saturate(180%)",
+									root: {
+										backgroundColor: "#40A7E3",
 										boxShadow: "0 4px 15px rgba(64, 167, 227, 0.4)",
-										border: "1px solid rgba(255, 255, 255, 0.2)",
 									},
 								}}
 							>
-								{t("action.apply")}
+								{draftResultsCount !== null
+									? t("home.showResults", {
+											value: draftResultsCount.toLocaleString("ru-RU"),
+										})
+									: t("action.apply")}
 							</Button>
 						</Box>
 					</Box>

@@ -16,6 +16,7 @@ import {
   applyFilters,
   clearFilters,
   filtersChanged,
+  filtersReplaced,
   searchQueryChanged,
   tabChanged,
 } from '../events';
@@ -28,6 +29,7 @@ const SUBSCRIPTIONS_PER_PAGE = 20;
 // Wire .on() handlers
 $filters
   .on(filtersChanged, (state, updates) => ({ ...state, ...updates }))
+  .on(filtersReplaced, (_, next) => next)
   .on(searchQueryChanged, (state, q) => ({ ...state, q: q || undefined }));
 
 // Handle successful feed fetches with filter-matching guard
