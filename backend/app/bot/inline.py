@@ -26,6 +26,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineQuery,
     InlineQueryResultArticle,
+    InlineQueryResultPhoto,
     InputTextMessageContent,
 )
 
@@ -61,10 +62,17 @@ def _format_card_text(r: bot_search.BotSearchResult, lang: str) -> str:
     return ", ".join(bits) if bits else (r.title or r.id)
 
 
-def _to_inline_article(
+def _to_inline_result(
     r: bot_search.BotSearchResult, lang: str
-) -> InlineQueryResultArticle:
-    """Build one InlineQueryResultArticle from a BotSearchResult."""
+) -> InlineQueryResultArticle | InlineQueryResultPhoto:
+    """Build one inline result from a BotSearchResult.
+
+    Listings with a usable image render as a photo card
+    (``InlineQueryResultPhoto``) — the photo IS the result, with the
+    details as caption and the deep-link button; tapping shares the photo.
+    Listings without an image fall back to a compact text article so they
+    still appear in the list.
+    """
     body = _format_card_text(r, lang)
     open_url = deeplink.build_listing_link(r.id)
     keyboard = InlineKeyboardMarkup(
@@ -72,11 +80,20 @@ def _to_inline_article(
             [InlineKeyboardButton(text=t(lang, "search_open_in_app"), url=open_url)]
         ]
     )
+    if r.photo_url:
+        return InlineQueryResultPhoto(
+            id=r.id,
+            photo_url=r.photo_url,
+            thumbnail_url=r.photo_url,
+            title=r.title or body,
+            description=body,
+            caption=body,
+            reply_markup=keyboard,
+        )
     return InlineQueryResultArticle(
         id=r.id,
         title=r.title or body,
         description=body,
-        thumbnail_url=r.photo_url or None,
         input_message_content=InputTextMessageContent(
             message_text=body,
             disable_web_page_preview=True,
@@ -139,7 +156,7 @@ async def handle_inline_query(query: InlineQuery) -> None:
                 parsed, limit=bot_search.DEFAULT_INLINE_LIMIT
             )
 
-        articles = [_to_inline_article(r, lang) for r in results]
+        articles = [_to_inline_result(r, lang) for r in results]
         if not articles:
             # Zero hits: Telegram collapses the inline popup entirely on an
             # empty result list, which reads as a broken bot. Show one

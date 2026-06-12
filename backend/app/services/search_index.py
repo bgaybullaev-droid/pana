@@ -239,6 +239,34 @@ def _enum_value(v) -> Optional[str]:
     return v
 
 
+def _primary_image(listing) -> Optional[str]:
+    """Best display photo URL for the search document, mirroring the
+    autopost card: prefer the ``is_primary`` image, else the lowest-
+    position one, and within that image prefer a lighter resized variant
+    (medium → large → original) so inline/result cards load fast.
+
+    Defensive by design — if the ``images`` relationship isn't loaded
+    (e.g. a per-write ``index_listing`` call without an eager load),
+    return None instead of triggering an async lazy load that would
+    raise. The periodic ``sync_to_meilisearch`` backfill eager-loads
+    images, so the field is filled in there within one cycle.
+    """
+    try:
+        images = list(getattr(listing, "images", None) or [])
+    except Exception:
+        return None
+    if not images:
+        return None
+    chosen = next(
+        (im for im in images if getattr(im, "is_primary", False)), images[0]
+    )
+    return (
+        getattr(chosen, "medium_url", None)
+        or getattr(chosen, "large_url", None)
+        or getattr(chosen, "original_url", None)
+    )
+
+
 def _map_listing_to_document(listing: Listing) -> dict:
     """Flatten a Listing row into a Meilisearch document.
 
@@ -271,6 +299,8 @@ def _map_listing_to_document(listing: Listing) -> dict:
         "description": listing.description,
         "district": listing.district,
         "address": listing.address,
+        # Primary image for result cards (bot inline / search). May be None.
+        "photo_url": _primary_image(listing),
         # Location
         "region": listing.region,
         "latitude": listing.latitude,
@@ -453,6 +483,7 @@ async def backfill_all_listings(
     # Local imports keep this module importable even when SQLAlchemy or the
     # ORM model graph aren't loaded (e.g. CLI smoke tests / docs build).
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
 
     from app.db.models import Listing, ListingStatus
 
@@ -470,6 +501,9 @@ async def backfill_all_listings(
     while True:
         q = (
             select(Listing)
+            # Eager-load images so _primary_image() can read the photo URL
+            # without an async lazy load (which would raise mid-mapping).
+            .options(selectinload(Listing.images))
             .where(
                 Listing.status == ListingStatus.ACTIVE,
                 Listing.deleted_at.is_(None),
