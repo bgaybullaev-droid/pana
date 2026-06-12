@@ -206,7 +206,15 @@ function Stage2() {
 			const frame = previewFrameRef.current;
 			const panel = actionPanelRef.current;
 			if (!frame || !panel) return;
-			const frameTop = frame.getBoundingClientRect().top;
+			// The shared scroll container still holds Stage 1's scroll offset on
+			// entry (the scroll-to-top effect runs after paint, and on desktop
+			// browsers no later resize re-measures). getBoundingClientRect is
+			// viewport-relative, so a scrolled container makes the frame's top
+			// read too high and the height too tall — the frame then spills under
+			// the action bar. Add the offset back to size from the resting top;
+			// the fixed action bar is unaffected by scroll, so it needs none.
+			const scrollTop = scrollRef.current?.scrollTop ?? 0;
+			const frameTop = frame.getBoundingClientRect().top + scrollTop;
 			const panelTop = panel.getBoundingClientRect().top;
 			const next = Math.max(
 				PREVIEW_MIN_HEIGHT,
@@ -224,7 +232,7 @@ function Stage2() {
 			window.removeEventListener("orientationchange", measure);
 			vv?.removeEventListener("resize", measure);
 		};
-	}, [previewListing]);
+	}, [previewListing, scrollRef]);
 
 	const handlePublish = async () => {
 		if (!draftId) return;
