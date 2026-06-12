@@ -6,7 +6,7 @@
  * or go back to edit.
  */
 
-import { useRef, useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect, useLayoutEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnit } from "effector-react";
 import {
@@ -147,6 +147,13 @@ function buildPreviewListing(
 	};
 }
 
+// Fixed gap (px) kept between the bottom of the preview frame and the action
+// bar. The preview height is measured at runtime to honour this exact gap on
+// every device, rather than a magic constant that drifts with the variable
+// PageBar / Telegram-inset height above it.
+const PREVIEW_TO_ACTIONS_GAP = 12;
+const PREVIEW_MIN_HEIGHT = 360;
+
 function Stage2() {
 	const navigate = useNavigate();
 	const { webApp } = useTelegram();
@@ -170,6 +177,9 @@ function Stage2() {
 	// Preview "phone screenshot" frame — drawers opened from the preview
 	// render inside this element instead of covering the whole viewport.
 	const previewFrameRef = useRef<HTMLDivElement>(null);
+	// Bottom action bar — measured so the preview can stop a fixed gap above it.
+	const actionPanelRef = useRef<HTMLDivElement>(null);
+	const [previewHeight, setPreviewHeight] = useState<number | null>(null);
 
 	const previewListing = useMemo((): UnifiedListing | null => {
 		if (!draftFormData || !draftId) return null;
@@ -183,6 +193,38 @@ function Stage2() {
 			null;
 		return buildPreviewListing(draftFormData, draftId, description);
 	}, [draftFormData, draftId, edits, i18n.language]);
+
+	// Size the preview to end a fixed gap above the action bar. We measure the
+	// real distance between the frame's top and the (fixed) action bar's top
+	// rather than subtracting magic constants — the PageBar / Telegram-inset
+	// height above the frame varies by device and fullscreen mode, so only a
+	// live measurement keeps the bottom gap identical everywhere. Runs before
+	// paint (useLayoutEffect) and re-runs on any viewport change.
+	useLayoutEffect(() => {
+		if (!previewListing) return;
+		const measure = () => {
+			const frame = previewFrameRef.current;
+			const panel = actionPanelRef.current;
+			if (!frame || !panel) return;
+			const frameTop = frame.getBoundingClientRect().top;
+			const panelTop = panel.getBoundingClientRect().top;
+			const next = Math.max(
+				PREVIEW_MIN_HEIGHT,
+				Math.round(panelTop - frameTop - PREVIEW_TO_ACTIONS_GAP),
+			);
+			setPreviewHeight((prev) => (prev === next ? prev : next));
+		};
+		measure();
+		window.addEventListener("resize", measure);
+		window.addEventListener("orientationchange", measure);
+		const vv = window.visualViewport;
+		vv?.addEventListener("resize", measure);
+		return () => {
+			window.removeEventListener("resize", measure);
+			window.removeEventListener("orientationchange", measure);
+			vv?.removeEventListener("resize", measure);
+		};
+	}, [previewListing]);
 
 	const handlePublish = async () => {
 		if (!draftId) return;
@@ -261,13 +303,14 @@ function Stage2() {
 							ref={previewFrameRef}
 							mx="md"
 							style={{
-								// Fill the viewport between the header/subtitle and the
-								// fixed action panel, leaving a small breathing gap above
-								// the buttons. ~190px ≈ PageBar + subtitle + paddings (top)
-								// and the action panel height + gap (bottom).
+								// Height is measured (see useLayoutEffect) so the frame
+								// fills down to a fixed gap above the action bar on every
+								// device. The calc() is only a pre-measurement fallback.
 								height:
-									"calc(100dvh - var(--app-top-inset) - var(--safe-area-inset-bottom) - 190px)",
-								minHeight: 360,
+									previewHeight != null
+										? previewHeight
+										: "calc(100dvh - var(--app-top-inset) - var(--safe-area-inset-bottom) - 190px)",
+								minHeight: PREVIEW_MIN_HEIGHT,
 								borderRadius: 20,
 								overflow: "hidden",
 								boxShadow:
@@ -292,6 +335,7 @@ function Stage2() {
 
 			{/* ── Fixed bottom action panel ── */}
 			<Box
+				ref={actionPanelRef}
 				style={{
 					position: "fixed",
 					bottom: 0,
