@@ -231,6 +231,33 @@ class TestListingFeed:
         )
         assert resp.status_code == 200
 
+    async def test_feed_has_photo_tolerates_non_array_images(
+        self, client: AsyncClient, db_session, test_listing
+    ):
+        # Regression: crawler rows store mixed image shapes (legacy rows
+        # hold a JSON object, not an array). Postgres does not guarantee
+        # AND evaluation order, so a naive jsonb_array_length() predicate
+        # aborted the whole feed query with «cannot get array length of a
+        # non-array» → 500. The CASE-guarded predicate must skip such rows.
+        from app.db.models import TelegramListing
+
+        bad_row = TelegramListing(
+            property_type="apartment",
+            listing_type="sell",
+            price=51234,
+            currency="USD",
+            images={"cover": "legacy-object-shape.jpg"},
+        )
+        db_session.add(bad_row)
+        await db_session.flush()
+
+        resp = await client.get(
+            "/api/v1/listings/feed", params={"has_photo": "true"}
+        )
+        assert resp.status_code == 200
+        ids = [item["id"] for item in resp.json()["items"]]
+        assert str(bad_row.id) not in ids
+
     async def test_feed_posted_within(self, client: AsyncClient, test_listing):
         resp = await client.get(
             "/api/v1/listings/feed", params={"posted_within": 7}

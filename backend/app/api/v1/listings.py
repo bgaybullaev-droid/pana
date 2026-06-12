@@ -7,7 +7,7 @@ from typing import List, Literal, Optional, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import and_, delete, false, func, or_, select
+from sqlalchemy import case, delete, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -2062,13 +2062,17 @@ async def resolve_listing(
 def _jsonb_has_items(col):
     """SQL predicate: a JSONB column holds a non-empty array.
 
-    The `jsonb_typeof` guard keeps `jsonb_array_length` from erroring on
-    rows where the column is NULL or stores a non-array value.
+    MUST be a CASE expression: PostgreSQL does not guarantee evaluation
+    order of AND operands, so a plain `jsonb_typeof(col) = 'array' AND
+    jsonb_array_length(col) > 0` can still evaluate `jsonb_array_length`
+    on rows where the column stores an object/scalar and abort the whole
+    query with «cannot get array length of a non-array» (crawler rows
+    have mixed image shapes). CASE branches are documented to evaluate
+    lazily. NULL column → no branch matches → else False.
     """
-    return and_(
-        col.isnot(None),
-        func.jsonb_typeof(col) == "array",
-        func.jsonb_array_length(col) > 0,
+    return case(
+        (func.jsonb_typeof(col) == "array", func.jsonb_array_length(col) > 0),
+        else_=False,
     )
 
 
