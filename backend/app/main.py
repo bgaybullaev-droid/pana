@@ -1,6 +1,8 @@
 """Real Estate API - Main Application."""
 
+import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -69,7 +71,21 @@ if settings.sentry_dsn:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    # Startup
+    # Startup — ensure the Meilisearch index and its attribute config
+    # (filterable/sortable/searchable) exist before the first search hits
+    # it. Without a sortable ``created_at`` the bot's inline / ``/search``
+    # query errors out and silently returns zero results. Idempotent and
+    # fail-safe: a Meili outage only logs a warning, never blocks startup.
+    # Run off-thread so the (blocking) Meili HTTP calls don't stall the
+    # event loop during boot.
+    try:
+        from app.services.search_index import init_meilisearch_index
+
+        await asyncio.to_thread(init_meilisearch_index)
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "Meilisearch index bootstrap on startup failed", exc_info=True
+        )
     yield
     # Shutdown
     await close_redis()

@@ -19,9 +19,8 @@ Per Block D guardrails:
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
-from aiogram import F, Router
+from aiogram import Router
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -86,6 +85,27 @@ def _to_inline_article(
     )
 
 
+def _no_results_article(lang: str) -> InlineQueryResultArticle:
+    """Placeholder card for a zero-result inline query.
+
+    Telegram drops the inline popup silently when ``results=[]`` — the
+    worst UX, indistinguishable from a broken bot. Returning a single
+    explanatory article keeps the popup visible and nudges the user to
+    refine the query (or signals an empty index to ops).
+    """
+    title = t(lang, "inline_no_results")
+    hint = t(lang, "inline_no_results_hint")
+    return InlineQueryResultArticle(
+        id="no_results",
+        title=title,
+        description=hint,
+        input_message_content=InputTextMessageContent(
+            message_text=hint,
+            disable_web_page_preview=True,
+        ),
+    )
+
+
 def _resolve_lang(query: InlineQuery) -> str:
     """Pick the result language for an inline query.
 
@@ -120,6 +140,17 @@ async def handle_inline_query(query: InlineQuery) -> None:
             )
 
         articles = [_to_inline_article(r, lang) for r in results]
+        if not articles:
+            # Zero hits: Telegram collapses the inline popup entirely on an
+            # empty result list, which reads as a broken bot. Show one
+            # "nothing found" card instead. Short cache_time so real
+            # results surface as soon as the index has data.
+            await query.answer(
+                [_no_results_article(lang)],
+                cache_time=5,
+                is_personal=True,
+            )
+            return
         await query.answer(
             articles,
             cache_time=_CACHE_TIME_SECONDS,
@@ -130,11 +161,13 @@ async def handle_inline_query(query: InlineQuery) -> None:
             is_personal=True,
         )
     except Exception:
-        # Fail-soft: log + return empty so the user sees "no results"
-        # rather than a Telegram error toast.
+        # Fail-soft: log + show the "nothing found" card (not a blank
+        # popup) so the user still gets feedback, not a Telegram error.
         logger.exception("inline_query.handler_failed q=%r", raw[:80])
         try:
             # Per-user cache — output is locale-specific (see above).
-            await query.answer([], cache_time=5, is_personal=True)
+            await query.answer(
+                [_no_results_article(lang)], cache_time=5, is_personal=True
+            )
         except Exception:
             pass

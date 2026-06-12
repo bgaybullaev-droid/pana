@@ -1,5 +1,6 @@
 """Listing-related Celery tasks."""
 
+import asyncio
 import hashlib
 import logging
 from datetime import datetime
@@ -99,22 +100,60 @@ def update_exchange_rates() -> Dict[str, Any]:
 
 @celery_app.task
 def sync_to_meilisearch() -> Dict[str, Any]:
-    """Sync listings to Meilisearch search index.
+    """Reconcile the Meilisearch index from Postgres (periodic safety net).
+
+    In steady state the per-write hooks (``search_index.index_listing`` /
+    ``delete_listing``, called inline from the listings API) keep the index
+    current. This beat job covers the two gaps those hooks cannot:
+
+    1. **Bootstrap.** ``init_meilisearch_index`` (re)creates the index and
+       pushes the filterable/sortable/searchable attribute config. Without
+       a sortable ``created_at`` a fresh index rejects the bot's
+       ``sort=["created_at:desc"]`` query, so every inline / ``/search``
+       lookup silently returns zero results.
+    2. **Backfill.** Streams every ACTIVE listing into the index, so a fresh
+       deployment (or one recovering from a Meili data loss) becomes
+       searchable without a manual script run.
+
+    Idempotent (Meili upserts by primary key) and safe-fallback: a Meili
+    outage logs a warning and returns zero counts — Postgres stays the
+    source of truth.
 
     Returns:
         Result dict with sync counts
     """
+    from app.db.database import async_session_maker
+    from app.services.search_index import (
+        backfill_all_listings,
+        init_meilisearch_index,
+    )
+
     logger.info("Syncing listings to Meilisearch")
 
-    # TODO: Implement actual Meilisearch sync
-    # This should:
-    # 1. Get listings that need syncing (new or updated since last sync)
-    # 2. Transform them to Meilisearch document format
-    # 3. Index them in Meilisearch
+    if not init_meilisearch_index():
+        logger.warning(
+            "sync_to_meilisearch: Meilisearch unavailable; skipping backfill"
+        )
+        return {
+            "synced_at": datetime.utcnow().isoformat(),
+            "documents_indexed": 0,
+            "failed_count": 0,
+        }
 
+    async def _run() -> Dict[str, Any]:
+        async with async_session_maker() as session:
+            return await backfill_all_listings(session)
+
+    result = asyncio.run(_run())
+    logger.info(
+        "Meilisearch sync done: indexed=%d failed=%d",
+        result["indexed_count"],
+        result["failed_count"],
+    )
     return {
         "synced_at": datetime.utcnow().isoformat(),
-        "documents_indexed": 0,
+        "documents_indexed": result["indexed_count"],
+        "failed_count": result["failed_count"],
     }
 
 

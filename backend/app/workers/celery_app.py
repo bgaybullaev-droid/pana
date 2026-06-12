@@ -62,10 +62,13 @@ celery_app.conf.beat_schedule = {
         "task": "app.workers.tasks.notifications.cleanup_old_notifications",
         "schedule": crontab(minute=0, hour=3, day_of_week=0),  # Sunday 3am
     },
-    # Sync listings to Meilisearch every 5 minutes
+    # Reconcile the Meilisearch index from Postgres every 15 minutes.
+    # Per-write hooks keep the index current in steady state; this job is
+    # the bootstrap + backfill safety net (a full upsert), so 15 min keeps
+    # load modest while still self-healing a fresh or drifted index.
     "sync-meilisearch": {
         "task": "app.workers.tasks.listings.sync_to_meilisearch",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute="*/15"),
     },
     # Translate pending listings every 5 minutes
     "translate-pending-listings": {

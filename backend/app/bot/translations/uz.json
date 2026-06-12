@@ -82,6 +82,8 @@
   "fav_open_app_hint": "Sevimlilarga qo'shish uchun ilovani oching",
   "help_text": "Real Estate — ko'chmas mulk sotuvchilari uchun platforma.\n\n<b>Mavjud buyruqlar:</b>\n/start — Ro'yxatdan o'tishni boshlash\n/search — E'lonlarni qidirish\n/profile — Sotuvchi profilini ko'rish\n/language — Tilni o'zgartirish\n/help — Ushbu yordamni ko'rsatish\n/cancel — Joriy amalni bekor qilish\n\n<b>Bu qanday ishlaydi:</b>\n1. Tilni tanlang\n2. Sotuvchi sifatida ro'yxatdan o'ting (10 qadam)\n3. Administrator tasdig'ini kuting\n4. Veb-ilova orqali e'lonlar qo'shing",
   "help_title": "<b>Yordam</b>\n\n",
+  "inline_no_results": "😕 Hech narsa topilmadi",
+  "inline_no_results_hint": "So'rovni aniqlashtiring: tuman, xonalar soni va narxni ko'rsating. Masalan: «Chilonzor 2 xona 400 mln gacha».",
   "language_changed": "✅ Til o'zbek tiliga o'zgartirildi.",
   "language_select": "🌐 Tilni tanlang / Выберите язык:",
   "link_already_linked": "✅ Telegram allaqachon bog'langan. Ilovaga qayting.",
