@@ -40,6 +40,7 @@ import {
 	IconPhoto,
 	IconReceipt2,
 	IconKey,
+	IconClock,
 	IconHeart,
 	IconHeartFilled,
 } from "@tabler/icons-react";
@@ -377,8 +378,9 @@ function Page() {
 		filters.furnished ||
 			filters.allowed_pets ||
 			filters.allowed_students ||
-			filters.utilities_incl ||
-			filters.rent_period,
+			filters.utilities_incl,
+		// Rent period is its own card now → its own badge unit.
+		filters.rent_period,
 	].filter(Boolean).length;
 
 	const handleCardClick = useCallback(
@@ -1001,88 +1003,37 @@ function Page() {
 							/>
 						</PreferenceCard>
 
-						{/* Rent terms — furniture / pets / students / utilities / period (platform-only) */}
+						{/* Rent period — its own block right under the deal type: appears
+						    the moment «Аренда» is picked, hidden for sales. */}
 						{isRentContext && (
 						<PreferenceCard
-							icon={IconKey}
+							icon={IconClock}
 							iconColor="#0ca678"
 							iconBg="#e6fcf5"
-							title={t("filter.rentTerms")}
-							isActive={
-								!!draftFilters.furnished ||
-								!!draftFilters.allowed_pets ||
-								!!draftFilters.allowed_students ||
-								!!draftFilters.utilities_incl ||
-								!!draftFilters.rent_period
-							}
+							title={t("seller:createListing.rentPeriodLabel")}
+							isActive={!!draftFilters.rent_period}
 						>
-							<Stack gap={12}>
-								<Group gap={8} wrap="wrap">
-									{rentTermChips.map((c) => (
+							<Group gap={8} wrap="wrap">
+								{rentPeriodChips.map((c) => {
+									const active = draftFilters.rent_period === c.value;
+									return (
 										<UnstyledButton
-											key={c.label}
-											onClick={c.toggle}
-											style={toggleChipStyle(c.active)}
+											key={c.value}
+											onClick={() =>
+												setDraftFilters((prev) => ({
+													...prev,
+													rent_period: active ? undefined : c.value,
+												}))
+											}
+											style={toggleChipStyle(active)}
 										>
 											{c.label}
 										</UnstyledButton>
-									))}
-								</Group>
-								<Box>
-									<Text size="sm" fw={500} mb={6}>
-										{t("seller:createListing.rentPeriodLabel")}
-									</Text>
-									<Group gap={8} wrap="wrap">
-										{rentPeriodChips.map((c) => {
-											const active = draftFilters.rent_period === c.value;
-											return (
-												<UnstyledButton
-													key={c.value}
-													onClick={() =>
-														setDraftFilters((prev) => ({
-															...prev,
-															rent_period: active ? undefined : c.value,
-														}))
-													}
-													style={toggleChipStyle(active)}
-												>
-													{c.label}
-												</UnstyledButton>
-											);
-										})}
-									</Group>
-								</Box>
-							</Stack>
-						</PreferenceCard>
-						)}
-
-						{/* Sale terms — mortgage / installment / halal (platform-only) */}
-						{isSaleContext && (
-						<PreferenceCard
-							icon={IconReceipt2}
-							iconColor="#fa5252"
-							iconBg="#fff5f5"
-							title={t("filter.saleTerms")}
-							isActive={
-								!!draftFilters.mortgage_ok ||
-								!!draftFilters.installment_ok ||
-								!!draftFilters.halol_ok
-							}
-						>
-							<Group gap={8} wrap="wrap">
-								{saleTermChips.map((c) => (
-									<UnstyledButton
-										key={c.label}
-										onClick={c.toggle}
-										style={toggleChipStyle(c.active)}
-									>
-										{c.label}
-									</UnstyledButton>
-								))}
+									);
+								})}
 							</Group>
 						</PreferenceCard>
 						)}
-
 						{/* Property type */}
 						<PreferenceCard
 							icon={IconBuildingEstate}
@@ -1557,6 +1508,62 @@ function Page() {
 								})}
 							</Group>
 						</PreferenceCard>
+
+						{/* Sale terms — mortgage / installment / halal (platform-only) */}
+						{isSaleContext && (
+						<PreferenceCard
+							icon={IconReceipt2}
+							iconColor="#fa5252"
+							iconBg="#fff5f5"
+							title={t("filter.saleTerms")}
+							isActive={
+								!!draftFilters.mortgage_ok ||
+								!!draftFilters.installment_ok ||
+								!!draftFilters.halol_ok
+							}
+						>
+							<Group gap={8} wrap="wrap">
+								{saleTermChips.map((c) => (
+									<UnstyledButton
+										key={c.label}
+										onClick={c.toggle}
+										style={toggleChipStyle(c.active)}
+									>
+										{c.label}
+									</UnstyledButton>
+								))}
+							</Group>
+						</PreferenceCard>
+						)}
+
+						{/* Rent terms — furniture / pets / students / utilities (platform-only).
+						    The rent PERIOD lives in its own card right under the deal type. */}
+						{isRentContext && (
+						<PreferenceCard
+							icon={IconKey}
+							iconColor="#0ca678"
+							iconBg="#e6fcf5"
+							title={t("filter.rentTerms")}
+							isActive={
+								!!draftFilters.furnished ||
+								!!draftFilters.allowed_pets ||
+								!!draftFilters.allowed_students ||
+								!!draftFilters.utilities_incl
+							}
+						>
+							<Group gap={8} wrap="wrap">
+								{rentTermChips.map((c) => (
+									<UnstyledButton
+										key={c.label}
+										onClick={c.toggle}
+										style={toggleChipStyle(c.active)}
+									>
+										{c.label}
+									</UnstyledButton>
+								))}
+							</Group>
+						</PreferenceCard>
+						)}
 					</Stack>
 				</Box>
 				
