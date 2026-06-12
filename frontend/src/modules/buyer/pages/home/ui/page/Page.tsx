@@ -343,10 +343,24 @@ function Page() {
 	}, [isAuthenticated, currentSavedSearch, searchQuery, filters, navigate, t]);
 
 
-	// Show heart only when there's an active query or any filter
-	const hasActiveSearch = !!searchQuery || Object.keys(filters).some(
-		(k) => (filters as Record<string, unknown>)[k] !== undefined && (filters as Record<string, unknown>)[k] !== null
-	);
+	// A "real" search = a text query OR at least one actual filter constraint.
+	// `sort` is excluded: it's always set (defaults to "newest") and only
+	// orders results, it doesn't narrow them — so it must never count as a
+	// search, otherwise the Save-Search heart would show permanently. Empty
+	// arrays and falsy booleans count as "not set" too.
+	const hasActiveSearch =
+		!!searchQuery ||
+		Object.entries(filters).some(([key, value]) => {
+			if (key === "sort") return false;
+			if (value == null) return false;
+			if (Array.isArray(value)) return value.length > 0;
+			if (typeof value === "boolean") return value;
+			return true;
+		});
+
+	// The Save-Search heart appears only once a real search has produced
+	// results on screen — hidden by default and whenever a search yields none.
+	const showSaveSearch = hasActiveSearch && listings.length > 0;
 
 	const filterScrollRef = useRef<HTMLDivElement>(null);
 	const filterSwipe = useSwipeDismiss({
@@ -691,7 +705,7 @@ function Page() {
 						{/* Save Search heart — moved inside the form, right before the
 						    filter button; shown only while a search/filters are active
 						    (i.e. results are on screen). */}
-						{hasActiveSearch && (
+						{showSaveSearch && (
 							<ActionIcon
 								variant="subtle"
 								color={isSaved ? "red" : "gray"}
