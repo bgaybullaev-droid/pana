@@ -3874,20 +3874,23 @@ async def update_listing(
     # trip it.
     _clear_incompatible_fields(listing)
 
-    # Block F F1 — DRAFT → ACTIVE guard. The seller must wait until
-    # AI generation completes before publishing. The worker keeps
-    # status=DRAFT during generation; only ai_description_ru being
-    # populated proves a successful run (or a fallback). On premature
-    # PATCH we return 409 so the frontend can keep polling.
+    # Block F F1 — DRAFT → ACTIVE publish. AI prose is an enhancement, not
+    # a hard gate: the buyer feed renders the `description` column (see
+    # _resolve_field), so a complete listing is publishable from its own
+    # text + structured fields. We used to 409 ("ai_generation_pending")
+    # until the worker populated ai_description_ru, which stranded sellers
+    # who skip AI text (the "Далее" path) or whose generation is slow/down —
+    # they hit "не удалось опубликовать" with no way to proceed. When AI
+    # text isn't ready yet, fall back to the seller's own description so
+    # AI-text consumers (autopost / SEO / export) still have content; the
+    # worker's "already_generated" guard then leaves it untouched.
     if (
         old_status == ListingStatus.DRAFT
         and listing.status == ListingStatus.ACTIVE
         and not listing.ai_description_ru
+        and listing.description
     ):
-        raise HTTPException(
-            status_code=409,
-            detail={"error": "ai_generation_pending"},
-        )
+        listing.ai_description_ru = listing.description
 
     # Block F F1 — on the first DRAFT → ACTIVE flip: auto-approve so the
     # listing becomes immediately B2C-visible (no manual moderation queue),

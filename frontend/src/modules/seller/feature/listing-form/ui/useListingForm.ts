@@ -7,6 +7,7 @@ import {
 	uploadImageFx,
 	type ListingImageCreateData,
 } from "@shared/state/listing/model";
+import { compressImage } from "@shared/lib/image/compressImage";
 import {
 	getRegionOptions,
 	getDistrictOptions,
@@ -286,7 +287,11 @@ export function useListingForm(
 		for (const pendingItem of pendingItems) {
 			if (pendingItem.kind !== "pending") continue;
 			try {
-				const result = await uploadImageFx(pendingItem.file);
+				// Normalise to a downscaled JPEG first: phone photos are often
+				// HEIC or >10 MB, which the backend rejects outright. Falls back
+				// to the original file if it can't be decoded.
+				const prepared = await compressImage(pendingItem.file);
+				const result = await uploadImageFx(prepared);
 				const uploadedItem: ImageItem = {
 					kind: "uploaded",
 					data: {
