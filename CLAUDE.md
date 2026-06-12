@@ -66,6 +66,7 @@ Production VPS deploys are triggered by pushing to **`main`** on
 | `frontend/index.html` | Browser tab title, meta description |
 | `frontend/src/shared/i18n/locales/ru/seller.json` | Seller namespace translations |
 | `.github/workflows/deploy.yml` | VPS deploy (only runs on hasanoff507 repo) |
+| `BACKLOG.md` | Бэклог отложенных задач — показывать по запросу «покажи бэклог» |
 
 ## Dev Commands
 

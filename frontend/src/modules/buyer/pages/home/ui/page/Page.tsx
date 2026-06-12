@@ -93,11 +93,11 @@ import {
 	filtersReplaced,
 	applyFilters,
 	clearFilters,
-	tabChanged,
+	// tabChanged, — нужен только таб-бару, скрытому до запуска (см. BACKLOG.md)
 	buildFeedParams,
 	type HomeFilters,
 	type HomeSort,
-	type HomeTab,
+	// type HomeTab, — нужен только таб-бару, скрытому до запуска (см. BACKLOG.md)
 } from "../../model";
 import {
 	$savedSearches,
@@ -1679,6 +1679,12 @@ function Page() {
 	);
 
 	// F048 — Three-tab bar (Feed / Subscriptions / Recommended).
+	// СКРЫТ до запуска (2026-06-12): вернём после запуска как 2 таба
+	// («Для вас» / «Подписки») — детали в BACKLOG.md, «Вернуть табы на главную».
+	// Для возврата раскомментировать блок ниже и импорты tabChanged / type HomeTab.
+	// Пока табов нет, лента работает в режиме по умолчанию ($activeTab = "feed").
+	const HomeTabBar = null;
+	/*
 	const HomeTabBar = (
 		<Box
 			px="md"
@@ -1718,6 +1724,7 @@ function Page() {
 			</Group>
 		</Box>
 	);
+	*/
 
 	// Tab-aware empty state copy (no saved searches / no view history).
 	const renderEmptyTabState = () => {
