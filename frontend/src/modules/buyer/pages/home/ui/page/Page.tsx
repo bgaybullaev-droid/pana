@@ -130,6 +130,78 @@ const toggleChipStyle = (active: boolean): CSSProperties => ({
 // was dropped — the default is now "newest"). Array order = display order.
 const SORT_OPTIONS = ["newest", "cheapest", "expensive"] as const;
 
+/** Property-type union used by the property-type-gated visibility rules. */
+type PropertyType = NonNullable<HomeFilters["property_type"]>[number];
+
+/** Visibility of each contextual filter card for the current draft. */
+interface FilterVisibility {
+	rentPeriod: boolean;
+	saleTerms: boolean;
+	rentTerms: boolean;
+	buildingType: boolean;
+	rooms: boolean;
+	floor: boolean;
+	condition: boolean;
+}
+
+// Top-down filter cascade. The deal type (sell/rent) and the property type
+// (apartment/house/commercial/land) decide which refinement cards are
+// meaningful — «Тип строения» only applies to apartments, «Этаж» makes no
+// sense for a plot of land, and so on. Property-type gates use union
+// semantics: a card is shown when at least one selected type needs it, and
+// while nothing is selected yet (broad default) every card stays visible.
+function getFilterVisibility(draft: HomeFilters): FilterVisibility {
+	const props = draft.property_type ?? [];
+	const propApplies = (types: PropertyType[]) =>
+		props.length === 0 || props.some((p) => types.includes(p));
+	const isRent = !!draft.type?.includes("rent");
+	const isSale = !!draft.type?.includes("sell");
+	return {
+		rentPeriod: isRent,
+		saleTerms: isSale,
+		// Furniture / pets / students / utilities are residential-only.
+		rentTerms: isRent && propApplies(["apartment", "house"]),
+		buildingType: propApplies(["apartment"]),
+		rooms: propApplies(["apartment", "house"]),
+		floor: propApplies(["apartment"]),
+		condition: propApplies(["apartment", "house", "commercial"]),
+	};
+}
+
+// Strip filter values whose card is hidden for the current draft, so a
+// control the user can't see can never leave an "invisible" active filter
+// that silently cuts the feed and inflates the badge / «Показать N» count.
+// Run whenever a gating selection (deal type / property type) changes and
+// when the drawer syncs from applied filters.
+function pruneHiddenFilters(draft: HomeFilters): HomeFilters {
+	const vis = getFilterVisibility(draft);
+	const next = { ...draft };
+	if (!vis.buildingType) next.building_type = undefined;
+	if (!vis.rooms) next.rooms = undefined;
+	if (!vis.floor) {
+		next.floor_min = undefined;
+		next.floor_max = undefined;
+		next.total_floors_min = undefined;
+		next.total_floors_max = undefined;
+		next.not_first_floor = undefined;
+		next.not_last_floor = undefined;
+	}
+	if (!vis.condition) next.condition = undefined;
+	if (!vis.rentPeriod) next.rent_period = undefined;
+	if (!vis.saleTerms) {
+		next.mortgage_ok = undefined;
+		next.installment_ok = undefined;
+		next.halol_ok = undefined;
+	}
+	if (!vis.rentTerms) {
+		next.furnished = undefined;
+		next.allowed_pets = undefined;
+		next.allowed_students = undefined;
+		next.utilities_incl = undefined;
+	}
+	return next;
+}
+
 function Page() {
 	const { t, i18n } = useTranslation(["buyer", "seller"]);
 	const navigate = useNavigate();
@@ -288,7 +360,7 @@ function Page() {
 	// Sync drawer values when it opens
 	useEffect(() => {
 		if (drawerOpened) {
-			setDraftFilters(filters);
+			setDraftFilters(pruneHiddenFilters(filters));
 			const min = filters.price_min || 0;
 			const isRentOnly = filters.type?.length === 1 && filters.type[0] === "rent";
 			const max = filters.price_max || (isRentOnly ? 5000 : 500000);
@@ -501,12 +573,14 @@ function Page() {
 		const isRentOnlyNext = newTypes.length === 1 && newTypes[0] === "rent";
 		const newMax = isRentOnlyNext ? 5000 : 500000;
 		setLocalPriceRange([0, newMax]);
-		setDraftFilters((prev) => ({
-			...prev,
-			type: newTypes.length > 0 ? newTypes : undefined,
-			price_min: undefined,
-			price_max: undefined,
-		}));
+		setDraftFilters((prev) =>
+			pruneHiddenFilters({
+				...prev,
+				type: newTypes.length > 0 ? newTypes : undefined,
+				price_min: undefined,
+				price_max: undefined,
+			}),
+		);
 	};
 
 	const handleQuickFilter = (propertyType: string) => {
@@ -516,10 +590,12 @@ function Page() {
 		} else {
 			newProps.push(propertyType as any);
 		}
-		setDraftFilters((prev) => ({
-			...prev,
-			property_type: newProps.length > 0 ? newProps : undefined,
-		}));
+		setDraftFilters((prev) =>
+			pruneHiddenFilters({
+				...prev,
+				property_type: newProps.length > 0 ? newProps : undefined,
+			}),
+		);
 	};
 
 	// Inline sort row — part of the collapsible header block, right under the
@@ -733,11 +809,12 @@ function Page() {
 	const sliderMax = isRentOnly ? 5000 : 500000;
 	const sliderStep = isRentOnly ? 100 : 5000;
 
-	// Deal-terms cards are contextual and appear only after the user picks
-	// the matching deal type: sale terms when «Продажа» is selected, rent
-	// terms when «Аренда». Nothing selected → neither card.
-	const isSaleContext = !!draftFilters.type?.includes("sell");
-	const isRentContext = !!draftFilters.type?.includes("rent");
+	// Every contextual card's visibility is derived from the live draft so
+	// the drawer cascades top-down: the deal type and the selected property
+	// types decide which refinement cards make sense. Hidden cards also get
+	// their values pruned (see pruneHiddenFilters), so a card you can't see
+	// can never leave an invisible active filter behind.
+	const visibility = getFilterVisibility(draftFilters);
 
 	const renderChipGroup = (
 		options: { value: string; label: string }[],
@@ -1032,7 +1109,7 @@ function Page() {
 
 						{/* Rent period — its own block right under the deal type: appears
 						    the moment «Аренда» is picked, hidden for sales. */}
-						{isRentContext && (
+						{visibility.rentPeriod && (
 						<PreferenceCard
 							icon={IconClock}
 							iconColor="#0ca678"
@@ -1076,7 +1153,8 @@ function Page() {
 							/>
 						</PreferenceCard>
 
-						{/* Building type (new / secondary) */}
+						{/* Building type (new / secondary) — apartment-only */}
+						{visibility.buildingType && (
 						<PreferenceCard
 							icon={IconBuilding}
 							iconColor="#FF6E01"
@@ -1104,6 +1182,7 @@ function Page() {
 								})}
 							</Group>
 						</PreferenceCard>
+						)}
 
 						{/* Price range — text inputs for precision (a finger on a
 						    $0–500k slider moves in ~$1.5k/px jumps), slider for feel. */}
@@ -1207,7 +1286,8 @@ function Page() {
 							</Box>
 						</PreferenceCard>
 
-						{/* Rooms */}
+						{/* Rooms — apartments & houses only */}
+						{visibility.rooms && (
 						<PreferenceCard
 							icon={IconDoor}
 							iconColor="#ff922b"
@@ -1266,6 +1346,7 @@ function Page() {
 								</Group>
 							</Chip.Group>
 						</PreferenceCard>
+						)}
 
 						{/* Region & District */}
 						<PreferenceCard
@@ -1383,7 +1464,8 @@ function Page() {
 							})}
 						</PreferenceCard>
 
-						{/* Floor & storeys */}
+						{/* Floor & storeys — apartment-only */}
+						{visibility.floor && (
 						<PreferenceCard
 							icon={IconStairs}
 							iconColor="#be4bdb"
@@ -1468,8 +1550,10 @@ function Page() {
 								</Box>
 							</Stack>
 						</PreferenceCard>
+						)}
 
-						{/* Condition / repair */}
+						{/* Condition / repair — all property types except land */}
+						{visibility.condition && (
 						<PreferenceCard
 							icon={IconTools}
 							iconColor="#228be6"
@@ -1487,6 +1571,7 @@ function Page() {
 									})),
 							)}
 						</PreferenceCard>
+						)}
 
 						{/* Photo & freshness */}
 						<PreferenceCard
@@ -1542,7 +1627,7 @@ function Page() {
 						</PreferenceCard>
 
 						{/* Sale terms — mortgage / installment / halal (platform-only) */}
-						{isSaleContext && (
+						{visibility.saleTerms && (
 						<PreferenceCard
 							icon={IconReceipt2}
 							iconColor="#fa5252"
@@ -1570,7 +1655,7 @@ function Page() {
 
 						{/* Rent terms — furniture / pets / students / utilities (platform-only).
 						    The rent PERIOD lives in its own card right under the deal type. */}
-						{isRentContext && (
+						{visibility.rentTerms && (
 						<PreferenceCard
 							icon={IconKey}
 							iconColor="#0ca678"
