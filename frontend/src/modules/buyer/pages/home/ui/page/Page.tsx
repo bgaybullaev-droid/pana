@@ -688,6 +688,28 @@ function Page() {
 								<IconX size={10} color="white" />
 							</ActionIcon>
 						)}
+						{/* Save Search heart — moved inside the form, right before the
+						    filter button; shown only while a search/filters are active
+						    (i.e. results are on screen). */}
+						{hasActiveSearch && (
+							<ActionIcon
+								variant="subtle"
+								color={isSaved ? "red" : "gray"}
+								size={32}
+								radius="xl"
+								onClick={(e) => {
+									e.stopPropagation();
+									handleToggleSaveSearch();
+								}}
+								style={{ transition: "transform 0.15s ease" }}
+							>
+								{isSaved ? (
+									<IconHeartFilled size={20} style={{ color: "#ff6b6b" }} />
+								) : (
+									<IconHeart size={20} stroke={1.6} />
+								)}
+							</ActionIcon>
+						)}
 						<Box style={{ position: "relative" }}>
 							<ActionIcon
 								variant="subtle"
@@ -730,24 +752,6 @@ function Page() {
 							)}
 						</Box>
 					</UnstyledButton>
-
-					{/* ── Save Search heart ── shown when query or filters are active */}
-					{hasActiveSearch && (
-						<ActionIcon
-							variant="subtle"
-							color={isSaved ? "red" : "gray"}
-							size={42}
-							radius="xl"
-							onClick={handleToggleSaveSearch}
-							style={{ transition: "transform 0.15s ease" }}
-						>
-							{isSaved ? (
-								<IconHeartFilled size={22} style={{ color: "#ff6b6b" }} />
-							) : (
-								<IconHeart size={22} stroke={1.6} />
-							)}
-						</ActionIcon>
-					)}
 
 					{/* ── Notifications bell ── */}
 					<Box
