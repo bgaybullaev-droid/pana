@@ -67,6 +67,8 @@ Production VPS deploys are triggered by pushing to **`main`** on
 | `frontend/src/shared/i18n/locales/ru/seller.json` | Seller namespace translations |
 | `.github/workflows/deploy.yml` | VPS deploy (only runs on hasanoff507 repo) |
 | `BACKLOG.md` | Бэклог отложенных задач — показывать по запросу «покажи бэклог» |
+| `spec-kit/block-d/SOURCE_SPEC_V2.md` | Исходная функциональная спецификация Блока D (Telegram-механики Фазы 1, V2.0) — канонический референс |
+| `spec-kit/UNFINISHED_TASKS.md` | Аудит «сделано/не сделано» по всем блокам (мог устареть — сверять с кодом) |
 
 ## Dev Commands
 
