@@ -174,6 +174,7 @@ function Page() {
 	// Inline sort bottom-sheet (replaces the drawer's old sort card).
 	const [sortSheetOpened, { open: openSortSheet, close: closeSortSheet }] =
 		useDisclosure(false);
+	useTelegramBackClose(sortSheetOpened, closeSortSheet);
 	useTelegramBackClose(drawerOpened, closeDrawer);
 	const { openSearch, searchOpen } = useLayoutContext();
 	const { isAuthenticated } = useAuth();
@@ -521,6 +522,42 @@ function Page() {
 		}));
 	};
 
+	// Inline sort row — part of the collapsible header block, right under the
+	// search bar: left — result count; right — a button showing the current
+	// order that opens the sort sheet. Collapses together with the search bar
+	// on scroll. (Baymard: sort kept separate from filters, current order
+	// always visible.) Count hidden while the feed is empty/loading.
+	const SortBar = (
+		<Box px="md" pt={0} pb={8} style={{ maxWidth: 980, margin: "0 auto" }}>
+			<Group justify="space-between" align="center" wrap="nowrap" gap="sm">
+				<Text size="sm" c="dimmed" fw={500} style={{ whiteSpace: "nowrap" }}>
+					{total > 0 ? listingsCountLabel : ""}
+				</Text>
+				<UnstyledButton
+					onClick={openSortSheet}
+					aria-label={t("search.sortBy")}
+					style={{
+						display: "inline-flex",
+						alignItems: "center",
+						gap: 6,
+						height: 34,
+						padding: "0 14px",
+						borderRadius: 17,
+						backgroundColor: "#f1f3f5",
+						color: "#343a40",
+						fontWeight: 600,
+						fontSize: 13,
+						whiteSpace: "nowrap",
+						flexShrink: 0,
+					}}
+				>
+					<IconArrowsSort size={16} />
+					{t(`search.sort.${currentSort}`)}
+				</UnstyledButton>
+			</Group>
+		</Box>
+	);
+
 	// Search header content (rendered inside RootPage's TabBar)
 	const SearchHeaderContent = (
 		<>
@@ -678,6 +715,7 @@ function Page() {
 					</Box>
 				</Group>
 			</Box>
+			{SortBar}
 		</>
 	);
 
@@ -1720,40 +1758,6 @@ function Page() {
 	);
 	*/
 
-	// Inline sort row — sits in the freed-up tab slot. Left: result count;
-	// right: a button showing the current order that opens the sort sheet.
-	// (Baymard: sort kept separate from filters, current order always visible.)
-	const SortBar = (
-		<Box px="md" pt={8} pb={2} style={{ maxWidth: 980, margin: "0 auto" }}>
-			<Group justify="space-between" align="center" wrap="nowrap" gap="sm">
-				<Text size="sm" c="dimmed" fw={500} style={{ whiteSpace: "nowrap" }}>
-					{listingsCountLabel}
-				</Text>
-				<UnstyledButton
-					onClick={openSortSheet}
-					aria-label={t("search.sortBy")}
-					style={{
-						display: "inline-flex",
-						alignItems: "center",
-						gap: 6,
-						height: 34,
-						padding: "0 14px",
-						borderRadius: 17,
-						backgroundColor: "#f1f3f5",
-						color: "#343a40",
-						fontWeight: 600,
-						fontSize: 13,
-						whiteSpace: "nowrap",
-						flexShrink: 0,
-					}}
-				>
-					<IconArrowsSort size={16} />
-					{t(`search.sort.${currentSort}`)}
-				</UnstyledButton>
-			</Group>
-		</Box>
-	);
-
 	// Bottom-sheet picker for the sort order (mobile-first, mirrors FilterDrawer).
 	const SortSheet = (
 		<Drawer
@@ -1780,7 +1784,7 @@ function Page() {
 				body: { padding: 0 },
 			}}
 		>
-			<Box style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+			<Box style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}>
 				{/* Drag handle */}
 				<Box py={10} style={{ display: "flex", justifyContent: "center" }}>
 					<Box
@@ -1950,7 +1954,6 @@ function Page() {
 			{FilterDrawer}
 			{HomeTabBar}
 			{SortSheet}
-			{SortBar}
 			<Container className="listings-container" px="md" pt="sm">
 				{/* Block phase-2 — marketing banners (home_top placement) */}
 				<HomeBanners placement="home_top" />
