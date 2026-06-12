@@ -19,6 +19,7 @@ import { commentsApi } from '@shared/api/comments';
 import type { Comment } from '@shared/api/types';
 import { CommentItem } from '../main/CommentItem';
 import { radii } from '@app/styles/theme';
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface CommentsDrawerProps {
   opened: boolean;
@@ -38,6 +39,8 @@ export const CommentsDrawer: FC<CommentsDrawerProps> = ({
   listingId,
   onCommentAdded,
 }) => {
+  // Telegram Back closes this overlay instead of navigating
+  useTelegramBackClose(opened, onClose);
   const { t } = useTranslation('buyer');
   const [comments, setComments] = useState<CommentWithReplies[]>([]);
   const [isLoading, setIsLoading] = useState(false);

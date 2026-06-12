@@ -31,6 +31,7 @@ import {
 	PROMOTION_DEFAULT_DAYS,
 	type PromotionKind,
 } from "../model";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface BoostModalProps {
 	listingId: string | null;
@@ -43,6 +44,7 @@ function formatUzs(amount: number): string {
 }
 
 export function BoostModal({ listingId, opened, onClose }: BoostModalProps) {
+	useTelegramBackClose(opened, onClose);
 	const { t } = useTranslation("seller");
 	const navigate = useNavigate();
 	const [tab, setTab] = useState<PromotionKind>("urgent");

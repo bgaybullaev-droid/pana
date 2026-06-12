@@ -17,6 +17,9 @@ interface TabBarProps {
  * In fullscreen Telegram the title renders inside the system controls row
  * (between Back and the minimize/close pill); elsewhere it falls back to a
  * regular 56px bar row.
+ *
+ * The title row never moves; only `children` (the search block on Home)
+ * collapse on scroll, mirroring Telegram's own controls which stay put.
  */
 export function TabBar({ title, actions, children }: TabBarProps) {
 	const { headerVisible } = useLayoutContext();
@@ -33,110 +36,95 @@ export function TabBar({ title, actions, children }: TabBarProps) {
 				marginLeft: "calc(-50vw + 50%)",
 				marginRight: "calc(-50vw + 50%)",
 				width: "100vw",
-				pointerEvents: headerVisible ? "auto" : "none",
+				...glass,
+				paddingTop: titleInSystemRow
+					? "var(--safe-area-inset-top)"
+					: "var(--app-top-inset)",
+				borderBottom: "1px solid rgba(0,0,0,0.06)",
 			}}
 		>
-			{/* Collapsible panel — clears the fullscreen system zone and
-			    slides away on scroll. */}
-			<Box
-				style={{
-					...glass,
-					paddingTop: titleInSystemRow
-						? "var(--safe-area-inset-top)"
-						: "var(--app-top-inset)",
-					borderBottom: "1px solid rgba(0,0,0,0.06)",
-					transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-					transition: "transform 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
-					willChange: "transform",
-				}}
-			>
-				{/* Fullscreen: title lives in Telegram's controls row; side
-				    paddings keep it clear of the Back chip and ⌄/… pill. */}
-				{titleInSystemRow && (
-					<Box
+			{/* Fullscreen: title lives in Telegram's controls row; side
+			    paddings keep it clear of the Back chip and ⌄/… pill. */}
+			{titleInSystemRow && (
+				<Box
+					style={{
+						height: "var(--content-safe-area-inset-top)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						padding: "0 90px",
+					}}
+				>
+					<Text
+						truncate
 						style={{
-							height: "var(--content-safe-area-inset-top)",
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							padding: "0 90px",
+							fontSize: 17,
+							fontWeight: 700,
+							color: "#1C1C1E",
+							maxWidth: "100%",
 						}}
 					>
+						{title}
+					</Text>
+				</Box>
+			)}
+			{children ? (
+				/* Collapsible zone — the only part that hides on scroll.
+				   Animated via grid-template-rows (0fr clips the content);
+				   on engines without fr-animation it just snaps. */
+				<Box
+					style={{
+						display: "grid",
+						gridTemplateRows: headerVisible ? "1fr" : "0fr",
+						transition:
+							"grid-template-rows 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
+						pointerEvents: headerVisible ? "auto" : "none",
+					}}
+				>
+					<Box style={{ overflow: "hidden", minHeight: 0 }}>{children}</Box>
+				</Box>
+			) : !titleInSystemRow || actions ? (
+				<Box
+					style={{
+						maxWidth: 980,
+						margin: "0 auto",
+						height: 56,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						padding: "0 16px",
+						position: "relative",
+					}}
+				>
+					{!titleInSystemRow && (
 						<Text
-							truncate
 							style={{
 								fontSize: 17,
-								fontWeight: 700,
+								fontWeight: 600,
 								color: "#1C1C1E",
-								maxWidth: "100%",
+								textAlign: "center",
+								flex: 1,
 							}}
 						>
 							{title}
 						</Text>
-					</Box>
-				)}
-				{children ||
-					(!titleInSystemRow || actions ? (
+					)}
+					{actions && (
 						<Box
 							style={{
-								maxWidth: 980,
-								margin: "0 auto",
-								height: 56,
+								position: "absolute",
+								right: 16,
+								top: 0,
+								bottom: 0,
 								display: "flex",
 								alignItems: "center",
-								justifyContent: "center",
-								padding: "0 16px",
-								position: "relative",
 							}}
 						>
-							{!titleInSystemRow && (
-								<Text
-									style={{
-										fontSize: 17,
-										fontWeight: 600,
-										color: "#1C1C1E",
-										textAlign: "center",
-										flex: 1,
-									}}
-								>
-									{title}
-								</Text>
-							)}
-							{actions && (
-								<Box
-									style={{
-										position: "absolute",
-										right: 16,
-										top: 0,
-										bottom: 0,
-										display: "flex",
-										alignItems: "center",
-									}}
-								>
-									{actions}
-								</Box>
-							)}
+							{actions}
 						</Box>
-					) : null)}
-			</Box>
-			{/* Status-bar scrim — fades in as the panel collapses so the
-			    system clock and Telegram's fullscreen buttons stay readable
-			    over content; invisible while the panel itself covers the
-			    zone (avoids double-stacked glass). Zero-height outside
-			    fullscreen. */}
-			<Box
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					height: "var(--app-top-inset)",
-					...glass,
-					opacity: headerVisible ? 0 : 1,
-					transition: "opacity 0.4s cubic-bezier(0.4, 0.6, 0.2, 1)",
-					pointerEvents: "none",
-				}}
-			/>
+					)}
+				</Box>
+			) : null}
 		</Box>
 	);
 }

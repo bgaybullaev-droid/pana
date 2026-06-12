@@ -64,6 +64,7 @@ import {
 	type AiLang,
 } from "@modules/seller/feature/listing-form/ui/aiDescriptionSlots";
 import { radii, surface } from "@app/styles/theme";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 const AI_POLL_INTERVAL_MS = 2000;
 const AI_POLL_MAX_ITERATIONS = 15;
@@ -99,6 +100,7 @@ function Page() {
 	// generic edit-form's success effect chain doesn't fire here; we
 	// own the success toast + redirect.
 	const [sellModalOpen, setSellModalOpen] = useState(false);
+	useTelegramBackClose(sellModalOpen, () => setSellModalOpen(false));
 	const [soldPrice, setSoldPrice] = useState<number | "">("");
 	const [soldCurrency, setSoldCurrency] = useState<"USD" | "UZS">("USD");
 	const [soldNotes, setSoldNotes] = useState("");

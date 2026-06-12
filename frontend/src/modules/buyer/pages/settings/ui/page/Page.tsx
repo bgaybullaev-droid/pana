@@ -64,6 +64,7 @@ import { shadows, radii } from "@app/styles/theme";
 import { SectionCard } from "./SectionCard";
 import { SettingsRow } from "./SettingsRow";
 import { DestructiveBlock } from "./DestructiveBlock";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 // Global style for row tap feedback
 const TAP_STYLE = `
@@ -92,6 +93,9 @@ function Page() {
 	const [soonOpened, soonHandlers] = useDisclosure(false);
 	const [logoutOpened, logoutHandlers] = useDisclosure(false);
 	const [deleteOpened, deleteHandlers] = useDisclosure(false);
+	useTelegramBackClose(soonOpened, soonHandlers.close);
+	useTelegramBackClose(logoutOpened, logoutHandlers.close);
+	useTelegramBackClose(deleteOpened, deleteHandlers.close);
 
 	if (!isAuthenticated) {
 		return (

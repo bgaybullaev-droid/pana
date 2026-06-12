@@ -1,7 +1,9 @@
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Suspense, lazy, useEffect, useRef } from "react";
 import { LoadingOverlay } from "@mantine/core";
+import { useUnit } from "effector-react";
 import { useTelegram } from "@app/providers/useTelegram";
+import { $backHandlers } from "@shared/lib/telegram/backStack";
 import { parseStartParam, fetchDeepLinkPayload } from "@shared/lib/deepLinks";
 import { filtersApplied } from "@modules/buyer/feature/filter/model";
 import type { BuyerFilterState } from "@shared/api/types";
@@ -106,6 +108,10 @@ function TelegramBackButtonManager() {
 	const { webApp } = useTelegram();
 	const navigate = useNavigate();
 	const location = useLocation();
+	// Open overlays (drawers / modals) intercept Back: it closes the
+	// topmost one instead of navigating. See useTelegramBackClose.
+	const backHandlers = useUnit($backHandlers);
+	const hasOverlay = backHandlers.length > 0;
 
 	useEffect(() => {
 		// BackButton requires Telegram WebApp 6.1+. Older clients (e.g. 6.0)
@@ -121,13 +127,21 @@ function TelegramBackButtonManager() {
 		const rootPaths = ["/", "/search", "/auth"];
 		const isRootPath = rootPaths.includes(location.pathname);
 
-		if (!isRootPath) {
+		if (hasOverlay || !isRootPath) {
 			webApp.BackButton.show();
 		} else {
 			webApp.BackButton.hide();
 		}
 
 		const handleBackClick = () => {
+			// Read the stack live — overlays may open/close between the
+			// subscription render and the actual click.
+			const stack = $backHandlers.getState();
+			const topOverlay = stack[stack.length - 1];
+			if (topOverlay) {
+				topOverlay();
+				return;
+			}
 			// Direct deep-link entries have no in-app history (idx 0) —
 			// going back would leave the SPA, so route to home instead.
 			if (window.history.state && window.history.state.idx > 0) {
@@ -142,7 +156,7 @@ function TelegramBackButtonManager() {
 		return () => {
 			webApp.BackButton.offClick(handleBackClick);
 		};
-	}, [webApp, location.pathname, navigate]);
+	}, [webApp, location.pathname, navigate, hasOverlay]);
 
 	return null;
 }

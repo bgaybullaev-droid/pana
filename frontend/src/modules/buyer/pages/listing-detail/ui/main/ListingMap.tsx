@@ -5,6 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { UnifiedListing } from "@shared/api/types";
 import { shadows } from "@app/styles/theme";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 // Coordinates for Uzbekistan regions and cities
 const LOCATION_COORDS: Record<string, [number, number]> = {
@@ -161,6 +162,7 @@ export const ListingMap: FC<ListingMapProps> = ({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const mapRef = useRef<L.Map | null>(null);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	useTelegramBackClose(isFullscreen, () => setIsFullscreen(false));
 
 	// Re-fit Leaflet after the container resizes (entering/leaving fullscreen).
 	useEffect(() => {

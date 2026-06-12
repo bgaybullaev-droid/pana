@@ -33,6 +33,7 @@ import {
 	$tariffsError,
 } from "../../model/stores";
 import { fetchTariffsStatusFx } from "../../model/effects";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 function Page() {
 	const { t } = useTranslation("seller");
@@ -49,6 +50,7 @@ function Page() {
 		modalOpened,
 		{ open: openModal, close: closeModal },
 	] = useDisclosure(false);
+	useTelegramBackClose(modalOpened, closeModal);
 
 	useEffect(() => {
 		if (!tariffs && !isLoading) {

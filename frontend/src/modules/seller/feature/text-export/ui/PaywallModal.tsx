@@ -8,6 +8,7 @@
 import { Modal, Stack, Text, Button, Group } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface PaywallModalProps {
 	opened: boolean;
@@ -15,6 +16,7 @@ interface PaywallModalProps {
 }
 
 export function PaywallModal({ opened, onClose }: PaywallModalProps) {
+	useTelegramBackClose(opened, onClose);
 	const { t } = useTranslation("seller");
 	const navigate = useNavigate();
 

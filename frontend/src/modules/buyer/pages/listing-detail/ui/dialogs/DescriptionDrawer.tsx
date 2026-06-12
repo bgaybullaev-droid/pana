@@ -22,6 +22,7 @@ import { useSwipeDismiss } from "@shared/hooks/useSwipeDismiss";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { DrawerBackButton } from "./DrawerBackButton";
 import { formatPrice, radii } from "@app/styles/theme";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface DescriptionDrawerProps {
 	opened: boolean;
@@ -211,6 +212,8 @@ export const DescriptionDrawer: FC<DescriptionDrawerProps> = ({
 	onViewMap,
 	container,
 }) => {
+	// Telegram Back closes this overlay instead of navigating
+	useTelegramBackClose(opened, onClose);
 	const { t, i18n } = useTranslation("buyer");
 	const navigate = useNavigate();
 	const [commentsOpen, setCommentsOpen] = useState(false);

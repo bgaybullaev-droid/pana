@@ -41,6 +41,7 @@ import {
 	fetchClientsFx,
 	updateClientFx,
 } from "../../model";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 function Page() {
 	const { t } = useTranslation("seller");
@@ -174,6 +175,7 @@ interface CreateProps {
 }
 
 function CreateModal({ opened, onClose, onDone }: CreateProps) {
+	useTelegramBackClose(opened, onClose);
 	const { t } = useTranslation("seller");
 	const [name, setName] = useState("");
 	const [phone, setPhone] = useState("");
@@ -269,6 +271,7 @@ interface EditProps {
 }
 
 function EditModal({ client, onClose, onDelete }: EditProps) {
+	useTelegramBackClose(!!client, onClose);
 	const { t } = useTranslation("seller");
 	const [name, setName] = useState("");
 	const [phone, setPhone] = useState("");

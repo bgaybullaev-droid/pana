@@ -7,6 +7,7 @@ import { translateDistrict } from "@shared/lib/regions";
 import { getListingCoords } from "../main/ListingMap";
 import { radii } from "@app/styles/theme";
 import { DrawerBackButton } from "./DrawerBackButton";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 const ListingMap = lazy(() =>
 	import("../main/ListingMap").then((m) => ({ default: m.ListingMap })),
@@ -30,6 +31,8 @@ export const MapDrawer: FC<MapDrawerProps> = ({
 	onBackToDescription,
 	container,
 }) => {
+	// Telegram Back closes this overlay instead of navigating
+	useTelegramBackClose(opened, onClose);
 	const { t } = useTranslation("buyer");
 	const coords = getListingCoords(listing);
 	const locationText = [translateDistrict(listing.district, t), listing.address]

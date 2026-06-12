@@ -32,6 +32,7 @@ import {
 	IconBulb,
 } from "@tabler/icons-react";
 import { BottomNavigation } from "@modules/buyer/shared/ui/BottomNavigation";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 import {
 	searchQueryChanged,
 	applyFilters,
@@ -103,6 +104,8 @@ export function Layout() {
 		}
 		closeSearchRaw();
 	}, [closeSearchRaw]);
+	// Telegram Back closes the search overlay instead of navigating
+	useTelegramBackClose(searchOpen, closeSearch);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchFocused, setSearchFocused] = useState(false);

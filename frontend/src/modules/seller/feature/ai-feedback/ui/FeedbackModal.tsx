@@ -25,6 +25,7 @@ import {
 	submitFeedbackFx,
 	type FeedbackCategory,
 } from "../model";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface FeedbackModalProps {
 	opened: boolean;
@@ -48,6 +49,7 @@ export function FeedbackModal({
 	listingId,
 	generationId,
 }: FeedbackModalProps) {
+	useTelegramBackClose(opened, onClose);
 	const { t } = useTranslation("seller");
 	const [category, setCategory] = useState<FeedbackCategory>("grammar");
 	const [comment, setComment] = useState("");

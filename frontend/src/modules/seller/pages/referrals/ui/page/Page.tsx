@@ -39,6 +39,7 @@ import {
 	fetchReferralOverviewFx,
 	regenerateReferralCodeFx,
 } from "../../model/effects";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 /**
  * PR-T — phase-2 referral program cabinet page.
@@ -61,6 +62,7 @@ function Page() {
 	]);
 	const [confirmOpen, { open: openConfirm, close: closeConfirm }] =
 		useDisclosure(false);
+	useTelegramBackClose(confirmOpen, closeConfirm);
 	const [regenError, setRegenError] = useState<string | null>(null);
 
 	useEffect(() => {

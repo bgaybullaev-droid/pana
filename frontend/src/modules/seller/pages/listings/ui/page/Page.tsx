@@ -57,6 +57,7 @@ import { EmptyState } from "@shared/ui/EmptyState";
 import { ListingRow } from "@shared/ui/ListingRow";
 import { radii, shadows, surface } from "@app/styles/theme";
 import { translateDistrict } from "@shared/lib/regions";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface UnifiedCard {
 	id: string;
@@ -88,6 +89,7 @@ function Page() {
 	const { t } = useTranslation("seller");
 	const { t: tBuyer } = useTranslation("buyer");
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+	useTelegramBackClose(deleteModalOpen, () => setDeleteModalOpen(false));
 	const [listingToDelete, setListingToDelete] = useState<string | null>(null);
 	// Block phase-2 — boost modal state (promotion purchase).
 	const [boostModalListingId, setBoostModalListingId] = useState<string | null>(

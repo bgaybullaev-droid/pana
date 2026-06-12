@@ -107,6 +107,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "@app/providers/useAuth";
 import { HomeBanners } from "@modules/buyer/feature/home-banners";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 // Shared pill/toggle style for single- and multi-select filter chips.
 const toggleChipStyle = (active: boolean): CSSProperties => ({
@@ -162,6 +163,7 @@ function Page() {
 	const initializedRef = useRef(false);
 	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
 		useDisclosure(false);
+	useTelegramBackClose(drawerOpened, closeDrawer);
 	const { openSearch, searchOpen } = useLayoutContext();
 	const { isAuthenticated } = useAuth();
 

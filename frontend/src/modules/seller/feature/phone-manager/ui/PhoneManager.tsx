@@ -35,6 +35,7 @@ import {
 	deletePhoneFx,
 	type PhoneRow,
 } from "../model/effects";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 const MAX_ADDITIONAL_PHONES = 3;
 
@@ -49,6 +50,8 @@ export function PhoneManager() {
 		deleteModalOpened,
 		{ open: openDeleteModal, close: closeDeleteModal },
 	] = useDisclosure(false);
+	useTelegramBackClose(addModalOpened, closeAddModal);
+	useTelegramBackClose(deleteModalOpened, closeDeleteModal);
 
 	// Add-flow state
 	const [phone, setPhone] = useState("");

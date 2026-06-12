@@ -37,6 +37,7 @@ import {
 	updateChannelPostFx,
 	recreateChannelPostFx,
 } from "../../model/effects";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 /**
  * Block D D4 — seller cabinet "Autoposting" page.
@@ -64,6 +65,7 @@ function Page() {
 		mediaModalOpen,
 		{ open: openMediaModal, close: closeMediaModal },
 	] = useDisclosure(false);
+	useTelegramBackClose(mediaModalOpen, closeMediaModal);
 	const [pendingPostId, setPendingPostId] = useState<string | null>(null);
 	const [pendingPostAgeHours, setPendingPostAgeHours] = useState<number | null>(
 		null,

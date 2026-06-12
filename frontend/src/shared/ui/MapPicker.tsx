@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { IconMaximize, IconMinimize, IconMapPin } from "@tabler/icons-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
 interface MapPickerProps {
 	lat: number | null;
@@ -48,6 +49,7 @@ export const MapPicker: FC<MapPickerProps> = ({
 	const mapRef = useRef<L.Map | null>(null);
 	const markerRef = useRef<L.Marker | null>(null);
 	const [fullscreen, setFullscreen] = useState(false);
+	useTelegramBackClose(fullscreen, () => setFullscreen(false));
 
 	const center: [number, number] = lat && lng ? [lat, lng] : DEFAULT_CENTER;
 	const hasMarker = lat != null && lng != null;
