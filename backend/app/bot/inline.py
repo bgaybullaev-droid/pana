@@ -123,13 +123,18 @@ async def handle_inline_query(query: InlineQuery) -> None:
         await query.answer(
             articles,
             cache_time=_CACHE_TIME_SECONDS,
-            is_personal=False,
+            # Results are language-dependent (parsed + rendered per the
+            # user's locale). is_personal=True keeps Telegram from caching
+            # one user's localized output and serving it to everyone in a
+            # shared chat — e.g. an Uzbek user getting Russian results.
+            is_personal=True,
         )
     except Exception:
         # Fail-soft: log + return empty so the user sees "no results"
         # rather than a Telegram error toast.
         logger.exception("inline_query.handler_failed q=%r", raw[:80])
         try:
-            await query.answer([], cache_time=5, is_personal=False)
+            # Per-user cache — output is locale-specific (see above).
+            await query.answer([], cache_time=5, is_personal=True)
         except Exception:
             pass

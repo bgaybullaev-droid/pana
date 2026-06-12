@@ -257,7 +257,7 @@ async def _start_payload_link(
     Returns (handled, outcome). ``user`` arg is unused; this is a phone
     flow, not telegram_id-based.
     """
-    del user, lang  # unused — message text below is hard-coded ru today
+    del user  # unused — this is a phone flow, not telegram_id-based
     phone = f"+998{body}"
     phone_user_q = await session.execute(
         select(User).where(User.phone == phone, User.deleted_at.is_(None))
@@ -266,22 +266,17 @@ async def _start_payload_link(
 
     if phone_user:
         if phone_user.telegram_id == telegram_id:
-            await message.answer("✅ Telegram уже привязан. Вернитесь в приложение.")
+            await message.answer(t(lang, "link_already_linked"))
             return True, deeplink.OUTCOME_RESOLVED
         old_user = await _find_user_by_telegram_id(session, telegram_id)
         if old_user and old_user.id != phone_user.id:
             old_user.telegram_id = None
         phone_user.telegram_id = telegram_id
         await session.commit()
-        await message.answer(
-            f"✅ Telegram привязан к номеру {phone}. "
-            f"Вернитесь в приложение и попробуйте снова."
-        )
+        await message.answer(t(lang, "link_success", phone=phone))
         return True, deeplink.OUTCOME_RESOLVED
 
-    await message.answer(
-        "❌ Пользователь не найден. Сначала введите номер телефона в приложении."
-    )
+    await message.answer(t(lang, "link_user_not_found"))
     return True, deeplink.OUTCOME_REJECTED_UNKNOWN
 
 
@@ -2075,8 +2070,13 @@ async def _handle_fav_toggle(call: CallbackQuery, *, intent: str) -> None:
                 listing_id,
             )
             try:
+                # No linked user → no stored language; derive from the
+                # Telegram client locale so the toast still localizes.
+                hint_lang = language_from_telegram_code(
+                    getattr(call.from_user, "language_code", None)
+                )
                 await call.answer(
-                    "Откройте приложение, чтобы добавить в избранное",
+                    t(hint_lang, "fav_open_app_hint"),
                     show_alert=False,
                 )
             except Exception:
@@ -2101,8 +2101,21 @@ async def _handle_fav_toggle(call: CallbackQuery, *, intent: str) -> None:
                 listing_id,
                 getattr(listing, "status", None),
             )
+            # Append a localized "no longer available" note to the post
+            # body (not just a transient toast) and drop the keyboard so
+            # the card visibly reflects the dead state and can't be tapped
+            # again. Captions cap at 1024, message text at 4096.
+            note = t(lang, "push_listing_unavailable")
             try:
-                await call.message.edit_reply_markup(reply_markup=None)
+                if call.message.caption is not None:
+                    new_caption = f"{call.message.caption}\n\n{note}"[:1024]
+                    await call.message.edit_caption(
+                        caption=new_caption, reply_markup=None
+                    )
+                else:
+                    base = call.message.text or ""
+                    new_text = f"{base}\n\n{note}".strip()[:4096]
+                    await call.message.edit_text(new_text, reply_markup=None)
             except Exception:
                 pass
             try:
