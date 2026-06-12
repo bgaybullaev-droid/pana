@@ -68,6 +68,7 @@ Production VPS deploys are triggered by pushing to **`main`** on
 | `.github/workflows/deploy.yml` | VPS deploy (only runs on hasanoff507 repo) |
 | `BACKLOG.md` | Бэклог отложенных задач — показывать по запросу «покажи бэклог» |
 | `spec-kit/block-d/SOURCE_SPEC_V2.md` | Исходная функциональная спецификация Блока D (Telegram-механики Фазы 1, V2.0) — канонический референс |
+| `spec-kit/block-d/FOLLOWUP_PLAN.md` | План доводки Блока D (8 PR: FU1–FU8) с живым чек-листом статусов — в новой сессии брать первый незакрытый PR |
 | `spec-kit/UNFINISHED_TASKS.md` | Аудит «сделано/не сделано» по всем блокам (мог устареть — сверять с кодом) |
 
 ## Dev Commands

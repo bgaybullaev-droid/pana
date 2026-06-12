@@ -39,6 +39,8 @@ Russian fragments in an Uzbek interface, no Cyrillic-in-Latin bleed.
 
 0. [SOURCE_SPEC_V2.md](SOURCE_SPEC_V2.md) — дословный исходный текст
    функциональной спецификации V2.0 (продуктовый source of truth).
+   Для текущих доделок см. [FOLLOWUP_PLAN.md](FOLLOWUP_PLAN.md) —
+   план FU1–FU8 с живым чек-листом статусов.
 1. [TRUTH_LAYER_AUDIT.md](TRUTH_LAYER_AUDIT.md) — what already exists vs
    what needs building. **Start here.**
 2. [READINESS_REPORT.md](READINESS_REPORT.md) — risk register, open

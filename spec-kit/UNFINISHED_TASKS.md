@@ -110,33 +110,21 @@ Zero progress. Five signal tasks, `account_suspicion` + `account_link` tables, a
 
 ## Block D — Telegram-native mechanics (V2.0)
 
-All five primary tasks (D1–D5) are functionally DONE. Two gaps remain:
+**Re-audited 2026-06-12 (code-verified).** All five tasks D1–D5 are functionally
+DONE — including every gap listed by the 2026-05-13 audit below-the-fold history:
+`PATCH /api/v1/me/language` exists (`backend/app/api/v1/preferences.py:143`),
+the TWA Settings language picker is live, autopost transition hooks are wired
+(`backend/app/api/v1/listings.py` — `_dispatch_autopost_for_status_change`),
+the Cabinet autoposting page with the 48h modal exists
+(`frontend/src/modules/seller/pages/autoposting/`), and `User.language` →
+i18next sync happens on auth (`frontend/src/app/providers/AuthProvider.tsx:121-132`).
 
-### D1 — Menu Button + trilingual picker · **PARTIAL (frontend gap)**
-
-| Missing piece | Where |
-|---|---|
-| No `PATCH /api/v1/me/language` endpoint. TWA can't write back the user's locale choice. | `backend/app/api/v1/preferences.py` |
-| No language picker UI on the TWA `/settings` page. | `frontend/src/modules/buyer/pages/settings/` (or equivalent). |
-
-### D4 — Channel autoposting · **PARTIAL (transition hooks)**
-
-| Missing piece | Where |
-|---|---|
-| Listing-status transitions (`ACTIVE` → `SOLD` / `PAUSED` / `DELETED`) are not wired to dispatch the autopost edit / mark-sold / delete tasks. The domain logic + tasks exist but the hooks are missing from the listing-mutation endpoints. | `backend/app/api/v1/listings.py` PATCH/DELETE handlers should call `_dispatch_autopost_for_status_change` helper. |
-| Frontend Cabinet UI for "Update post" / 48 h edit-cutoff modal not present. | `frontend/src/modules/seller/pages/autoposting/` |
-
-### Cross-cutting — language sync on TWA auth · **PARTIAL**
-
-| Missing piece | Where |
-|---|---|
-| No sync of `User.language` → `localStorage.i18nextLng` on first TWA auth. Frontend only reads from localStorage and never reconciles with backend's authoritative value. | `frontend/src/app/providers/useAuth.ts` (or the post-login handler). |
-
-### D — DONE
-
-* **D2** — Inline keyboards in push notifications (favorites add/remove, "Contact seller" prefilled chat, "Open in app").
-* **D3** — Deep-link system (listing / filter / claim / agent / referral / ref payloads + resolver).
-* **D5** — In-bot search (form + inline mode) with Meilisearch + query parser + district fuzzy.
+Remaining follow-up work (8 small PRs, ~8–9 days: quick fixes incl. the inline
+`is_personal` cache bug, per-listing autopost opt-out + stale badge on My
+Listings, bot rate limits, Block D test coverage, parser telemetry, filter
+deep-link hydration fix + marketing slugs, saved-search digest, docs/ops) is
+specified in **`spec-kit/block-d/FOLLOWUP_PLAN.md`** — the live status
+checklist lives there; do not duplicate statuses here.
 
 ---
 
@@ -205,13 +193,11 @@ These can be moved to `spec-kit/done/` to keep the boards honest.
 | **C2** "My Listings" chip + third-listing toast + dashboard aggregate | 1 day | Pre-launch UX |
 | **C4** phone-picker on listing forms + delete-with-active-listings modal | 1.5 days | Pre-launch UX |
 | **C5** multi-account detection — five signals, tables, admin queue + UI | 6 days | Post-launch |
-| **D1** `PATCH /me/language` + TWA settings UI | 0.5 day | Pre-launch UX |
-| **D4** listing-status → autopost transition hooks + Cabinet "Update post" modal | 1 day | Pre-launch UX |
-| **D** cross-cut: `User.language` → localStorage sync on TWA auth | 0.5 day | Pre-launch UX |
+| **Block D follow-up** — FU1–FU8 per `spec-kit/block-d/FOLLOWUP_PLAN.md` (D1/D4/cross-cut rows from the 2026-05-13 audit are DONE) | ~8–9 days | Pre-launch UX / quality |
 | **F3c ops** DNS / cert / sitemap submission / Rich Results / Lighthouse | 1 day + propagation | Launch |
 | **seller-dashboard-counters** `/contact` endpoint + self-view guard + dashboard aggregate | 1 day | Pre-launch UX |
 | **F077-personalization** Phase 2 scoring + Recommended feed | 5 days | Post-launch |
-| **deep-links-filter-prefill** filter-shortcut parser | 1 day | Marketing |
+| **deep-links-filter-prefill** filter-shortcut parser — planned as FOLLOWUP_PLAN **FU6** | 1 day | Marketing |
 | **F048-krutilka-three-tabs** home tab UI + subscriptions feed | 3 days | Post-launch |
 | **deal-status-and-final-price** `ListingSale` table + sale metadata capture | 2 days | Post-launch |
 | **promotion-services** urgent badge, notify-priority, purchase endpoints | 4 days | Post-launch (gated on wallet flip) |
