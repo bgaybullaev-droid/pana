@@ -1471,12 +1471,17 @@ function Page() {
 						>
 							<Switch
 								checked={!!draftFilters.has_photo}
-								onChange={(e) =>
+								onChange={(e) => {
+									// Read `checked` synchronously: React nulls the synthetic
+									// event's currentTarget once the handler returns, and the
+									// setState updater below runs deferred — reading
+									// e.currentTarget inside it would crash with null.
+									const checked = e.currentTarget.checked;
 									setDraftFilters((prev) => ({
 										...prev,
-										has_photo: e.currentTarget.checked || undefined,
-									}))
-								}
+										has_photo: checked || undefined,
+									}));
+								}}
 								label={t("filter.onlyWithPhoto")}
 								color="cyan"
 								mb={14}
