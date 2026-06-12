@@ -685,12 +685,14 @@ function Page() {
 						>
 							{searchOpen ? "" : searchQuery || t("search.title")}
 						</Text>
+						{/* Trailing controls (clear · save-search · filter) grouped
+						    with one even, finger-safe gap. */}
+						<Group gap={6} wrap="nowrap">
 						{searchQuery && (
 							<ActionIcon
-								variant="filled"
-								size={18}
-								radius="50%"
-								color="gray.5"
+								variant="transparent"
+								color="gray"
+								size="sm"
 								onClick={(e) => {
 									e.stopPropagation();
 									clearScrollPosition("/");
@@ -699,7 +701,7 @@ function Page() {
 									setSearchParams(new URLSearchParams());
 								}}
 							>
-								<IconX size={10} color="white" />
+								<IconX size={14} />
 							</ActionIcon>
 						)}
 						{/* Save Search heart — moved inside the form, right before the
@@ -765,6 +767,7 @@ function Page() {
 								</Box>
 							)}
 						</Box>
+						</Group>
 					</UnstyledButton>
 
 					{/* ── Notifications bell ── */}
