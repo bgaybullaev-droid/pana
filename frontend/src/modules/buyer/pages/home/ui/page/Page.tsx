@@ -664,13 +664,11 @@ function Page() {
 	const sliderMax = isRentOnly ? 5000 : 500000;
 	const sliderStep = isRentOnly ? 100 : 5000;
 
-	// Deal-terms cards are contextual: sale terms (mortgage/installment/halal)
-	// only when a sale is in scope, rent terms only when a rent is. No deal
-	// type selected = both could apply, so show both.
-	const isSaleContext =
-		!draftFilters.type || draftFilters.type.includes("sell");
-	const isRentContext =
-		!draftFilters.type || draftFilters.type.includes("rent");
+	// Deal-terms cards are contextual and appear only after the user picks
+	// the matching deal type: sale terms when «Продажа» is selected, rent
+	// terms when «Аренда». Nothing selected → neither card.
+	const isSaleContext = !!draftFilters.type?.includes("sell");
+	const isRentContext = !!draftFilters.type?.includes("rent");
 
 	const renderChipGroup = (
 		options: { value: string; label: string }[],
@@ -700,8 +698,12 @@ function Page() {
 		);
 	};
 
-	// Paired "от / до" number inputs reused by the area, floor and storeys
-	// cards. Empty input clears the bound (undefined).
+	// Paired "от / до" number inputs (+ optional range slider, same pattern
+	// as the price card) reused by the area, floor and storeys controls.
+	// Empty input clears the bound (undefined). Slider semantics mirror the
+	// price card: left thumb at the scale start / right thumb at the scale
+	// end = no bound; typed values beyond the scale are kept verbatim and
+	// the slider just clamps its display.
 	const renderNumberRange = (opts: {
 		minValue?: number;
 		maxValue?: number;
@@ -709,40 +711,74 @@ function Page() {
 		onMax: (v?: number) => void;
 		suffix?: string;
 		min?: number;
+		slider?: {
+			max: number;
+			step: number;
+			color?: string;
+			marks?: { value: number; label: string }[];
+		};
 	}) => {
 		const toNum = (v: number | string) =>
 			typeof v === "number" ? v : undefined;
+		const scaleMin = opts.min ?? 0;
 		return (
-			<Group grow gap={10}>
-				<NumberInput
-					label={t("filter.priceFrom")}
-					size="sm"
-					radius={10}
-					min={opts.min ?? 0}
-					allowNegative={false}
-					allowDecimal={false}
-					thousandSeparator=" "
-					inputMode="numeric"
-					hideControls
-					suffix={opts.suffix}
-					value={opts.minValue ?? ""}
-					onChange={(v) => opts.onMin(toNum(v))}
-				/>
-				<NumberInput
-					label={t("filter.priceTo")}
-					size="sm"
-					radius={10}
-					min={opts.min ?? 0}
-					allowNegative={false}
-					allowDecimal={false}
-					thousandSeparator=" "
-					inputMode="numeric"
-					hideControls
-					suffix={opts.suffix}
-					value={opts.maxValue ?? ""}
-					onChange={(v) => opts.onMax(toNum(v))}
-				/>
-			</Group>
+			<Box>
+				<Group grow gap={10}>
+					<NumberInput
+						label={t("filter.from")}
+						size="sm"
+						radius={10}
+						min={scaleMin}
+						allowNegative={false}
+						allowDecimal={false}
+						thousandSeparator=" "
+						inputMode="numeric"
+						hideControls
+						suffix={opts.suffix}
+						value={opts.minValue ?? ""}
+						onChange={(v) => opts.onMin(toNum(v))}
+					/>
+					<NumberInput
+						label={t("filter.to")}
+						size="sm"
+						radius={10}
+						min={scaleMin}
+						allowNegative={false}
+						allowDecimal={false}
+						thousandSeparator=" "
+						inputMode="numeric"
+						hideControls
+						suffix={opts.suffix}
+						value={opts.maxValue ?? ""}
+						onChange={(v) => opts.onMax(toNum(v))}
+					/>
+				</Group>
+				{opts.slider && (
+					<Box px={8} mt={10}>
+						<RangeSlider
+							color={opts.slider.color ?? "violet"}
+							min={scaleMin}
+							max={opts.slider.max}
+							step={opts.slider.step}
+							value={[
+								Math.min(opts.minValue ?? scaleMin, opts.slider.max),
+								Math.min(opts.maxValue ?? opts.slider.max, opts.slider.max),
+							]}
+							onChange={(value) => {
+								opts.onMin(value[0] > scaleMin ? value[0] : undefined);
+								opts.onMax(
+									value[1] < (opts.slider as { max: number }).max
+										? value[1]
+										: undefined,
+								);
+							}}
+							marks={opts.slider.marks}
+							labelAlwaysOn={false}
+							mb={opts.slider.marks ? 24 : 8}
+						/>
+					</Box>
+				)}
+			</Box>
 		);
 	};
 
@@ -965,6 +1001,88 @@ function Page() {
 							/>
 						</PreferenceCard>
 
+						{/* Rent terms — furniture / pets / students / utilities / period (platform-only) */}
+						{isRentContext && (
+						<PreferenceCard
+							icon={IconKey}
+							iconColor="#0ca678"
+							iconBg="#e6fcf5"
+							title={t("filter.rentTerms")}
+							isActive={
+								!!draftFilters.furnished ||
+								!!draftFilters.allowed_pets ||
+								!!draftFilters.allowed_students ||
+								!!draftFilters.utilities_incl ||
+								!!draftFilters.rent_period
+							}
+						>
+							<Stack gap={12}>
+								<Group gap={8} wrap="wrap">
+									{rentTermChips.map((c) => (
+										<UnstyledButton
+											key={c.label}
+											onClick={c.toggle}
+											style={toggleChipStyle(c.active)}
+										>
+											{c.label}
+										</UnstyledButton>
+									))}
+								</Group>
+								<Box>
+									<Text size="sm" fw={500} mb={6}>
+										{t("seller:createListing.rentPeriodLabel")}
+									</Text>
+									<Group gap={8} wrap="wrap">
+										{rentPeriodChips.map((c) => {
+											const active = draftFilters.rent_period === c.value;
+											return (
+												<UnstyledButton
+													key={c.value}
+													onClick={() =>
+														setDraftFilters((prev) => ({
+															...prev,
+															rent_period: active ? undefined : c.value,
+														}))
+													}
+													style={toggleChipStyle(active)}
+												>
+													{c.label}
+												</UnstyledButton>
+											);
+										})}
+									</Group>
+								</Box>
+							</Stack>
+						</PreferenceCard>
+						)}
+
+						{/* Sale terms — mortgage / installment / halal (platform-only) */}
+						{isSaleContext && (
+						<PreferenceCard
+							icon={IconReceipt2}
+							iconColor="#fa5252"
+							iconBg="#fff5f5"
+							title={t("filter.saleTerms")}
+							isActive={
+								!!draftFilters.mortgage_ok ||
+								!!draftFilters.installment_ok ||
+								!!draftFilters.halol_ok
+							}
+						>
+							<Group gap={8} wrap="wrap">
+								{saleTermChips.map((c) => (
+									<UnstyledButton
+										key={c.label}
+										onClick={c.toggle}
+										style={toggleChipStyle(c.active)}
+									>
+										{c.label}
+									</UnstyledButton>
+								))}
+							</Group>
+						</PreferenceCard>
+						)}
+
 						{/* Property type */}
 						<PreferenceCard
 							icon={IconBuildingEstate}
@@ -980,6 +1098,35 @@ function Page() {
 							/>
 						</PreferenceCard>
 
+						{/* Building type (new / secondary) */}
+						<PreferenceCard
+							icon={IconBuilding}
+							iconColor="#FF6E01"
+							iconBg="#FFF4E6"
+							title={t("seller:createListing.buildingType")}
+							isActive={!!draftFilters.building_type}
+						>
+							<Group gap={8} wrap="wrap">
+								{getBuildingTypeFilterOpts(t).map((opt) => {
+									const active = draftFilters.building_type === opt.value;
+									return (
+										<UnstyledButton
+											key={opt.value}
+											onClick={() =>
+												setDraftFilters((prev) => ({
+													...prev,
+													building_type: active ? undefined : opt.value,
+												}))
+											}
+											style={toggleChipStyle(active)}
+										>
+											{opt.label}
+										</UnstyledButton>
+									);
+								})}
+							</Group>
+						</PreferenceCard>
+
 						{/* Price range — text inputs for precision (a finger on a
 						    $0–500k slider moves in ~$1.5k/px jumps), slider for feel. */}
 						<PreferenceCard
@@ -992,7 +1139,7 @@ function Page() {
 						>
 							<Group grow mb={12} gap={10}>
 								<NumberInput
-									label={t("filter.priceFrom")}
+									label={t("filter.from")}
 									size="sm"
 									radius={10}
 									min={0}
@@ -1014,7 +1161,7 @@ function Page() {
 									}}
 								/>
 								<NumberInput
-									label={t("filter.priceTo")}
+									label={t("filter.to")}
 									size="sm"
 									radius={10}
 									min={0}
@@ -1245,6 +1392,16 @@ function Page() {
 								onMin: (v) => setDraftFilters((prev) => ({ ...prev, area_min: v })),
 								onMax: (v) => setDraftFilters((prev) => ({ ...prev, area_max: v })),
 								suffix: ` ${t("listing.area")}`,
+								slider: {
+									max: 500,
+									step: 5,
+									color: "green",
+									marks: [
+										{ value: 0, label: "0" },
+										{ value: 250, label: "250" },
+										{ value: 500, label: "500+" },
+									],
+								},
 							})}
 						</PreferenceCard>
 
@@ -1273,6 +1430,15 @@ function Page() {
 										maxValue: draftFilters.floor_max,
 										onMin: (v) => setDraftFilters((prev) => ({ ...prev, floor_min: v })),
 										onMax: (v) => setDraftFilters((prev) => ({ ...prev, floor_max: v })),
+										slider: {
+											max: 30,
+											step: 1,
+											marks: [
+												{ value: 0, label: "0" },
+												{ value: 15, label: "15" },
+												{ value: 30, label: "30+" },
+											],
+										},
 									})}
 								</Box>
 								<Group gap={8} wrap="wrap">
@@ -1311,38 +1477,18 @@ function Page() {
 										onMax: (v) =>
 											setDraftFilters((prev) => ({ ...prev, total_floors_max: v })),
 										min: 1,
+										slider: {
+											max: 30,
+											step: 1,
+											marks: [
+												{ value: 1, label: "1" },
+												{ value: 15, label: "15" },
+												{ value: 30, label: "30+" },
+											],
+										},
 									})}
 								</Box>
 							</Stack>
-						</PreferenceCard>
-
-						{/* Building type (new / secondary) */}
-						<PreferenceCard
-							icon={IconBuilding}
-							iconColor="#FF6E01"
-							iconBg="#FFF4E6"
-							title={t("seller:createListing.buildingType")}
-							isActive={!!draftFilters.building_type}
-						>
-							<Group gap={8} wrap="wrap">
-								{getBuildingTypeFilterOpts(t).map((opt) => {
-									const active = draftFilters.building_type === opt.value;
-									return (
-										<UnstyledButton
-											key={opt.value}
-											onClick={() =>
-												setDraftFilters((prev) => ({
-													...prev,
-													building_type: active ? undefined : opt.value,
-												}))
-											}
-											style={toggleChipStyle(active)}
-										>
-											{opt.label}
-										</UnstyledButton>
-									);
-								})}
-							</Group>
 						</PreferenceCard>
 
 						{/* Condition / repair */}
@@ -1411,88 +1557,6 @@ function Page() {
 								})}
 							</Group>
 						</PreferenceCard>
-
-						{/* Sale terms — mortgage / installment / halal (platform-only) */}
-						{isSaleContext && (
-						<PreferenceCard
-							icon={IconReceipt2}
-							iconColor="#fa5252"
-							iconBg="#fff5f5"
-							title={t("filter.saleTerms")}
-							isActive={
-								!!draftFilters.mortgage_ok ||
-								!!draftFilters.installment_ok ||
-								!!draftFilters.halol_ok
-							}
-						>
-							<Group gap={8} wrap="wrap">
-								{saleTermChips.map((c) => (
-									<UnstyledButton
-										key={c.label}
-										onClick={c.toggle}
-										style={toggleChipStyle(c.active)}
-									>
-										{c.label}
-									</UnstyledButton>
-								))}
-							</Group>
-						</PreferenceCard>
-						)}
-
-						{/* Rent terms — furniture / pets / students / utilities / period (platform-only) */}
-						{isRentContext && (
-						<PreferenceCard
-							icon={IconKey}
-							iconColor="#0ca678"
-							iconBg="#e6fcf5"
-							title={t("filter.rentTerms")}
-							isActive={
-								!!draftFilters.furnished ||
-								!!draftFilters.allowed_pets ||
-								!!draftFilters.allowed_students ||
-								!!draftFilters.utilities_incl ||
-								!!draftFilters.rent_period
-							}
-						>
-							<Stack gap={12}>
-								<Group gap={8} wrap="wrap">
-									{rentTermChips.map((c) => (
-										<UnstyledButton
-											key={c.label}
-											onClick={c.toggle}
-											style={toggleChipStyle(c.active)}
-										>
-											{c.label}
-										</UnstyledButton>
-									))}
-								</Group>
-								<Box>
-									<Text size="sm" fw={500} mb={6}>
-										{t("seller:createListing.rentPeriodLabel")}
-									</Text>
-									<Group gap={8} wrap="wrap">
-										{rentPeriodChips.map((c) => {
-											const active = draftFilters.rent_period === c.value;
-											return (
-												<UnstyledButton
-													key={c.value}
-													onClick={() =>
-														setDraftFilters((prev) => ({
-															...prev,
-															rent_period: active ? undefined : c.value,
-														}))
-													}
-													style={toggleChipStyle(active)}
-												>
-													{c.label}
-												</UnstyledButton>
-											);
-										})}
-									</Group>
-								</Box>
-							</Stack>
-						</PreferenceCard>
-						)}
 					</Stack>
 				</Box>
 				
