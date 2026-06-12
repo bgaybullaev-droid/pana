@@ -19,7 +19,14 @@ import type { HomeFilters, HomeTab } from "../types";
 
 export const $page = createStore(1).reset(resetListings);
 
-export const $filters = createStore<HomeFilters>({}).reset(clearFilters);
+// Default applied filters. Sort defaults to "newest" (the old "recommended"
+// relevance default was dropped from the home UI) so the feed is freshest-first
+// out of the box; `clearFilters` resets back to this.
+export const DEFAULT_HOME_FILTERS: HomeFilters = { sort: "newest" };
+
+export const $filters = createStore<HomeFilters>(DEFAULT_HOME_FILTERS).reset(
+	clearFilters,
+);
 
 export { $searchQuery };
 

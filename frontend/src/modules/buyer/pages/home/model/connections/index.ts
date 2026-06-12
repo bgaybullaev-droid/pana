@@ -20,7 +20,15 @@ import {
   searchQueryChanged,
   tabChanged,
 } from '../events';
-import { $page, $filters, $hasMore, $rawItems, $total, $error } from '../stores';
+import {
+  $page,
+  $filters,
+  $hasMore,
+  $rawItems,
+  $total,
+  $error,
+  DEFAULT_HOME_FILTERS,
+} from '../stores';
 import { buildFeedParams, isParamsMatchingFilters } from '../lib';
 
 const RECOMMENDED_LIMIT = 20;
@@ -117,7 +125,7 @@ sample({
 
 sample({
   clock: clearFilters,
-  fn: () => buildFeedParams(1, {}),
+  fn: () => buildFeedParams(1, DEFAULT_HOME_FILTERS),
   target: fetchFeedFx,
 });
 

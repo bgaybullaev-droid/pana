@@ -119,6 +119,8 @@
   "home.district": "Туман",
   "home.allDistricts": "Барча туманлар",
   "home.showResults": "Кўрсатиш: {{value}}",
+  "home.listingsCount_one": "{{formatted}} та эълон",
+  "home.listingsCount_other": "{{formatted}} та эълон",
   "home.resetFilters": "Фильтрларни тозалаш",
   "home.emptyTitle": "Ҳеч нарса топилмади",
   "home.emptyDescription": "Фильтрлар ёки қидирув сўровини ўзгартириб кўринг",

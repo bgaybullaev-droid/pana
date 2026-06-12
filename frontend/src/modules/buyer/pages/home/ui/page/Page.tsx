@@ -28,6 +28,7 @@ import {
 	IconBell,
 	IconAdjustments,
 	IconArrowsSort,
+	IconCheck,
 	IconTags,
 	IconCash,
 	IconDoor,
@@ -84,6 +85,7 @@ import {
 	$favoritedIds,
 	$searchQuery,
 	$filters,
+	$total,
 	$activeTab,
 	pageOpened,
 	loadMore,
@@ -96,7 +98,6 @@ import {
 	// tabChanged, — нужен только таб-бару, скрытому до запуска (см. BACKLOG.md)
 	buildFeedParams,
 	type HomeFilters,
-	type HomeSort,
 	// type HomeTab, — нужен только таб-бару, скрытому до запуска (см. BACKLOG.md)
 } from "../../model";
 import {
@@ -125,8 +126,12 @@ const toggleChipStyle = (active: boolean): CSSProperties => ({
 	transition: "all 0.15s ease",
 });
 
+// Home sort options shown in the inline SortBar / bottom sheet ("recommended"
+// was dropped — the default is now "newest"). Array order = display order.
+const SORT_OPTIONS = ["newest", "cheapest", "expensive"] as const;
+
 function Page() {
-	const { t } = useTranslation(["buyer", "seller"]);
+	const { t, i18n } = useTranslation(["buyer", "seller"]);
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [
@@ -138,6 +143,7 @@ function Page() {
 		favoritedIds,
 		searchQuery,
 		filters,
+		total,
 		userStats,
 		activeTab,
 	] = useUnit([
@@ -149,6 +155,7 @@ function Page() {
 		$favoritedIds,
 		$searchQuery,
 		$filters,
+		$total,
 		$userStats,
 		$activeTab,
 	]);
@@ -164,12 +171,13 @@ function Page() {
 	const initializedRef = useRef(false);
 	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
 		useDisclosure(false);
+	// Inline sort bottom-sheet (replaces the drawer's old sort card).
+	const [sortSheetOpened, { open: openSortSheet, close: closeSortSheet }] =
+		useDisclosure(false);
 	useTelegramBackClose(drawerOpened, closeDrawer);
 	const { openSearch, searchOpen } = useLayoutContext();
 	const { isAuthenticated } = useAuth();
 
-	// Declare sort/filter local state BEFORE saved-search logic so sortBy is in scope
-	const [sortBy, setSortBy] = useState<HomeSort>("recommended");
 	const [viewMode] = useState<"grid" | "masonry">("grid");
 	const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
 		0, 500000,
@@ -250,7 +258,7 @@ function Page() {
 					district: filters.district?.[0],
 					region: filters.region?.[0],
 				},
-				sort: sortBy,
+				sort: filters.sort ?? "newest",
 			}).catch(() => {
 				notifications.show({
 					message: t("favorites.searches.saveError", { ns: "buyer" }),
@@ -259,7 +267,7 @@ function Page() {
 				});
 			});
 		}
-	}, [isAuthenticated, currentSavedSearch, searchQuery, filters, sortBy, navigate, t]);
+	}, [isAuthenticated, currentSavedSearch, searchQuery, filters, navigate, t]);
 
 
 	// Show heart only when there's an active query or any filter
@@ -280,7 +288,6 @@ function Page() {
 	useEffect(() => {
 		if (drawerOpened) {
 			setDraftFilters(filters);
-			setSortBy(filters.sort ?? "recommended");
 			const min = filters.price_min || 0;
 			const isRentOnly = filters.type?.length === 1 && filters.type[0] === "rent";
 			const max = filters.price_max || (isRentOnly ? 5000 : 500000);
@@ -431,10 +438,28 @@ function Page() {
 		applyFilters();
 	}, []);
 
+	// ── Inline sort (freed tab row) ─────────────────────────────────────────
+	// Applied sort lives in $filters.sort; default is "newest". Selecting an
+	// option merges it into the filters and re-fetches the feed immediately.
+	const currentSort = filters.sort ?? "newest";
+	const listingsCountLabel = t("home.listingsCount", {
+		count: total,
+		formatted: total.toLocaleString(i18n.language),
+	});
+	const handleSortSelect = useCallback(
+		(next: NonNullable<HomeFilters["sort"]>) => {
+			closeSortSheet();
+			if (next === (filters.sort ?? "newest")) return;
+			filtersChanged({ sort: next });
+			clearScrollPosition("/");
+			applyFilters();
+		},
+		[filters.sort, closeSortSheet],
+	);
+
 	const handleClearFilters = () => {
 		clearScrollPosition("/");
 		clearFilters();
-		setSortBy("recommended");
 		setLocalPriceRange([0, 500000]);
 		setSelectedRegion(null);
 		setSearchParams({});
@@ -442,9 +467,11 @@ function Page() {
 
 	const handleApplyDraft = () => {
 		// Replace (not merge) so a reset draft actually clears applied filters.
+		// Sort is controlled by the inline bar now, so carry the draft's current
+		// sort through (defaulting to newest) instead of letting replace drop it.
 		filtersReplaced({
 			...draftFilters,
-			sort: sortBy === "recommended" ? undefined : sortBy,
+			sort: draftFilters.sort ?? "newest",
 		});
 		applyFiltersAndClearScroll();
 		closeDrawer();
@@ -454,8 +481,10 @@ function Page() {
 	// feed are untouched until the user presses Apply. The search query is
 	// not a drawer control, so it survives the reset.
 	const handleResetDraft = () => {
-		setDraftFilters(draftFilters.q ? { q: draftFilters.q } : {});
-		setSortBy("recommended");
+		// Keep sort untouched — it's owned by the inline bar, not the drawer.
+		setDraftFilters((prev) =>
+			prev.q ? { q: prev.q, sort: prev.sort } : { sort: prev.sort },
+		);
 		setLocalPriceRange([0, 500000]);
 		setSelectedRegion(null);
 	};
@@ -943,48 +972,8 @@ function Page() {
 					    + iOS safe-area inset (up to ~34px), otherwise the last card's
 					    controls hide behind the buttons. */}
 					<Stack gap="md" pb={140} px="md">
-						{/* Sorting */}
-						<PreferenceCard
-							icon={IconArrowsSort}
-							iconColor="#FF6E01"
-							iconBg="#FFF4E6"
-							title={t("search.sortBy")}
-							isActive={sortBy !== "recommended"}
-						>
-							<Chip.Group
-								multiple={false}
-								value={sortBy}
-								onChange={(value) => setSortBy(value as HomeSort)}
-							>
-								<Group gap={8} wrap="wrap">
-									{(
-										["recommended", "newest", "cheapest", "expensive"] as const
-									).map((option) => (
-										<Chip
-											key={option}
-											value={option}
-											variant="filled"
-											radius={17}
-											styles={{
-												label: {
-													height: 34,
-													padding: "0 17px",
-													fontSize: 12,
-													fontWeight: 600,
-													backgroundColor:
-														sortBy === option ? "#FF6E01" : "#F1F1F1",
-													color: sortBy === option ? "#FFFFFF" : "#9F9F9F",
-													border: "none",
-												},
-												iconWrapper: { display: "none" },
-											}}
-										>
-											{t(`search.sort.${option}`)}
-										</Chip>
-									))}
-								</Group>
-							</Chip.Group>
-						</PreferenceCard>
+						{/* Sorting moved out of the drawer into the inline SortBar on the
+						    home page (freed-up tab row) — see SortBar / SortSheet below. */}
 
 						{/* Deal type — placed ABOVE price: the price scale depends on it
 						    (rent budgets vs purchase prices), so the user picks the deal
@@ -1731,6 +1720,108 @@ function Page() {
 	);
 	*/
 
+	// Inline sort row — sits in the freed-up tab slot. Left: result count;
+	// right: a button showing the current order that opens the sort sheet.
+	// (Baymard: sort kept separate from filters, current order always visible.)
+	const SortBar = (
+		<Box px="md" pt={8} pb={2} style={{ maxWidth: 980, margin: "0 auto" }}>
+			<Group justify="space-between" align="center" wrap="nowrap" gap="sm">
+				<Text size="sm" c="dimmed" fw={500} style={{ whiteSpace: "nowrap" }}>
+					{listingsCountLabel}
+				</Text>
+				<UnstyledButton
+					onClick={openSortSheet}
+					aria-label={t("search.sortBy")}
+					style={{
+						display: "inline-flex",
+						alignItems: "center",
+						gap: 6,
+						height: 34,
+						padding: "0 14px",
+						borderRadius: 17,
+						backgroundColor: "#f1f3f5",
+						color: "#343a40",
+						fontWeight: 600,
+						fontSize: 13,
+						whiteSpace: "nowrap",
+						flexShrink: 0,
+					}}
+				>
+					<IconArrowsSort size={16} />
+					{t(`search.sort.${currentSort}`)}
+				</UnstyledButton>
+			</Group>
+		</Box>
+	);
+
+	// Bottom-sheet picker for the sort order (mobile-first, mirrors FilterDrawer).
+	const SortSheet = (
+		<Drawer
+			opened={sortSheetOpened}
+			onClose={closeSortSheet}
+			withCloseButton={false}
+			position="bottom"
+			size="auto"
+			zIndex={10001}
+			styles={{
+				content: {
+					borderRadius: "20px 20px 0 0",
+					backgroundColor: surface.page,
+					maxWidth: 980,
+					margin: "0 auto",
+				},
+				header: { display: "none" },
+				body: { padding: 0 },
+			}}
+		>
+			<Box style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+				{/* Drag handle */}
+				<Box py={10} style={{ display: "flex", justifyContent: "center" }}>
+					<Box
+						style={{
+							width: 36,
+							height: 4,
+							borderRadius: 2,
+							backgroundColor: "#ced4da",
+						}}
+					/>
+				</Box>
+				<Text
+					fw={700}
+					size="lg"
+					px="md"
+					pb={4}
+					style={{ fontFamily: "var(--mantine-font-family-headings)" }}
+				>
+					{t("search.sortBy")}
+				</Text>
+				<Stack gap={0} pb={8}>
+					{SORT_OPTIONS.map((option) => {
+						const active = option === currentSort;
+						return (
+							<UnstyledButton
+								key={option}
+								onClick={() => handleSortSelect(option)}
+								style={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+									padding: "14px 20px",
+									fontSize: 15,
+									fontWeight: active ? 700 : 500,
+									color: active ? "#FF6E01" : "#343a40",
+								}}
+							>
+								<span>{t(`search.sort.${option}`)}</span>
+								{active && <IconCheck size={20} color="#FF6E01" />}
+							</UnstyledButton>
+						);
+					})}
+				</Stack>
+			</Box>
+		</Drawer>
+	);
+
 	// Tab-aware empty state copy (no saved searches / no view history).
 	const renderEmptyTabState = () => {
 		if (activeTab === "subscriptions") {
@@ -1852,6 +1943,8 @@ function Page() {
 		<RootPage title="UCHAR" tabBarChildren={SearchHeaderContent} noPadding>
 			{FilterDrawer}
 			{HomeTabBar}
+			{SortSheet}
+			{SortBar}
 			<Container className="listings-container" px="md" pt="sm">
 				{/* Block phase-2 — marketing banners (home_top placement) */}
 				<HomeBanners placement="home_top" />

@@ -119,6 +119,8 @@
   "home.district": "Tuman",
   "home.allDistricts": "Barcha tumanlar",
   "home.showResults": "Ko'rsatish: {{value}}",
+  "home.listingsCount_one": "{{formatted}} ta e'lon",
+  "home.listingsCount_other": "{{formatted}} ta e'lon",
   "home.resetFilters": "Filtrlarni tozalash",
   "home.emptyTitle": "Hech narsa topilmadi",
   "home.emptyDescription": "Filtrlar yoki qidiruv so'rovini o'zgartirib ko'ring",
