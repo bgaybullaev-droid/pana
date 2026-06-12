@@ -125,6 +125,7 @@ def sync_to_meilisearch() -> Dict[str, Any]:
     from app.db.database import async_session_maker
     from app.services.search_index import (
         backfill_all_listings,
+        backfill_crawled_listings,
         init_meilisearch_index,
     )
 
@@ -140,9 +141,14 @@ def sync_to_meilisearch() -> Dict[str, Any]:
             "failed_count": 0,
         }
 
-    async def _run() -> Dict[str, Any]:
+    async def _run() -> Dict[str, int]:
         async with async_session_maker() as session:
-            return await backfill_all_listings(session)
+            native = await backfill_all_listings(session)
+            crawled = await backfill_crawled_listings(session)
+        return {
+            "indexed_count": native["indexed_count"] + crawled["indexed_count"],
+            "failed_count": native["failed_count"] + crawled["failed_count"],
+        }
 
     result = asyncio.run(_run())
     logger.info(

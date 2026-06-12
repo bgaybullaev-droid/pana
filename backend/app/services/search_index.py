@@ -368,6 +368,75 @@ def _map_listing_to_document(listing: Listing) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────
+# Crawled listings (Telegram / OLX) — index into the SAME index so bot
+# search returns the full aggregated inventory, like the app's feed.
+# ─────────────────────────────────────────────────────────────────────
+
+# Crawled listing_type / property_type → platform taxonomy. Mirrors
+# api.v1.listings._normalize_* but kept local: importing the API layer
+# here would create a circular import (listings.py imports this module).
+_CRAWLER_TYPE_MAP = {"sale": "sell", "daily_rent": "rent", "rent": "rent", "sell": "sell"}
+_CRAWLER_PROPERTY_TYPE_MAP = {"office": "commercial"}
+
+
+def _crawler_photo_url(images) -> Optional[str]:
+    """First usable image URL from a crawled listing's JSONB ``images``.
+
+    Crawled rows store ``images`` as a list of absolute URL strings (see
+    the unified feed builder in api.v1.listings). Returns the first
+    string, or None.
+    """
+    if isinstance(images, list):
+        for img in images:
+            if isinstance(img, str) and img:
+                return img
+    return None
+
+
+def _map_crawled_to_document(row, source: str) -> dict:
+    """Map a TelegramListing / OLXListing row into the shared Meili doc
+    schema, so bot search returns crawled inventory next to native rows.
+
+    Only the fields the bot card + filters need are populated. NOTE the
+    deliberate omission of ``status`` / ``moderation_status``: the app's
+    native Meili query requires ``status = "ACTIVE" AND moderation_status
+    = "APPROVED"``, so crawled rows (lacking those) never leak into the
+    app's native results — only the bot's status-agnostic query sees them.
+    The doc ``id`` is the crawled row's own UUID, which ``GET
+    /listings/resolve/{id}`` already resolves, so ``build_listing_link``
+    deep-links work unchanged.
+    """
+    from app.services.query_parser import canonical_district
+
+    lt = (getattr(row, "listing_type", None) or "").lower()
+    pt = (getattr(row, "property_type", None) or "").lower()
+    price = getattr(row, "price", None)
+    created = getattr(row, "created_at", None)
+    raw_district = getattr(row, "district", None)
+    return {
+        "id": str(row.id),
+        "source": source,
+        "type": _CRAWLER_TYPE_MAP.get(lt, lt) or None,
+        "property_type": _CRAWLER_PROPERTY_TYPE_MAP.get(pt, pt) or None,
+        # Normalize to the canonical key so the bot's district filter
+        # (same parser) matches; fall back to the raw value if unknown.
+        "district": canonical_district(raw_district) or raw_district,
+        "region": getattr(row, "region", None),
+        "address": getattr(row, "address", None),
+        "description": getattr(row, "description", None),
+        "rooms": getattr(row, "rooms", None),
+        "area": getattr(row, "area_sqm", None),
+        "price": int(price) if price is not None else None,
+        "currency": getattr(row, "currency", None),
+        "photo_url": _crawler_photo_url(getattr(row, "images", None)),
+        # Crawled rows are never boosted; keep the sort key present so the
+        # bot's created_at sort behaves the same as for native docs.
+        "boost_rank": 0,
+        "created_at": created.isoformat() if created is not None else None,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────
 # Sync helpers (safe — all failures swallowed)
 # ─────────────────────────────────────────────────────────────────────
 
@@ -546,6 +615,80 @@ async def backfill_all_listings(
             break
 
     logger.info("backfill complete: indexed=%d failed=%d", indexed, failed)
+    return {"indexed_count": indexed, "failed_count": failed}
+
+
+async def backfill_crawled_listings(
+    db_session,
+    batch_size: int = 1000,
+) -> dict:
+    """Stream visible crawled listings (Telegram + OLX) into the index.
+
+    Mirrors the app's mixed feed visibility: skips claimed rows
+    (``converted_listing_id`` set — the native Listing is indexed
+    separately) and, for Telegram, seller-rejected rows. Idempotent
+    (upsert by id); never raises — Postgres stays source of truth.
+
+    Returns ``{"indexed_count": int, "failed_count": int}``.
+    """
+    from sqlalchemy import select
+
+    from app.db.models import OLXListing, TelegramListing
+
+    index = ensure_index_exists()
+    if index is None:
+        logger.warning("Meilisearch unavailable; crawled backfill aborted")
+        return {"indexed_count": 0, "failed_count": 0}
+
+    indexed = 0
+    failed = 0
+    # (source label, model, visibility conditions)
+    sources = (
+        (
+            "telegram",
+            TelegramListing,
+            (
+                TelegramListing.converted_listing_id.is_(None),
+                TelegramListing.rejected_at.is_(None),
+            ),
+        ),
+        (
+            "olx",
+            OLXListing,
+            (OLXListing.converted_listing_id.is_(None),),
+        ),
+    )
+
+    for source, model, conds in sources:
+        last_id = None
+        while True:
+            q = select(model).where(*conds).order_by(model.id).limit(batch_size)
+            if last_id is not None:
+                q = q.where(model.id > last_id)
+            try:
+                rows = (await db_session.execute(q)).scalars().all()
+            except Exception as exc:
+                logger.warning("crawled backfill DB read failed (%s): %s", source, exc)
+                break
+            if not rows:
+                break
+            try:
+                docs = [_map_crawled_to_document(r, source) for r in rows]
+                index.add_documents(docs, primary_key="id")
+                indexed += len(rows)
+            except Exception as exc:
+                logger.warning(
+                    "crawled backfill batch failed (%s, size=%d): %s",
+                    source,
+                    len(rows),
+                    exc,
+                )
+                failed += len(rows)
+            last_id = rows[-1].id
+            if len(rows) < batch_size:
+                break
+
+    logger.info("crawled backfill complete: indexed=%d failed=%d", indexed, failed)
     return {"indexed_count": indexed, "failed_count": failed}
 
 

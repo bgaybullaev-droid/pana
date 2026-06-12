@@ -804,6 +804,7 @@ async def admin_reindex_all_meili(
     """
     from app.services.search_index import (
         backfill_all_listings,
+        backfill_crawled_listings,
         get_backfill_counters,
         init_meilisearch_index,
     )
@@ -811,10 +812,13 @@ async def admin_reindex_all_meili(
     # Best-effort ensure index + attributes exist before we push docs.
     init_meilisearch_index()
 
-    result = await backfill_all_listings(db, batch_size=batch_size)
+    native = await backfill_all_listings(db, batch_size=batch_size)
+    crawled = await backfill_crawled_listings(db, batch_size=batch_size)
     return {
-        "indexed_count": result["indexed_count"],
-        "failed_count": result["failed_count"],
+        "indexed_count": native["indexed_count"] + crawled["indexed_count"],
+        "native_indexed": native["indexed_count"],
+        "crawled_indexed": crawled["indexed_count"],
+        "failed_count": native["failed_count"] + crawled["failed_count"],
         "counters": get_backfill_counters(),
     }
 

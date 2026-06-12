@@ -29,6 +29,7 @@ async def _run(batch_size: int) -> int:
     from app.db.database import async_session_maker
     from app.services.search_index import (
         backfill_all_listings,
+        backfill_crawled_listings,
         get_backfill_counters,
         init_meilisearch_index,
     )
@@ -41,18 +42,26 @@ async def _run(batch_size: int) -> int:
             "unreachable. Backfill will report zero indexed."
         )
 
-    # Step 2 — stream listings into the index.
+    # Step 2 — stream native + crawled (Telegram/OLX) listings into the index.
     async with async_session_maker() as session:
-        result = await backfill_all_listings(session, batch_size=batch_size)
+        native = await backfill_all_listings(session, batch_size=batch_size)
+        crawled = await backfill_crawled_listings(session, batch_size=batch_size)
 
+    indexed = native["indexed_count"] + crawled["indexed_count"]
+    failed = native["failed_count"] + crawled["failed_count"]
     counters = get_backfill_counters()
     logger.info(
-        "backfill done: indexed=%d failed=%d counters=%s",
-        result["indexed_count"],
-        result["failed_count"],
+        "backfill done: indexed=%d (native=%d crawled=%d) failed=%d counters=%s",
+        indexed,
+        native["indexed_count"],
+        crawled["indexed_count"],
+        failed,
         counters,
     )
-    print(f"Indexed: {result['indexed_count']}  Failed: {result['failed_count']}")
+    print(
+        f"Indexed: {indexed}  (native={native['indexed_count']} "
+        f"crawled={crawled['indexed_count']})  Failed: {failed}"
+    )
     print(f"Counters: {counters}")
     return 0
 

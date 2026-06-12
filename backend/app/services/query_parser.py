@@ -223,6 +223,17 @@ def _parse_district(text: str) -> Optional[str]:
     return best_key
 
 
+def canonical_district(text: Optional[str]) -> Optional[str]:
+    """Map any district spelling to its canonical key, or None.
+
+    Public wrapper over :func:`_parse_district`. Used by the search
+    indexer to normalize crawled listings' free-form ``district`` field
+    to the same canonical key the bot derives from a user query — so the
+    structured ``district = "<key>"`` filter agrees on both sides.
+    """
+    return _parse_district(text or "")
+
+
 def _parse_rooms(text: str) -> tuple[Optional[int], Optional[int]]:
     """Return ``(rooms_min, rooms_max)``. MVP: same value for both."""
     # Digit form: "2-комн" / "3xonali" / "1 комнат"

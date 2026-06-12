@@ -2672,6 +2672,15 @@ async def claim_olx_listing(
     except Exception as exc:
         logger.warning("meili index (claim-olx) failed: %s", exc)
 
+    # Drop the now-claimed crawled row from the index so bot search
+    # doesn't surface it as a duplicate of the native listing above.
+    try:
+        from app.services.search_index import delete_listing as _mx_delete
+
+        _mx_delete(olx_listing_id)
+    except Exception as exc:
+        logger.warning("meili delete (claim-olx crawled) failed: %s", exc)
+
     # Trigger notifications for the newly claimed (auto-approved) listing.
     # Dispatched via Celery .delay() so the API responds immediately;
     # matching + Telegram delivery happens asynchronously in the worker.
@@ -2868,6 +2877,15 @@ async def claim_telegram_listing(
         _mx_index(listing)
     except Exception as exc:
         logger.warning("meili index (claim-telegram) failed: %s", exc)
+
+    # Drop the now-claimed crawled row from the index so bot search
+    # doesn't surface it as a duplicate of the native listing above.
+    try:
+        from app.services.search_index import delete_listing as _mx_delete
+
+        _mx_delete(tg_listing_id)
+    except Exception as exc:
+        logger.warning("meili delete (claim-telegram crawled) failed: %s", exc)
 
     from app.workers.tasks.notifications import send_new_listing_notifications
 
