@@ -1764,7 +1764,13 @@ function Page() {
 			size="auto"
 			zIndex={10001}
 			styles={{
+				// Без явных flex/height контент нижнего Drawer растягивается почти
+				// на весь экран — пиним авто-высоту с потолком 50vh, чтобы верх
+				// шторки не поднимался выше середины экрана (зона большого пальца).
 				content: {
+					flex: "0 0 auto",
+					height: "auto",
+					maxHeight: "50vh",
 					borderRadius: "20px 20px 0 0",
 					backgroundColor: surface.page,
 					maxWidth: 980,
