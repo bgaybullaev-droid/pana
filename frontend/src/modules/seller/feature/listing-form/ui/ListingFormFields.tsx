@@ -11,7 +11,7 @@ import {
 	TextInput,
 	Select,
 } from "@mantine/core";
-import { IconSparkles, IconX } from "@tabler/icons-react";
+import { IconBrandTelegram, IconSparkles, IconX } from "@tabler/icons-react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -1930,22 +1930,54 @@ export function ListingFormFields({
 			</FormSection>
 			</div>
 
-			{/* ── Block D D4 — publish to my Telegram channel ── */}
-			{showPublishToChannel &&
-				autopostStatus?.connected &&
-				autopostStatus?.enabled && (
+			{/* ── Block D D4 — publish to my Telegram channel ──
+			    Always shown on seller forms (admin omits it). Connected channel
+			    → the active switch; otherwise a compact teaser that promotes the
+			    feature and links to the Autoposting page (explainer + upsell). */}
+			{showPublishToChannel && (
 				<FormSection title={t("autopost.title", "Автопостинг")} bg={sectionBg}>
-					<Switch
-						label={t(
-							"autopost.checkbox_publish",
-							"Опубликовать в моём канале",
-						)}
-						checked={form.values.publish_to_channel}
-						onChange={(e) =>
-							set("publish_to_channel", e.currentTarget.checked)
-						}
-						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
-					/>
+					{autopostStatus?.connected && autopostStatus?.enabled ? (
+						<Switch
+							label={t(
+								"autopost.checkbox_publish",
+								"Опубликовать в моём канале",
+							)}
+							checked={form.values.publish_to_channel}
+							onChange={(e) =>
+								set("publish_to_channel", e.currentTarget.checked)
+							}
+							styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+						/>
+					) : (
+						<Box
+							onClick={() => navigate("/seller/autoposting")}
+							style={{
+								display: "flex",
+								alignItems: "center",
+								gap: 8,
+								padding: "10px 12px",
+								borderRadius: 10,
+								border: "1px solid #e2e8f0",
+								background: "#f8fafc",
+								cursor: "pointer",
+							}}
+						>
+							<IconBrandTelegram
+								size={18}
+								color="#229ED9"
+								style={{ flexShrink: 0 }}
+							/>
+							<Text size="sm" c="dark.6" style={{ flex: 1, lineHeight: 1.3 }}>
+								{t(
+									"autopost.teaser",
+									"Публикуйте объявления в своём Telegram-канале",
+								)}
+							</Text>
+							<Text size="sm" fw={600} c="blue.6" style={{ flexShrink: 0 }}>
+								{t("autopost.teaser_cta", "Подключить")} →
+							</Text>
+						</Box>
+					)}
 				</FormSection>
 			)}
 		</RevealGate>

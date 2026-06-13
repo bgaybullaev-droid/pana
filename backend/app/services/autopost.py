@@ -27,7 +27,6 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from app.bot.i18n import t
-from app.core.config import settings
 from app.db.models import (
     BotChannelPost,
     Listing,
@@ -257,8 +256,6 @@ def is_autopost_ready(seller: Seller) -> bool:
     handled by :mod:`app.services.subscriptions`. This function only
     checks the channel-binding state.
     """
-    del settings  # unused — kept to flag that the function is
-    # subscription-agnostic on purpose.
     return bool(
         seller.autopost_enabled
         and seller.autopost_channel_id

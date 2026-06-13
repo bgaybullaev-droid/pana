@@ -19,6 +19,7 @@ import {
 } from "@tabler/icons-react";
 import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { InnerPage } from "@shared/ui/InnerPage";
 import { shadows, radii } from "@app/styles/theme";
 import {
@@ -51,6 +52,7 @@ import { MediaCutoffModal } from "@modules/seller/feature/media-cutoff-modal";
  */
 function Page() {
 	const { t } = useTranslation("seller");
+	const navigate = useNavigate();
 	const [status, posts, isLoading, isConnecting, connectError] = useUnit([
 		$autopostStatus,
 		$autopostPosts,
@@ -143,45 +145,89 @@ function Page() {
 			<Box p="md">
 				<Stack gap="md">
 					{!connected && !verificationLost && (
-						<Card radius={radii.md} p="md" style={{ boxShadow: shadows.md }}>
-							<Stack gap="sm">
-								<Group>
-									<IconBrandTelegram size={20} />
-									<Text fw={700}>
+						<>
+							{/* Block D D4 — explainer: why connect a channel (option B). */}
+							<Card radius={radii.md} p="md" style={{ boxShadow: shadows.md }}>
+								<Stack gap="sm">
+									<Group gap="sm">
+										<IconBrandTelegram size={20} color="#229ED9" />
+										<Text fw={700}>
+											{t(
+												"autopost.explainer_title",
+												"Autoposting to your Telegram channel",
+											)}
+										</Text>
+									</Group>
+									<Text size="sm" c="dimmed" lh={1.5}>
 										{t(
-											"autopost.connect_title",
-											"Connect your Telegram channel",
+											"autopost.explainer_body",
+											"Your listings are published to your channel automatically, refreshed when you edit them, and marked SOLD when sold. More reach — more clients.",
 										)}
 									</Text>
-								</Group>
-								<Text size="sm" c="dimmed">
-									{t(
-										"autopost.connect_help",
-										"Add @ucharmarket_bot as administrator with post permission in your channel, then enter the channel username below.",
-									)}
-								</Text>
-								<TextInput
-									placeholder="@my_realestate_channel"
-									value={channelInput}
-									onChange={(e) => setChannelInput(e.currentTarget.value)}
-								/>
-								{connectError && (
-									<Alert color="red" icon={<IconAlertTriangle size={16} />}>
-										{t(
-											`autopost.error.${connectError}`,
-											t("autopost.error.generic", "Could not verify channel"),
-										)}
-									</Alert>
-								)}
+									<Badge
+										color="blue"
+										variant="light"
+										radius="sm"
+										style={{ alignSelf: "flex-start" }}
+									>
+										{t("autopost.tariff_note", "Included in the realtor plan")}
+									</Badge>
+								</Stack>
+							</Card>
+
+							{status?.subscription_active === false ? (
+								/* Block D D4 — tariff upsell (option C). In the test period
+								   the backend reports subscription_active=true, so this
+								   collapses to the connect form below. */
 								<Button
-									onClick={handleConnect}
-									loading={isConnecting}
-									disabled={!channelInput.trim()}
+									fullWidth
+									size="md"
+									onClick={() => navigate("/seller/tariffs")}
 								>
-									{t("autopost.connect_btn", "Verify and connect")}
+									{t("autopost.upsell_cta", "Get the realtor plan")}
 								</Button>
-							</Stack>
-						</Card>
+							) : (
+								<Card radius={radii.md} p="md" style={{ boxShadow: shadows.md }}>
+									<Stack gap="sm">
+										<Text fw={700}>
+											{t(
+												"autopost.connect_title",
+												"Connect your Telegram channel",
+											)}
+										</Text>
+										<Text size="sm" c="dimmed">
+											{t(
+												"autopost.connect_help",
+												"Add @ucharmarket_bot as administrator with post permission in your channel, then enter the channel username below.",
+											)}
+										</Text>
+										<TextInput
+											placeholder="@my_realestate_channel"
+											value={channelInput}
+											onChange={(e) => setChannelInput(e.currentTarget.value)}
+										/>
+										{connectError && (
+											<Alert color="red" icon={<IconAlertTriangle size={16} />}>
+												{t(
+													`autopost.error.${connectError}`,
+													t(
+														"autopost.error.generic",
+														"Could not verify channel",
+													),
+												)}
+											</Alert>
+										)}
+										<Button
+											onClick={handleConnect}
+											loading={isConnecting}
+											disabled={!channelInput.trim()}
+										>
+											{t("autopost.connect_btn", "Verify and connect")}
+										</Button>
+									</Stack>
+								</Card>
+							)}
+						</>
 					)}
 
 					{verificationLost && (

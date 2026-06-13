@@ -82,6 +82,10 @@ class AutopostStatusResponse(BaseModel):
     channel_id: Optional[int] = None
     verified_at: Optional[str] = None
     stale_count: int = 0
+    # Block D D4 — whether the seller currently has access to the autoposting
+    # feature via the Cabinet subscription (true in the test period). Lets the
+    # cabinet distinguish "no tariff" (upsell) from "no channel" (connect form).
+    subscription_active: bool = True
 
 
 class PostListItem(BaseModel):
@@ -161,7 +165,9 @@ async def get_autopost_status(
         db, user.id, SubscriptionType.CABINET
     )
     if not allowed:
-        return AutopostStatusResponse(connected=False, enabled=False)
+        return AutopostStatusResponse(
+            connected=False, enabled=False, subscription_active=False
+        )
 
     stale_q = await db.execute(
         select(func.count())

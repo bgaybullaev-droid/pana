@@ -46,6 +46,9 @@ export interface AutopostStatus {
   channel_id: number | null;
   verified_at: string | null;
   stale_count: number;
+  // Block D D4 — feature access via the realtor (Cabinet) tariff. Optional for
+  // deploy skew; `=== false` means "show the tariff upsell" on the autopost page.
+  subscription_active?: boolean;
 }
 
 export interface UpdatePostResponse {

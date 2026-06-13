@@ -662,7 +662,13 @@
 			"bad_request": "Kanalni aniqlab bo'lmadi. @username yoki t.me/… havolasini kiriting.",
 			"generic": "Kanalni ulab bo'lmadi."
 		},
-		"checkbox_publish": "Mening kanalimda e'lon qilish"
+		"checkbox_publish": "Mening kanalimda e'lon qilish",
+		"teaser": "E'lonlaringizni o'z Telegram kanalingizda chop eting",
+		"teaser_cta": "Ulash",
+		"explainer_title": "Telegram kanalga avtopost",
+		"explainer_body": "E'lonlar kanalingizda avtomatik chop etiladi va o'zgartirilganda yangilanadi, sotilgach «Sotildi» belgisi qo'yiladi. Ko'proq qamrov — ko'proq mijoz.",
+		"tariff_note": "Rieltorlar tarifiga kiradi",
+		"upsell_cta": "Tarifni rasmiylashtirish"
 	},
 	"createListing.generateButton": "E'lonni yaratish",
 	"createListing.generateDisabledHint": "Asosiy parametrlarni to'ldiring va rasm qo'shing",
