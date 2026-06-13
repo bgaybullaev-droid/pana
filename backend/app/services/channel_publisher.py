@@ -31,6 +31,7 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 from aiogram import Bot
@@ -41,6 +42,7 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
 )
 from aiogram.types import (
+    FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
@@ -157,6 +159,33 @@ def _make_bot() -> Bot:
     return Bot(token=settings.telegram_bot_token)
 
 
+# Marker identifying our own locally-stored uploads inside a photo URL.
+_UPLOADS_MARKER = "/uploads/"
+
+
+def _photo_input(photo_url: str):
+    """Resolve a listing photo URL to the best aiogram input.
+
+    Stopgap (single-VPS deploy): uploaded photos live on a disk volume shared
+    with the worker and are served at ``/uploads/<key>``. Reading the file
+    straight off disk avoids depending on the worker reaching the public URL
+    over HTTP (no hairpin NAT to our own domain; ``/uploads`` may be
+    browser-only). Falls back to downloading the URL for anything not on local
+    disk (e.g. external / crawler-sourced images). The proper fix — object
+    storage + CDN + sized renditions — is tracked in BACKLOG.md (#3).
+    """
+    marker_at = photo_url.find(_UPLOADS_MARKER)
+    if marker_at != -1:
+        key = photo_url[marker_at + len(_UPLOADS_MARKER):].split("?", 1)[0]
+        try:
+            local_path = Path(settings.upload_dir) / key
+            if local_path.is_file():
+                return FSInputFile(str(local_path), filename="listing.jpg")
+        except OSError:
+            pass
+    return URLInputFile(photo_url, filename="listing.jpg")
+
+
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,32}$")
 
 
@@ -250,15 +279,13 @@ async def publish_post(channel_id: int, post: RenderedPost) -> PublishResult:
     try:
         kb = _build_keyboard(post)
         if post.photo_url:
-            # Upload the bytes ourselves (URLInputFile fetches the image in the
-            # worker, then sends it multipart) instead of handing Telegram the
-            # raw URL. Telegram's send-by-URL path rejects photos >5 MB and
-            # needs the host publicly reachable; uploading sidesteps both (10 MB
-            # upload cap, and the worker can reach the file even if Telegram
-            # can't). See BACKLOG for downscaling images above the cap.
+            # Send the photo as an uploaded file (from disk when possible, else
+            # downloaded from the URL) instead of handing Telegram a raw URL:
+            # Telegram's send-by-URL path rejects photos >5 MB and needs the
+            # host reachable from its servers. See ``_photo_input``.
             msg = await bot.send_photo(
                 chat_id=channel_id,
-                photo=URLInputFile(post.photo_url, filename="listing.jpg"),
+                photo=_photo_input(post.photo_url),
                 caption=post.caption,
                 reply_markup=kb,
             )
@@ -343,10 +370,10 @@ async def edit_post_media(
         await bot.edit_message_media(
             chat_id=channel_id,
             message_id=message_id,
-            # Upload bytes (see publish_post) rather than a raw URL so large /
-            # internally-hosted photos don't get rejected by Telegram.
+            # Upload the file (see ``_photo_input``) rather than a raw URL so
+            # large / internally-hosted photos don't get rejected by Telegram.
             media=InputMediaPhoto(
-                media=URLInputFile(post.photo_url, filename="listing.jpg"),
+                media=_photo_input(post.photo_url),
                 caption=post.caption,
             ),
             reply_markup=kb,
