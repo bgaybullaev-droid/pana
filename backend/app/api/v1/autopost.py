@@ -209,12 +209,12 @@ async def connect_channel(
             error=result.error_code or "verify_failed",
         )
 
-    # Persist on success.
+    # Persist on success. Store the canonical handle Telegram resolved
+    # (None for id-only private channels) instead of the raw user input,
+    # which may have been a pasted ``t.me/…`` link.
     from datetime import datetime
 
-    seller.autopost_channel_username = (
-        data.channel.lstrip("@").strip() if not data.channel.lstrip("-").isdigit() else None
-    )
+    seller.autopost_channel_username = result.channel_username
     seller.autopost_channel_id = result.channel_id
     seller.autopost_enabled = True
     seller.autopost_verified_at = datetime.utcnow()

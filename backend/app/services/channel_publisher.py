@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -80,6 +81,7 @@ class VerifyResult:
 
     ok: bool
     channel_id: Optional[int] = None
+    channel_username: Optional[str] = None  # canonical handle Telegram returned
     error_code: Optional[str] = None
 
 
@@ -154,25 +156,57 @@ def _make_bot() -> Bot:
     return Bot(token=settings.telegram_bot_token)
 
 
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,32}$")
+
+
+def _normalize_channel_input(raw: str) -> str:
+    """Reduce a pasted channel reference to a bare token.
+
+    Strips a full/short ``t.me`` / ``telegram.me`` link, an optional query
+    string or fragment, surrounding slashes, a leading ``@`` and whitespace —
+    so a seller can paste ``https://t.me/foo`` and we resolve ``@foo``.
+    Numeric ids survive untouched for the caller to cast.
+    """
+    s = (raw or "").strip()
+    low = s.lower()
+    for host in (
+        "https://t.me/",
+        "http://t.me/",
+        "https://telegram.me/",
+        "http://telegram.me/",
+        "t.me/",
+        "telegram.me/",
+    ):
+        if low.startswith(host):
+            s = s[len(host) :]
+            break
+    s = s.split("?", 1)[0].split("#", 1)[0].strip()
+    s = s.strip("/").lstrip("@").strip()
+    return s
+
+
 # ── Verify ────────────────────────────────────────────────────────────
 
 
 async def verify_channel_admin(channel_username_or_id: str) -> VerifyResult:
     """Resolve a channel handle and confirm the bot is an admin there.
 
-    Accepts either ``@my_re`` or a bare username; numeric channel ids
-    can also be passed as strings.
+    Accepts ``@name``, a bare username, a pasted ``t.me/…`` link, or a
+    numeric channel id (as a string). Invite links (``t.me/+…``,
+    ``joinchat/…``) and other junk that can't be resolved by username
+    return ``bad_request`` without a Telegram round-trip.
     """
+    handle = _normalize_channel_input(channel_username_or_id)
+    # Telegram's get_chat takes a numeric chat_id or a public @username.
+    if handle.lstrip("-").isdigit():
+        target: str | int = int(handle)
+    elif _USERNAME_RE.match(handle):
+        target = f"@{handle}"
+    else:
+        return VerifyResult(ok=False, error_code="bad_request")
+
     bot = _make_bot()
     try:
-        # Telegram accepts @username or chat_id (numeric or int-string).
-        target: str | int = channel_username_or_id.strip()
-        if target.startswith("@"):
-            pass
-        elif target.lstrip("-").isdigit():
-            target = int(target)
-        else:
-            target = f"@{target}"
         try:
             chat = await bot.get_chat(target)
         except (TelegramForbiddenError, TelegramNotFound, TelegramBadRequest) as exc:
@@ -196,7 +230,11 @@ async def verify_channel_admin(channel_username_or_id: str) -> VerifyResult:
                 channel_id=chat.id,
                 error_code="bot_lacks_post_permission",
             )
-        return VerifyResult(ok=True, channel_id=chat.id)
+        return VerifyResult(
+            ok=True,
+            channel_id=chat.id,
+            channel_username=getattr(chat, "username", None),
+        )
     finally:
         await bot.session.close()
 

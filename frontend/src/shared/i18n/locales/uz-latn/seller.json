@@ -634,7 +634,7 @@
 	"autopost": {
 		"title": "Avtopost",
 		"connect_title": "Telegram kanalingizni ulang",
-		"connect_help": "@ucharmarket_bot ni kanalingizga post yozish huquqi bilan admin qiling, keyin kanal usernameini kiriting.",
+		"connect_help": "@ucharmarket_bot ni kanalingizga post yozish huquqi bilan admin qiling, keyin kanal usernameini kiriting. t.me/… havolasini ham qo'yishingiz mumkin.",
 		"connect_btn": "Tekshirish va ulash",
 		"disconnect": "Uzish",
 		"reconnect_required": "Qayta ulanish kerak",
@@ -659,6 +659,7 @@
 			"not_found": "Kanal topilmadi. Usernameni tekshiring.",
 			"forbidden": "Botning kanalga kirish huquqi yo'q.",
 			"verify_failed": "Kanalni tekshirib bo'lmadi.",
+			"bad_request": "Kanalni aniqlab bo'lmadi. @username yoki t.me/… havolasini kiriting.",
 			"generic": "Kanalni ulab bo'lmadi."
 		},
 		"checkbox_publish": "Mening kanalimda e'lon qilish"
