@@ -44,6 +44,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
+    URLInputFile,
 )
 
 from app.core.config import settings
@@ -249,9 +250,15 @@ async def publish_post(channel_id: int, post: RenderedPost) -> PublishResult:
     try:
         kb = _build_keyboard(post)
         if post.photo_url:
+            # Upload the bytes ourselves (URLInputFile fetches the image in the
+            # worker, then sends it multipart) instead of handing Telegram the
+            # raw URL. Telegram's send-by-URL path rejects photos >5 MB and
+            # needs the host publicly reachable; uploading sidesteps both (10 MB
+            # upload cap, and the worker can reach the file even if Telegram
+            # can't). See BACKLOG for downscaling images above the cap.
             msg = await bot.send_photo(
                 chat_id=channel_id,
-                photo=post.photo_url,
+                photo=URLInputFile(post.photo_url, filename="listing.jpg"),
                 caption=post.caption,
                 reply_markup=kb,
             )
@@ -336,7 +343,12 @@ async def edit_post_media(
         await bot.edit_message_media(
             chat_id=channel_id,
             message_id=message_id,
-            media=InputMediaPhoto(media=post.photo_url, caption=post.caption),
+            # Upload bytes (see publish_post) rather than a raw URL so large /
+            # internally-hosted photos don't get rejected by Telegram.
+            media=InputMediaPhoto(
+                media=URLInputFile(post.photo_url, filename="listing.jpg"),
+                caption=post.caption,
+            ),
             reply_markup=kb,
         )
         return PublishResult(ok=True, message_id=message_id)
