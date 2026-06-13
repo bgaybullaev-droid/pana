@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.v1.deps import get_current_user
+from app.core.config import settings
 from app.core.exceptions import (
     BadRequestException,
     ForbiddenException,
@@ -86,6 +87,10 @@ class AutopostStatusResponse(BaseModel):
     # feature via the Cabinet subscription (true in the test period). Lets the
     # cabinet distinguish "no tariff" (upsell) from "no channel" (connect form).
     subscription_active: bool = True
+    # The bot the seller must add to their channel as admin — surfaced so the
+    # connect instructions name the real bot for this deployment (test / prod),
+    # not a hardcoded handle.
+    bot_username: Optional[str] = None
 
 
 class PostListItem(BaseModel):
@@ -166,7 +171,10 @@ async def get_autopost_status(
     )
     if not allowed:
         return AutopostStatusResponse(
-            connected=False, enabled=False, subscription_active=False
+            connected=False,
+            enabled=False,
+            subscription_active=False,
+            bot_username=settings.telegram_bot_username or None,
         )
 
     stale_q = await db.execute(
@@ -190,6 +198,7 @@ async def get_autopost_status(
         if seller.autopost_verified_at
         else None,
         stale_count=stale_count,
+        bot_username=settings.telegram_bot_username or None,
     )
 
 

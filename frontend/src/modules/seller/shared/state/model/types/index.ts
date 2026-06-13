@@ -49,6 +49,8 @@ export interface AutopostStatus {
   // Block D D4 — feature access via the realtor (Cabinet) tariff. Optional for
   // deploy skew; `=== false` means "show the tariff upsell" on the autopost page.
   subscription_active?: boolean;
+  // The bot to add to the channel as admin (the real bot for this deployment).
+  bot_username?: string | null;
 }
 
 export interface UpdatePostResponse {

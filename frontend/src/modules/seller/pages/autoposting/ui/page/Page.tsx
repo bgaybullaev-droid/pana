@@ -196,10 +196,11 @@ function Page() {
 											)}
 										</Text>
 										<Text size="sm" c="dimmed">
-											{t(
-												"autopost.connect_help",
-												"Add @ucharmarket_bot as administrator with post permission in your channel, then enter the channel username below.",
-											)}
+											{t("autopost.connect_help", {
+												bot: status?.bot_username || "ucharmarket_bot",
+												defaultValue:
+													"Add @{{bot}} as administrator with post permission in your channel, then enter the channel username below.",
+											})}
 										</Text>
 										<TextInput
 											placeholder="@my_realestate_channel"
