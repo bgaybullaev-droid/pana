@@ -668,7 +668,25 @@
 		"explainer_title": "Telegram kanalga avtopost",
 		"explainer_body": "E'lonlar kanalingizda avtomatik chop etiladi va o'zgartirilganda yangilanadi, sotilgach «Sotildi» belgisi qo'yiladi. Ko'proq qamrov — ko'proq mijoz.",
 		"tariff_note": "Rieltorlar tarifiga kiradi",
-		"upsell_cta": "Tarifni rasmiylashtirish"
+		"upsell_cta": "Tarifni rasmiylashtirish",
+		"last_result_label": "So'nggi nashr",
+		"last_result_ok": "e'lon qilindi",
+		"last_result_failed": "So'nggi nashr amalga oshmadi",
+		"last_result_reason": {
+			"bad_request": "Telegram postni rad etdi — ehtimol e'lon surati yuklab bo'lmaydi",
+			"media_too_old": "Suratni o'zgartirib bo'lmaydi — post 48 soatdan eski",
+			"forbidden": "Botda bu kanalda nashr qilish huquqi yo'q",
+			"not_found": "Kanal topilmadi",
+			"message_gone": "Kanaldagi post topilmadi",
+			"retry_after": "Telegram cheklovi — keyinroq qayta urinib ko'riladi",
+			"telegram_error": "Nashr vaqtida Telegram xatosi",
+			"listing_not_active": "E'lon faol emas",
+			"publish_opt_out": "Nashr e'lon tugmasi bilan o'chirilgan",
+			"already_posted": "Avval nashr qilingan",
+			"channel_not_connected": "Kanal ulanmagan",
+			"max_retries": "Bir necha urinishdan so'ng nashr qilinmadi",
+			"generic": "Nashr qilib bo'lmadi"
+		}
 	},
 	"createListing.generateButton": "E'lonni yaratish",
 	"createListing.generateDisabledHint": "Asosiy parametrlarni to'ldiring va rasm qo'shing",

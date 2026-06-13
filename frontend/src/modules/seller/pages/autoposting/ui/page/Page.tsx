@@ -140,6 +140,25 @@ function Page() {
 		!status.connected &&
 		(status.channel_username || status.channel_id);
 
+	// Block D D4 — surface the most recent publish attempt so the seller sees
+	// why a post did/didn't appear, without reading worker logs. Benign outcomes
+	// (opted out / already posted) read as a neutral note; real errors pop in a
+	// red alert. A `last_result_at` that doesn't advance after a save means the
+	// worker isn't processing (deploy issue), not a Telegram problem.
+	const lastResult = status?.last_result ?? null;
+	const lastResultAt = status?.last_result_at ?? null;
+	const lastResultOk = lastResult === "ok";
+	const lastResultBenign =
+		lastResult === "publish_opt_out" || lastResult === "already_posted";
+	const lastResultTime = lastResultAt
+		? new Date(lastResultAt).toLocaleString()
+		: "";
+	const lastResultReasonText = (code: string | null) =>
+		t(
+			`autopost.last_result_reason.${code}`,
+			t("autopost.last_result_reason.generic", "Could not publish"),
+		);
+
 	return (
 		<InnerPage title={t("autopost.title", "Autoposting")} noPadding>
 			<Box p="md">
@@ -284,6 +303,34 @@ function Page() {
 								)}
 							</Stack>
 						</Card>
+					)}
+
+					{/* Block D D4 — last publish attempt (diagnostic; shown in any
+					    state once an attempt has been recorded). */}
+					{lastResultAt && lastResultOk && (
+						<Text size="xs" c="green">
+							{t("autopost.last_result_label", "Last post")}:{" "}
+							{t("autopost.last_result_ok", "published")} · {lastResultTime}
+						</Text>
+					)}
+					{lastResultAt && !lastResultOk && lastResultBenign && (
+						<Text size="xs" c="dimmed">
+							{t("autopost.last_result_label", "Last post")}:{" "}
+							{lastResultReasonText(lastResult)} · {lastResultTime}
+						</Text>
+					)}
+					{lastResultAt && !lastResultOk && !lastResultBenign && (
+						<Alert color="red" icon={<IconAlertTriangle size={16} />} p="xs">
+							<Stack gap={2}>
+								<Text size="xs" fw={600}>
+									{t("autopost.last_result_failed", "Last post failed")}
+								</Text>
+								<Text size="xs">{lastResultReasonText(lastResult)}</Text>
+								<Text size="xs" c="dimmed">
+									{lastResultTime}
+								</Text>
+							</Stack>
+						</Alert>
 					)}
 
 					{/* History list */}

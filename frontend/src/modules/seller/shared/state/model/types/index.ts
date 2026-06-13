@@ -51,6 +51,11 @@ export interface AutopostStatus {
   subscription_active?: boolean;
   // The bot to add to the channel as admin (the real bot for this deployment).
   bot_username?: string | null;
+  // Block D D4 — outcome of the most recent channel-publish attempt: `last_result`
+  // is "ok" or a reason code; `last_result_at` is its ISO time. A timestamp that
+  // doesn't advance after a save means the worker isn't processing (deploy issue).
+  last_result?: string | null;
+  last_result_at?: string | null;
 }
 
 export interface UpdatePostResponse {

@@ -350,6 +350,17 @@ class Seller(Base):
     autopost_verified_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime, nullable=True
     )
+    # Block D D4 — outcome of the most recent channel-publish attempt, surfaced
+    # in the cabinet so sellers see *why* a post did/didn't appear without
+    # reading worker logs. ``autopost_last_result`` is "ok" or a reason code;
+    # ``autopost_last_result_at`` lets the UI flag a stuck worker (timestamp
+    # not advancing after a save).
+    autopost_last_result: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
+    autopost_last_result_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

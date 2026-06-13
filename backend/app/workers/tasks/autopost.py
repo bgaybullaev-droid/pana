@@ -30,7 +30,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
@@ -108,6 +108,38 @@ async def _invalidate_seller_connection(
         seller_id,
         reason,
     )
+
+
+async def _record_attempt(seller_id: str, code: str) -> None:
+    """Stamp the seller row with the outcome of the latest publish attempt so
+    the cabinet can show *why* a post did/didn't appear.
+
+    Best-effort and isolated: diagnostics must never break or delay the publish
+    task, so any failure here is swallowed (logged only). ``code`` is ``"ok"``
+    or a short reason/error code (truncated to the column width).
+    """
+    value = (code or "error")[:64]
+
+    async def _run(db: AsyncSession) -> None:
+        await db.execute(
+            update(Seller)
+            .where(Seller.id == UUID(seller_id))
+            .values(
+                autopost_last_result=value,
+                autopost_last_result_at=datetime.utcnow(),
+            )
+        )
+        await db.commit()
+
+    try:
+        await _with_session(_run)
+    except Exception:
+        logger.warning(
+            "autopost.record_attempt_failed seller=%s code=%s",
+            seller_id,
+            value,
+            exc_info=True,
+        )
 
 
 def _seller_lang(seller: Seller) -> str:
@@ -192,14 +224,26 @@ async def _publish_listing_to_channel(
         raise RuntimeError(result.error_code or "telegram_error")
 
     try:
-        return await _with_session(_run)
+        result = await _with_session(_run)
+        # Record the deterministic outcome (ok / skip-reason / permanent error)
+        # so the cabinet can surface it.
+        await _record_attempt(
+            seller_id,
+            "ok" if result.get("ok") else (result.get("reason") or "error"),
+        )
+        return result
     except Exception as exc:
+        # Transient failure: ``_run`` raised the Telegram error code. Record the
+        # *real* code (e.g. ``bad_request`` for an unreachable photo) — it's far
+        # more useful to the seller than a generic "retry" marker.
+        code = str(exc) or "telegram_error"
         logger.warning(
             "autopost.publish_retry listing=%s seller=%s err=%s",
             listing_id,
             seller_id,
             exc,
         )
+        await _record_attempt(seller_id, code)
         try:
             task.retry(exc=exc)
         except Exception:

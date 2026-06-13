@@ -91,6 +91,12 @@ class AutopostStatusResponse(BaseModel):
     # connect instructions name the real bot for this deployment (test / prod),
     # not a hardcoded handle.
     bot_username: Optional[str] = None
+    # Block D D4 — outcome + time of the most recent publish attempt, so the
+    # cabinet can show *why* a listing did/didn't reach the channel without
+    # anyone reading worker logs. ``last_result`` is "ok" or a reason code; a
+    # ``last_result_at`` that stops advancing after a save flags a stuck worker.
+    last_result: Optional[str] = None
+    last_result_at: Optional[str] = None
 
 
 class PostListItem(BaseModel):
@@ -199,6 +205,10 @@ async def get_autopost_status(
         else None,
         stale_count=stale_count,
         bot_username=settings.telegram_bot_username or None,
+        last_result=seller.autopost_last_result,
+        last_result_at=seller.autopost_last_result_at.isoformat()
+        if seller.autopost_last_result_at
+        else None,
     )
 
 
