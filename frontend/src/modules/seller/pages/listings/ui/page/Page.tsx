@@ -18,6 +18,7 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useDisclosure } from "@mantine/hooks";
 import {
 	IconPlus,
 	IconDotsVertical,
@@ -34,8 +35,10 @@ import {
 	IconArrowRight,
 	IconCoin,
 	IconBolt,
+	IconRefresh,
 } from "@tabler/icons-react";
 import { BoostModal } from "@modules/seller/feature/promotion-purchase";
+import { MediaCutoffModal } from "@modules/seller/feature/media-cutoff-modal";
 import { useTranslation } from "react-i18next";
 import { InnerPage } from "@shared/ui/InnerPage";
 import {
@@ -48,6 +51,8 @@ import {
 	pauseListingFx,
 	activateListingFx,
 	deleteListingFx,
+	updateChannelPostFx,
+	recreateChannelPostFx,
 } from "@modules/seller/shared/state";
 import {
 	seedListingIds,
@@ -74,6 +79,9 @@ interface UnifiedCard {
 	contacts_count?: number;
 	favorites_count?: number;
 	property_type: string;
+	// Block D D4 — channel autopost overlay (stale post → "Обновить").
+	autopost_post_id?: string | null;
+	autopost_is_stale?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -95,6 +103,14 @@ function Page() {
 	const [boostModalListingId, setBoostModalListingId] = useState<string | null>(
 		null,
 	);
+	// Block D D4 — stale channel-post update flow (mirrors the Autoposting page).
+	const [mediaModalOpen, { open: openMediaModal, close: closeMediaModal }] =
+		useDisclosure(false);
+	const [pendingPostId, setPendingPostId] = useState<string | null>(null);
+	const [pendingPostAgeHours, setPendingPostAgeHours] = useState<number | null>(
+		null,
+	);
+	const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
 	const [listings, isLoading] = useUnit([$sellerListings, $isLoadingListings]);
 
 	const [searchQuery, setSearchQuery] = useState("");
@@ -275,6 +291,8 @@ function Page() {
 				contacts_count: l.contacts_count,
 				favorites_count: l.favorites_count,
 				property_type: l.property_type,
+				autopost_post_id: l.autopost_post_id,
+				autopost_is_stale: l.autopost_is_stale,
 			});
 		}
 
@@ -289,6 +307,44 @@ function Page() {
 
 	const confirmDelete = () => {
 		if (listingToDelete) deleteListing(listingToDelete);
+	};
+
+	// Block D D4 — "Обновить" on a stale card. Mirrors the Autoposting page:
+	// a 48h-old post with a changed photo returns ``media_too_old`` and opens
+	// the shared 3-option modal; a queued edit refetches the list so the
+	// server-computed stale flag clears.
+	const handleUpdatePost = async (postId: string, forceTextOnly = false) => {
+		setUpdatingPostId(postId);
+		try {
+			const res = await updateChannelPostFx({ postId, forceTextOnly });
+			if (res.result === "media_too_old") {
+				setPendingPostId(postId);
+				setPendingPostAgeHours(res.post_age_hours ?? null);
+				openMediaModal();
+				return;
+			}
+			if (res.result === "queued") {
+				fetchSellerListings({});
+			}
+		} finally {
+			setUpdatingPostId(null);
+		}
+	};
+
+	const handleMediaModalChoice = async (
+		choice: "text_only" | "recreate" | "cancel",
+	) => {
+		const id = pendingPostId;
+		closeMediaModal();
+		setPendingPostId(null);
+		setPendingPostAgeHours(null);
+		if (!id || choice === "cancel") return;
+		if (choice === "text_only") {
+			await updateChannelPostFx({ postId: id, forceTextOnly: true });
+		} else {
+			await recreateChannelPostFx(id);
+		}
+		fetchSellerListings({});
 	};
 
 	return (
@@ -789,6 +845,36 @@ function Page() {
 													)}
 											</Group>
 										</Group>
+										{/* Block D D4 — stale channel post → "Обновить" */}
+										{card.autopost_post_id && card.autopost_is_stale && (
+											<Group gap={6} mt={6} wrap="nowrap">
+												<Badge
+													size="xs"
+													color="orange"
+													variant="light"
+													radius="sm"
+													style={{ fontWeight: 800 }}
+												>
+													{t("autopost.badge_stale", "Устарел")}
+												</Badge>
+												<Button
+													size="compact-xs"
+													variant="light"
+													color="orange"
+													leftSection={<IconRefresh size={12} />}
+													loading={updatingPostId === card.autopost_post_id}
+													onClick={(e) => {
+														e.stopPropagation();
+														e.preventDefault();
+														if (card.autopost_post_id) {
+															handleUpdatePost(card.autopost_post_id);
+														}
+													}}
+												>
+													{t("autopost.update_btn", "Обновить")}
+												</Button>
+											</Group>
+										)}
 									</ListingRow>
 								</Box>
 							);
@@ -857,6 +943,15 @@ function Page() {
 					listingId={boostModalListingId}
 					opened={boostModalListingId !== null}
 					onClose={() => setBoostModalListingId(null)}
+				/>
+
+				{/* Block D D4 — shared 48h media-cutoff modal for stale-post updates. */}
+				<MediaCutoffModal
+					opened={mediaModalOpen}
+					postAgeHours={pendingPostAgeHours}
+					onTextOnly={() => handleMediaModalChoice("text_only")}
+					onRecreate={() => handleMediaModalChoice("recreate")}
+					onCancel={() => handleMediaModalChoice("cancel")}
 				/>
 			</Container>
 			<Box

@@ -285,6 +285,9 @@ function Page() {
 				longitude: editingListing.longitude ?? undefined,
 				phone: editingListing.phone || "",
 				seller_type: editingListing.seller_type || "",
+				// Block D D4 — pre-fill the channel opt-out from the server value
+				// so saving round-trips it (defaults true for pre-D4 rows).
+				publish_to_channel: editingListing.publish_to_channel ?? true,
 			});
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -470,6 +473,9 @@ function Page() {
 			...buildListingData(values),
 			description: aiEdits.ru.trim() || values.description || undefined,
 			images: isImagesModified ? finalImages : undefined,
+			// Block D D4 — sent explicitly (not via buildListingData, which admin
+			// edits reuse and must not touch).
+			publish_to_channel: values.publish_to_channel,
 		};
 
 		updateListing({ id, data: listingData });
@@ -850,6 +856,7 @@ function Page() {
 							districts={districts}
 							onRegionChange={handleRegionChange}
 							sectionStates={sectionStates}
+							showPublishToChannel
 							beforeDescriptionContent={aiSlots.beforeDescriptionContent}
 							descriptionValueOverride={aiSlots.descriptionValueOverride}
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}

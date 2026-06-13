@@ -6,7 +6,6 @@ import {
 	Button,
 	Card,
 	Group,
-	Modal,
 	Stack,
 	Text,
 	TextInput,
@@ -37,7 +36,7 @@ import {
 	updateChannelPostFx,
 	recreateChannelPostFx,
 } from "../../model/effects";
-import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
+import { MediaCutoffModal } from "@modules/seller/feature/media-cutoff-modal";
 
 /**
  * Block D D4 — seller cabinet "Autoposting" page.
@@ -65,7 +64,6 @@ function Page() {
 		mediaModalOpen,
 		{ open: openMediaModal, close: closeMediaModal },
 	] = useDisclosure(false);
-	useTelegramBackClose(mediaModalOpen, closeMediaModal);
 	const [pendingPostId, setPendingPostId] = useState<string | null>(null);
 	const [pendingPostAgeHours, setPendingPostAgeHours] = useState<number | null>(
 		null,
@@ -82,12 +80,17 @@ function Page() {
 		const result = await connectChannelFx(value);
 		if (result.status === "verified") {
 			setChannelInput("");
+			// $autopostStatus is the shared fetch-only store now — refresh it so
+			// the UI flips to "connected" instead of relying on optimistic updates.
+			void fetchAutopostStatusFx();
 			void fetchAutopostPostsFx({ page: 1, pageSize: 20 });
 		}
 	};
 
 	const handleDisconnect = async () => {
 		await disconnectChannelFx();
+		// Refresh the shared status store after the server confirms the drop.
+		void fetchAutopostStatusFx();
 	};
 
 	const handleUpdatePost = async (postId: string, forceTextOnly = false) => {
@@ -296,50 +299,14 @@ function Page() {
 				</Stack>
 			</Box>
 
-			{/* 48h media-edit cutoff modal */}
-			<Modal
+			{/* 48h media-edit cutoff modal (shared with "My listings"). */}
+			<MediaCutoffModal
 				opened={mediaModalOpen}
-				onClose={() => handleMediaModalChoice("cancel")}
-				title={t("autopost.media_modal_title", "Photo cannot be edited")}
-				centered
-			>
-				<Stack gap="md">
-					<Text size="sm">
-						{t("autopost.media_modal_body", {
-							hours: pendingPostAgeHours ?? "?",
-							defaultValue:
-								"Telegram does not allow photo changes on posts older than 48 hours (this post is {{hours}}h old). What would you like to do?",
-						})}
-					</Text>
-					<Stack gap="xs">
-						<Button
-							fullWidth
-							variant="light"
-							onClick={() => handleMediaModalChoice("text_only")}
-						>
-							{t("autopost.media_modal_text_only", "Update text only")}
-						</Button>
-						<Button
-							fullWidth
-							variant="light"
-							color="red"
-							onClick={() => handleMediaModalChoice("recreate")}
-						>
-							{t(
-								"autopost.media_modal_recreate",
-								"Delete old post and publish a new one",
-							)}
-						</Button>
-						<Button
-							fullWidth
-							variant="subtle"
-							onClick={() => handleMediaModalChoice("cancel")}
-						>
-							{t("autopost.media_modal_cancel", "Cancel")}
-						</Button>
-					</Stack>
-				</Stack>
-			</Modal>
+				postAgeHours={pendingPostAgeHours}
+				onTextOnly={() => handleMediaModalChoice("text_only")}
+				onRecreate={() => handleMediaModalChoice("recreate")}
+				onCancel={() => handleMediaModalChoice("cancel")}
+			/>
 		</InnerPage>
 	);
 }

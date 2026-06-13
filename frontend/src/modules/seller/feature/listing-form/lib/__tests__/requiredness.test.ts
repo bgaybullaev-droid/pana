@@ -100,6 +100,7 @@ function emptyValues(
 		longitude: undefined,
 		phone: "",
 		seller_type: "",
+		publish_to_channel: true,
 		...over,
 	};
 }

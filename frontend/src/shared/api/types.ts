@@ -180,6 +180,8 @@ export interface Listing {
 	expires_at: string | null;
 	images: ListingImage[];
 	is_favorited?: boolean;
+	// Block D D4 — per-listing channel autopost opt-out (seller edit pre-fill).
+	publish_to_channel?: boolean;
 }
 
 export interface ListingListItem {

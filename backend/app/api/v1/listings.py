@@ -3025,6 +3025,9 @@ async def get_listing(
     response = ListingResponse(
         id=listing.id,
         seller_id=listing.seller_id,
+        # Block D D4 — expose the channel opt-out so the seller edit form
+        # round-trips it instead of clobbering it back to true on save.
+        publish_to_channel=listing.publish_to_channel,
         type=listing.type.value,
         property_type=listing.property_type.value,
         rooms=listing.rooms,

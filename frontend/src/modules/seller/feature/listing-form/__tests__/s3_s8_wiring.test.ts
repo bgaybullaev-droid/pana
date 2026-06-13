@@ -93,6 +93,7 @@ function baseValues(over: Partial<ListingFormValues> = {}): ListingFormValues {
 		longitude: 69.3,
 		phone: "",
 		seller_type: "owner",
+		publish_to_channel: true,
 		...over,
 	};
 }

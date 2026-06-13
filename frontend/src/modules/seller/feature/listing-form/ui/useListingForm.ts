@@ -125,6 +125,8 @@ export interface ListingFormValues {
 	// Contact
 	phone: string;
 	seller_type: string;
+	// Block D D4 — publish this listing to the seller's Telegram channel.
+	publish_to_channel: boolean;
 }
 
 export type ListingFormMode = "create" | "edit";
@@ -224,6 +226,9 @@ export function useListingForm(
 			longitude: undefined,
 			phone: "",
 			seller_type: "",
+			// Block D D4 — default ON; the Switch only renders when a channel is
+			// connected, and the backend ignores the flag without one.
+			publish_to_channel: true,
 			...(initialOverrides ?? {}),
 		},
 		// Generated from the shared required-field table so the form

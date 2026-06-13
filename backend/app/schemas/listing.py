@@ -407,6 +407,10 @@ class ListingResponse(BaseModel):
     sewage: Optional[str] = None
     is_furnished: Optional[bool] = None
     is_negotiable: bool = False
+    # Block D D4 — per-listing channel autopost opt-out. Read back so the
+    # seller edit form pre-fills the real value instead of resetting it to
+    # true on every save. Defaults to true for rows created before D4.
+    publish_to_channel: bool = True
     land_purpose: Optional[str] = None
     amenities: Optional[List[str]] = None
     nearby_amenities: Optional[List[str]] = None

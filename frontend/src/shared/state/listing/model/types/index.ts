@@ -92,6 +92,8 @@ export interface ListingCreateData {
 	floor_plan_url?: string;
 	// Sprint 7 (T-027) — housing complex linkage
 	jk_id?: string;
+	// Block D D4 — per-listing channel autopost opt-out (default true server-side).
+	publish_to_channel?: boolean;
 }
 
 export interface ListingUpdateData extends Partial<ListingCreateData> {

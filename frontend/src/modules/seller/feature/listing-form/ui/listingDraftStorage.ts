@@ -107,5 +107,7 @@ export function draftDataToFormValues(data: ListingCreateData): Partial<ListingF
 		longitude: data.longitude,
 		phone: data.phone ?? "",
 		seller_type: data.seller_type ?? "",
+		// Block D D4 — keep the channel-publish choice across Stage2 → Stage1.
+		publish_to_channel: data.publish_to_channel ?? true,
 	};
 }

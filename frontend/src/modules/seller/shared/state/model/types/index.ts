@@ -29,4 +29,26 @@ export interface SellerListingItem extends ListingListItem {
   status: 'active' | 'paused' | 'sold' | 'expired';
   contacts_count: number;
   source_type?: 'manual' | 'claimed' | 'parsed' | null;
+  // Block D D4 — channel autopost overlay. Optional for deploy skew (a
+  // frontend ahead of the backend just won't see them).
+  autopost_post_id?: string | null;
+  autopost_is_stale?: boolean;
+}
+
+// Block D D4 — autopost (channel publishing) shared types. Lifted here from
+// the autoposting page module so the listing form (publish gate) and the
+// "My listings" page (stale-post update) can consume them without a
+// page→page import. The autoposting page re-exports them.
+export interface AutopostStatus {
+  connected: boolean;
+  enabled: boolean;
+  channel_username: string | null;
+  channel_id: number | null;
+  verified_at: string | null;
+  stale_count: number;
+}
+
+export interface UpdatePostResponse {
+  result: 'queued' | 'media_too_old' | string;
+  post_age_hours?: number;
 }

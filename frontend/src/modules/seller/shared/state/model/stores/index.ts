@@ -1,6 +1,7 @@
 import { createStore } from 'effector';
 import type { Seller } from '@shared/api/types';
-import type { SellerStats, SellerListingItem } from '../types';
+import type { SellerStats, SellerListingItem, AutopostStatus } from '../types';
+import { fetchAutopostStatusFx } from '../effects';
 
 // Stores
 export const $sellerProfile = createStore<Seller | null>(null);
@@ -36,3 +37,11 @@ export const $sellerStats = $sellerProfile.map((profile): SellerStats | null => 
     totalFavorites: 0, // Not tracked in backend yet
   };
 });
+
+// Block D D4 — canonical autopost status store (fetch-only). The autoposting
+// page re-exports this; the listing form reads it to gate the publish Switch.
+// Connect/disconnect optimism lives in the page, which re-fetches after them.
+export const $autopostStatus = createStore<AutopostStatus | null>(null).on(
+  fetchAutopostStatusFx.doneData,
+  (_, data) => data,
+);

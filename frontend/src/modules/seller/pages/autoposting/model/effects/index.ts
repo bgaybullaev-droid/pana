@@ -1,15 +1,22 @@
 import { createEffect } from "effector";
 import { apiClient } from "@shared/api/client";
 
-export type AutopostStatus = {
-	connected: boolean;
-	enabled: boolean;
-	channel_username: string | null;
-	channel_id: number | null;
-	verified_at: string | null;
-	stale_count: number;
-};
+// Block D D4 — the autopost effects used across seller surfaces (status,
+// post update / recreate) now live in the seller shared-state module, so the
+// listing form and "My listings" can reach them without a page→page import.
+// Re-exported here so this page's existing imports keep working unchanged.
+export {
+	fetchAutopostStatusFx,
+	updateChannelPostFx,
+	recreateChannelPostFx,
+} from "@modules/seller/shared/state";
+export type {
+	AutopostStatus,
+	UpdatePostResponse,
+} from "@modules/seller/shared/state";
 
+// Page-only state below — the channel history list and the connect /
+// disconnect flow are used by this page alone, so they stay local.
 export type AutopostPost = {
 	id: string;
 	listing_id: string;
@@ -35,18 +42,6 @@ export type ConnectResponse = {
 	error?: string | null;
 };
 
-export type UpdatePostResponse = {
-	result: "queued" | "media_too_old" | string;
-	post_age_hours?: number;
-};
-
-export const fetchAutopostStatusFx = createEffect<void, AutopostStatus>(
-	async () => {
-		const res = await apiClient.get<AutopostStatus>("/seller/autopost/status");
-		return res.data;
-	},
-);
-
 export const fetchAutopostPostsFx = createEffect<
 	{ page?: number; pageSize?: number },
 	AutopostPosts
@@ -71,26 +66,6 @@ export const disconnectChannelFx = createEffect<void, { status: string }>(
 	async () => {
 		const res = await apiClient.post<{ status: string }>(
 			"/seller/autopost/disconnect",
-		);
-		return res.data;
-	},
-);
-
-export const updateChannelPostFx = createEffect<
-	{ postId: string; forceTextOnly: boolean },
-	UpdatePostResponse
->(async ({ postId, forceTextOnly }) => {
-	const res = await apiClient.post<UpdatePostResponse>(
-		`/seller/autopost/posts/${postId}/update`,
-		{ force_text_only: forceTextOnly },
-	);
-	return res.data;
-});
-
-export const recreateChannelPostFx = createEffect<string, { result: string }>(
-	async (postId) => {
-		const res = await apiClient.post<{ result: string }>(
-			`/seller/autopost/posts/${postId}/recreate`,
 		);
 		return res.data;
 	},

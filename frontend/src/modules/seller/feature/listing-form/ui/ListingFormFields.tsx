@@ -12,9 +12,14 @@ import {
 	Select,
 } from "@mantine/core";
 import { IconSparkles, IconX } from "@tabler/icons-react";
+import { useUnit } from "effector-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import {
+	$autopostStatus,
+	fetchAutopostStatusFx,
+} from "@modules/seller/shared/state";
 import { FormSection } from "@shared/ui/FormSection";
 import { Reveal, RevealGate } from "@shared/ui/Reveal";
 import { ChipSelect } from "@shared/ui/ChipSelect";
@@ -66,6 +71,9 @@ interface ListingFormFieldsProps {
 	descriptionContentKey?: string;
 	/** Per-section completeness (useListingCompleteness). Omit → render as before. */
 	sectionStates?: Record<SectionKey, SectionState>;
+	/** Block D D4 — show the "publish to my channel" Switch (seller create/edit
+	 *  only; gated further by a connected + enabled channel). Admin omits it. */
+	showPublishToChannel?: boolean;
 }
 
 export function ListingFormFields({
@@ -81,9 +89,18 @@ export function ListingFormFields({
 	descriptionLoading,
 	descriptionContentKey,
 	sectionStates,
+	showPublishToChannel,
 }: ListingFormFieldsProps) {
 	const { t } = useTranslation("seller");
 	const navigate = useNavigate();
+	// Block D D4 — autopost status gates the publish Switch. Fetched once on
+	// mount, only when the host page opted in and the store is still empty.
+	const autopostStatus = useUnit($autopostStatus);
+	useEffect(() => {
+		if (showPublishToChannel && !autopostStatus) {
+			void fetchAutopostStatusFx();
+		}
+	}, [showPublishToChannel, autopostStatus]);
 	const pt = form.values.property_type;
 	const dt = form.values.type;
 
@@ -1912,6 +1929,25 @@ export function ListingFormFields({
 				)}
 			</FormSection>
 			</div>
+
+			{/* ── Block D D4 — publish to my Telegram channel ── */}
+			{showPublishToChannel &&
+				autopostStatus?.connected &&
+				autopostStatus?.enabled && (
+				<FormSection title={t("autopost.title", "Автопостинг")} bg={sectionBg}>
+					<Switch
+						label={t(
+							"autopost.checkbox_publish",
+							"Опубликовать в моём канале",
+						)}
+						checked={form.values.publish_to_channel}
+						onChange={(e) =>
+							set("publish_to_channel", e.currentTarget.checked)
+						}
+						styles={{ label: { fontWeight: 500, fontSize: 14 } }}
+					/>
+				</FormSection>
+			)}
 		</RevealGate>
 	);
 }

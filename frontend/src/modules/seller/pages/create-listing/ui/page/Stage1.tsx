@@ -274,6 +274,9 @@ function Stage1() {
 			...buildListingData(form.values),
 			images: uploadedImages,
 			ai_wishes: wishes.trim() || undefined,
+			// Block D D4 — channel publish choice, sent explicitly (not via
+			// buildListingData, which admin edits reuse and must not touch).
+			publish_to_channel: form.values.publish_to_channel,
 		};
 
 		try {
@@ -318,6 +321,8 @@ function Stage1() {
 			...buildListingData(values),
 			images: uploadedImages,
 			ai_wishes: wishes.trim() || undefined,
+			// Block D D4 — channel publish choice (see handleGenerate note).
+			publish_to_channel: values.publish_to_channel,
 		};
 
 		try {
@@ -575,6 +580,7 @@ function Stage1() {
 							districts={districts}
 							onRegionChange={handleRegionChange}
 							sectionStates={sectionStates}
+							showPublishToChannel
 							beforeDescriptionContent={aiSlots.beforeDescriptionContent}
 							descriptionValueOverride={aiSlots.descriptionValueOverride}
 							onDescriptionChangeOverride={aiSlots.onDescriptionChangeOverride}

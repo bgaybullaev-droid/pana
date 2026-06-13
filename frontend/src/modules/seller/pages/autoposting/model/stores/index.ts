@@ -1,44 +1,16 @@
 import { createStore } from "effector";
 import {
 	fetchAutopostStatusFx,
-	fetchAutopostPostsFx,
 	connectChannelFx,
-	disconnectChannelFx,
-	type AutopostStatus,
+	fetchAutopostPostsFx,
 	type AutopostPosts,
 } from "../effects";
 
-export const $autopostStatus = createStore<AutopostStatus | null>(null)
-	.on(fetchAutopostStatusFx.doneData, (_, data) => data)
-	.on(connectChannelFx.doneData, (prev, data) => {
-		if (data.status !== "verified") return prev;
-		return {
-			...(prev ?? {
-				connected: true,
-				enabled: true,
-				channel_username: data.channel_username ?? null,
-				channel_id: data.channel_id ?? null,
-				verified_at: data.verified_at ?? null,
-				stale_count: 0,
-			}),
-			connected: true,
-			enabled: true,
-			channel_username: data.channel_username ?? null,
-			channel_id: data.channel_id ?? null,
-			verified_at: data.verified_at ?? null,
-		};
-	})
-	.on(disconnectChannelFx.done, (prev) => {
-		if (!prev) return prev;
-		return {
-			...prev,
-			connected: false,
-			enabled: false,
-			channel_username: null,
-			channel_id: null,
-			verified_at: null,
-		};
-	});
+// Block D D4 — the canonical autopost status store lives in the seller
+// shared-state module (the listing form consumes it too). Re-exported here so
+// this page keeps importing `$autopostStatus` from its own model. It reacts to
+// `fetchAutopostStatusFx` only; this page re-fetches after connect/disconnect.
+export { $autopostStatus } from "@modules/seller/shared/state";
 
 export const $autopostPosts = createStore<AutopostPosts | null>(null).on(
 	fetchAutopostPostsFx.doneData,
