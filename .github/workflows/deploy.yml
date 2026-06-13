@@ -58,10 +58,9 @@ jobs:
             rsync -av --delete _repo/db/ db/
 
             # Inject secrets from GitHub into backend/.env (idempotent).
-            # Track whether the file actually changed: docker compose does NOT
-            # recreate a container when only env_file *content* changes, so we
-            # force a recreate below only when the key was added/updated.
-            ENV_CHANGED=0
+            # No need to track whether the file changed: the unconditional
+            # --force-recreate below makes every container re-read its
+            # env_file on each deploy anyway.
             if [ -n "$OPENAI_API_KEY" ]; then
               if grep -Fqx "OPENAI_API_KEY=$OPENAI_API_KEY" backend/.env 2>/dev/null; then
                 : # already present with the correct value — nothing to do
@@ -72,7 +71,6 @@ jobs:
                 grep -v "^OPENAI_API_KEY=" backend/.env > backend/.env.tmp 2>/dev/null || true
                 echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> backend/.env.tmp
                 cp backend/.env.tmp backend/.env && rm -f backend/.env.tmp
-                ENV_CHANGED=1
               fi
             fi
 
@@ -82,14 +80,17 @@ jobs:
               | grep -E '^[0-9a-f]+_demo-' \
               | xargs -r docker rm -f
 
-            # Rebuild and restart all services
-            docker compose up -d --build --remove-orphans
-
-            # If backend/.env changed, force a recreate so running containers
-            # re-read the updated env_file (a plain `up -d` would skip them).
-            if [ "$ENV_CHANGED" = "1" ]; then
-              docker compose up -d --force-recreate
-            fi
+            # Rebuild and restart all services.
+            #
+            # --force-recreate is REQUIRED, not optional: services that share a
+            # built image but have no `build:` of their own (e.g. the bot,
+            # which reuses the api image and only overrides `command:` to run
+            # `python -m app.bot.main`) are NOT recreated by a plain `up -d
+            # --build`. Compose sees the image *tag* is unchanged and skips
+            # them, so they keep running the OLD baked code even though `api`
+            # was rebuilt. Forcing recreate makes every container come back up
+            # on the freshly built image / freshly synced code.
+            docker compose up -d --build --force-recreate --remove-orphans
 
             # Apply database migrations
             docker compose run --rm api alembic upgrade head
