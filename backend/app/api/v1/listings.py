@@ -106,6 +106,11 @@ def _dispatch_autopost_for_status_change(
         )
 
         if new_status == ListingStatus.ACTIVE:
+            # Block D D4 — per-listing opt-out. Only the publish branch is
+            # gated; the mark_sold / delete branches below stay ungated so
+            # an already-published post's lifecycle keeps syncing.
+            if not getattr(listing, "publish_to_channel", True):
+                return
             publish_listing_to_channel.delay(str(listing.id), str(seller.id))
             return
         if new_status == ListingStatus.SOLD:
@@ -3139,6 +3144,7 @@ async def create_listing(
         phone=data.phone or seller.phone,
         seller_type=data.seller_type,
         source_type=SourceType.MANUAL,
+        publish_to_channel=data.publish_to_channel,
         moderation_status=ModerationStatus.APPROVED,
         # Phase 2 fields
         living_area=data.living_area,
@@ -3396,6 +3402,7 @@ def _build_listing_kwargs(data, seller, source_type) -> dict:
         phone=data.phone or seller.phone,
         seller_type=data.seller_type,
         source_type=source_type,
+        publish_to_channel=data.publish_to_channel,
         moderation_status=ModerationStatus.APPROVED,
         living_area=data.living_area,
         kitchen_area=data.kitchen_area,
@@ -3934,10 +3941,11 @@ async def update_listing(
         _populate_listing_lang_columns(listing)
 
     # Block D D4 — bump the version counter on every successful edit so
-    # the cabinet's "post stale" badge becomes accurate. Cheap (one
-    # int), no extra schema. Only bumped if SOME field actually changed
-    # (update_data is non-empty after the loop above).
-    if update_data:
+    # the cabinet's "post stale" badge becomes accurate. Cheap (one int),
+    # no extra schema. Only bumped if SOME content field changed — toggling
+    # ``publish_to_channel`` alone must NOT bump, or it would falsely mark a
+    # live channel post as stale.
+    if set(update_data) - {"publish_to_channel"}:
         listing.version = (listing.version or 1) + 1
 
     # Block phase-2 — sale capture. Now that the status mutation has

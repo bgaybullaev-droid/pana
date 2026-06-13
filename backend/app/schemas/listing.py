@@ -212,10 +212,19 @@ class ListingCreate(ListingBase):
     # Block F — free-text seller wishes forwarded into the AI prompt of the
     # initial generation. Pass-through only: not persisted on the listing.
     ai_wishes: Optional[str] = Field(None, max_length=500)
+    # Block D D4 — per-listing channel autopost opt-out. Defaults to TRUE
+    # (publish); the seller's form sends FALSE to keep a listing off the
+    # channel. Only honoured when the seller has a connected channel.
+    publish_to_channel: bool = True
 
 
 class ListingUpdate(BaseModel):
     """Schema for updating a listing."""
+
+    # Block D D4 — per-listing channel autopost opt-out. Optional on update
+    # so toggling it is a normal PATCH; the endpoint excludes a
+    # publish_to_channel-only change from the version bump (no false stale).
+    publish_to_channel: Optional[bool] = None
 
     type: Optional[str] = Field(None, pattern="^(sell|rent)$")
     property_type: Optional[str] = Field(
@@ -518,6 +527,11 @@ class SellerListingListResponse(ListingListResponse):
     status: str
     contacts_count: int = 0
     source_type: Optional[str] = None
+    # Block D D4 — channel autopost overlay. ``autopost_post_id`` is set when
+    # a live bot_channel_posts row exists; ``autopost_is_stale`` is true when
+    # the listing has been edited since that post was published.
+    autopost_post_id: Optional[UUID] = None
+    autopost_is_stale: bool = False
 
 
 class ListingFilters(BaseModel):

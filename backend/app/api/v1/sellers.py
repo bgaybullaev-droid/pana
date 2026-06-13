@@ -17,6 +17,7 @@ from app.core.exceptions import (
 )
 from app.db.database import get_db
 from app.db.models import (
+    BotChannelPost,
     Favorite,
     Listing,
     ListingStatus,
@@ -275,6 +276,27 @@ async def get_seller_listings(
     result = await db.execute(query)
     listings = result.scalars().all()
 
+    # Block D D4 — overlay autopost staleness per listing. A SEPARATE
+    # grouped query, NOT a JOIN: the count subquery above reuses ``query``,
+    # so joining there would corrupt its row count. Rides the
+    # ``idx_bot_channel_posts_seller_status`` index.
+    post_by_listing: dict[UUID, tuple[UUID, int]] = {}
+    listing_ids = [listing.id for listing in listings]
+    if listing_ids:
+        posts_result = await db.execute(
+            select(
+                BotChannelPost.listing_id,
+                BotChannelPost.id,
+                BotChannelPost.last_listing_version,
+            ).where(
+                BotChannelPost.seller_id == seller.id,
+                BotChannelPost.status == "live",
+                BotChannelPost.listing_id.in_(listing_ids),
+            )
+        )
+        for post_listing_id, post_id, last_version in posts_result.all():
+            post_by_listing[post_listing_id] = (post_id, last_version)
+
     items = []
     for listing in listings:
         primary_image = next(
@@ -304,6 +326,15 @@ async def get_seller_listings(
                 status=listing.status.value,
                 contacts_count=listing.contacts_count,
                 source_type=listing.source_type.value if listing.source_type else None,
+                autopost_post_id=(
+                    post_by_listing[listing.id][0]
+                    if listing.id in post_by_listing
+                    else None
+                ),
+                autopost_is_stale=(
+                    listing.id in post_by_listing
+                    and listing.version > post_by_listing[listing.id][1]
+                ),
             )
         )
 

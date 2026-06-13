@@ -644,6 +644,11 @@ async def _enqueue_autopost(db: AsyncSession, listing_id: UUID) -> None:
         ).scalar_one_or_none()
         if listing is None or listing.seller_id is None:
             return
+        # Block D D4 — respect the per-listing opt-out. This guard is what
+        # stops claimed / parsed imports (publish_to_channel defaulted to
+        # FALSE) from auto-posting when F1 finishes their description.
+        if not getattr(listing, "publish_to_channel", True):
+            return
         seller = (
             await db.execute(select(Seller).where(Seller.id == listing.seller_id))
         ).scalar_one_or_none()

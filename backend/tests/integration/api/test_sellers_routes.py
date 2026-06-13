@@ -6,7 +6,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Seller, User, UserRole
+from app.db.models import BotChannelPost, Seller, User, UserRole
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
@@ -108,6 +108,110 @@ class TestGetSellerListings:
             headers=seller_headers,
         )
         assert resp.status_code == 200
+
+
+class TestSellerListingsAutopostOverlay:
+    """GET /api/v1/sellers/me/listings — Block D D4 autopost overlay."""
+
+    async def test_autopost_fields_default_when_no_post(
+        self, client: AsyncClient, seller_headers, test_listing
+    ):
+        resp = await client.get(
+            "/api/v1/sellers/me/listings", headers=seller_headers
+        )
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["autopost_post_id"] is None
+        assert item["autopost_is_stale"] is False
+
+    async def test_stale_when_listing_edited_after_post(
+        self,
+        client: AsyncClient,
+        seller_headers,
+        test_seller,
+        test_listing,
+        db_session: AsyncSession,
+    ):
+        # The post captured an older version than the listing now carries.
+        test_listing.version = 2
+        db_session.add(
+            BotChannelPost(
+                listing_id=test_listing.id,
+                seller_id=test_seller.id,
+                channel_id=-1001234567890,
+                message_id=42,
+                last_listing_version=1,
+                status="live",
+            )
+        )
+        await db_session.flush()
+
+        resp = await client.get(
+            "/api/v1/sellers/me/listings", headers=seller_headers
+        )
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["autopost_is_stale"] is True
+        assert item["autopost_post_id"] is not None
+
+    async def test_not_stale_when_post_in_sync(
+        self,
+        client: AsyncClient,
+        seller_headers,
+        test_seller,
+        test_listing,
+        db_session: AsyncSession,
+    ):
+        db_session.add(
+            BotChannelPost(
+                listing_id=test_listing.id,
+                seller_id=test_seller.id,
+                channel_id=-1001234567890,
+                message_id=43,
+                last_listing_version=test_listing.version,
+                status="live",
+            )
+        )
+        await db_session.flush()
+
+        resp = await client.get(
+            "/api/v1/sellers/me/listings", headers=seller_headers
+        )
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["autopost_is_stale"] is False
+        assert item["autopost_post_id"] is not None
+
+    async def test_non_live_post_is_ignored(
+        self,
+        client: AsyncClient,
+        seller_headers,
+        test_seller,
+        test_listing,
+        db_session: AsyncSession,
+    ):
+        # Only status="live" posts count; a deleted-marker row must not
+        # surface an autopost_post_id.
+        test_listing.version = 5
+        db_session.add(
+            BotChannelPost(
+                listing_id=test_listing.id,
+                seller_id=test_seller.id,
+                channel_id=-1001234567890,
+                message_id=44,
+                last_listing_version=1,
+                status="deleted",
+            )
+        )
+        await db_session.flush()
+
+        resp = await client.get(
+            "/api/v1/sellers/me/listings", headers=seller_headers
+        )
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["autopost_post_id"] is None
+        assert item["autopost_is_stale"] is False
 
 
 class TestSellerPublicProfile:

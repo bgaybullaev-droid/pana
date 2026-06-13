@@ -564,6 +564,9 @@ async def convert_olx_to_listing(
         description=olx.description,
         phone=olx.contact_phone,
         source_type=SourceType.CLAIMED,
+        # Block D D4 — claimed imports never auto-post to a channel unless
+        # the seller later opts in.
+        publish_to_channel=False,
         source_url=olx.url,
         status=ListingStatus.ACTIVE,
         moderation_status=ModerationStatus.APPROVED,
@@ -647,6 +650,9 @@ async def convert_telegram_to_listing(
         description=tg.description,
         phone=tg.contact_phone,
         source_type=SourceType.CLAIMED,
+        # Block D D4 — claimed imports never auto-post to a channel unless
+        # the seller later opts in.
+        publish_to_channel=False,
         source_url=source_url,
         status=ListingStatus.ACTIVE,
         moderation_status=ModerationStatus.APPROVED,

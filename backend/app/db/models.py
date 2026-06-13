@@ -631,6 +631,14 @@ class Listing(Base):
     # Optimistic locking
     version: Mapped[int] = mapped_column(Integer, default=1)
 
+    # Block D D4 — per-listing opt-out of channel autopost. Manual listings
+    # default to publishing; claimed / parsed imports default to FALSE
+    # (migration backfill + claim handlers) so imported content is never
+    # pushed to the seller's channel without an explicit choice.
+    publish_to_channel: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+
     # Soft delete
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 

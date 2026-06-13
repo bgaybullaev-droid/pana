@@ -107,6 +107,8 @@ async def initiate_claim(
         # Update listing
         listing.seller_id = seller.id
         listing.source_type = SourceType.CLAIMED
+        # Block D D4 — claimed listings don't auto-post to a channel.
+        listing.publish_to_channel = False
         listing.claimed_at = datetime.now(timezone.utc)
 
         # Update seller stats
@@ -228,6 +230,8 @@ async def verify_claim(
     if listing:
         listing.seller_id = seller.id
         listing.source_type = SourceType.CLAIMED
+        # Block D D4 — claimed listings don't auto-post to a channel.
+        listing.publish_to_channel = False
         listing.claimed_at = datetime.now(timezone.utc)
         seller.listings_count += 1
 

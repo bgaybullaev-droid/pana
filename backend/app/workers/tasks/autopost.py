@@ -152,6 +152,11 @@ async def _publish_listing_to_channel(
         listing = await _load_listing(db, UUID(listing_id))
         if listing is None:
             return {"ok": False, "reason": "listing_not_found"}
+        # Block D D4 — defense-in-depth: never publish an opted-out listing
+        # even if an enqueue slipped past the upstream gates.
+        if not getattr(listing, "publish_to_channel", True):
+            logger.info("autopost.publish_skipped_opt_out listing=%s", listing_id)
+            return {"ok": False, "reason": "publish_opt_out"}
         if listing.status != ListingStatus.ACTIVE:
             return {"ok": False, "reason": "listing_not_active"}
 
