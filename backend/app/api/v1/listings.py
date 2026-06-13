@@ -133,6 +133,53 @@ def _dispatch_autopost_for_status_change(
         )
 
 
+async def _maybe_publish_optin_listing(
+    db: AsyncSession,
+    seller: "Seller",
+    listing: "Listing",
+) -> None:
+    """Block D D4 — publish an already-ACTIVE listing the moment the seller
+    opts it into the channel.
+
+    Toggling ``publish_to_channel`` on does not change the listing status, so
+    ``_dispatch_autopost_for_status_change`` is a no-op for that edit. This
+    closes the gap: with a connected channel, an ACTIVE + opted-in listing and
+    no live post yet, enqueue a publish. The publish task is idempotent
+    (``already_posted`` guard), so a redundant enqueue is harmless.
+    """
+    if not seller or not getattr(seller, "autopost_channel_id", None):
+        return
+    if not getattr(seller, "autopost_enabled", False):
+        return
+    if seller.autopost_verified_at is None:
+        return
+    if listing.status != ListingStatus.ACTIVE:
+        return
+    if not getattr(listing, "publish_to_channel", True):
+        return
+
+    from app.db.models import BotChannelPost
+
+    existing = await db.execute(
+        select(BotChannelPost.id).where(
+            BotChannelPost.listing_id == listing.id,
+            BotChannelPost.seller_id == seller.id,
+            BotChannelPost.status == "live",
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        return
+
+    try:
+        from app.workers.tasks.autopost import publish_listing_to_channel
+
+        publish_listing_to_channel.delay(str(listing.id), str(seller.id))
+    except Exception:
+        logger.warning(
+            "autopost opt-in dispatch failed listing=%s", listing.id, exc_info=True
+        )
+
+
 def _resolve_field(listing, field: str, lang: str) -> Optional[str]:
     """Resolve a text field to the requested language with fallback."""
     localized = getattr(listing, f"{field}_{lang}", None)
@@ -4034,6 +4081,13 @@ async def update_listing(
     # Block D D4 — autopost status-transition hooks. Fire-and-forget;
     # task failures never block the seller's listing update.
     _dispatch_autopost_for_status_change(seller, listing, old_status)
+
+    # Block D D4 — opt-in publish. When the status did NOT change (so the
+    # dispatch above was a no-op) but the seller just opted this already-ACTIVE
+    # listing into the channel, publish it now — covers toggling the switch on
+    # an existing listing. Idempotent; skipped when a live post already exists.
+    if old_status == listing.status:
+        await _maybe_publish_optin_listing(db, seller, listing)
 
     # Block F F1 — on DRAFT → ACTIVE the listing becomes B2C-visible
     # for the first time, so saved-search subscribers must be notified
