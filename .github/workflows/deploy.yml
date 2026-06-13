@@ -94,5 +94,12 @@ jobs:
             # Apply database migrations
             docker compose run --rm api alembic upgrade head
 
+            # Rebuild the Meilisearch index (native + crawled Telegram/OLX).
+            # Meili data does not survive a container rebuild, so repopulate
+            # it on every deploy instead of relying on the Celery beat
+            # reconcile. Idempotent + safe-fallback; `|| true` so a search
+            # hiccup never fails the deploy (the script itself always exits 0).
+            docker compose run --rm api python scripts/backfill_meilisearch.py || true
+
             # Cleanup old images
             docker image prune -f
