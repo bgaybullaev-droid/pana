@@ -147,12 +147,12 @@ async def handle_inline_query(query: InlineQuery) -> None:
             # Conversion-first: never return zero results without
             # explanation. Telegram silently drops the inline popup
             # when results=[] which is the worst UX.
-            results = bot_search.recent_listings(
+            results = await bot_search.recent_listings(
                 limit=bot_search.DEFAULT_INLINE_LIMIT
             )
         else:
             parsed = query_parser.parse(raw, lang=lang)
-            results = bot_search.search(
+            results = await bot_search.search(
                 parsed, limit=bot_search.DEFAULT_INLINE_LIMIT
             )
 

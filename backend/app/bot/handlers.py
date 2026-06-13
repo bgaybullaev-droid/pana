@@ -1841,10 +1841,8 @@ async def handle_claim_crawled(call: CallbackQuery):
     3. Look up the source row(s) by phone match; call the convert service.
     4. Edit the bot message to a "Confirmed. Open in cabinet" footer.
     """
-    from sqlalchemy.ext.asyncio import async_sessionmaker
 
     from app.db.models import (
-        ListingStatus,
         OLXListing,
         Seller,
         TelegramListing,
@@ -2263,9 +2261,9 @@ async def _run_bot_search_reply(
         # we silently skip (caller returns False).
         return False
 
-    results = _search.search(parsed, limit=_search.DEFAULT_BOT_LIMIT)
+    results = await _search.search(parsed, limit=_search.DEFAULT_BOT_LIMIT)
     if not results:
-        # Parsed something but Meilisearch returned nothing — give the
+        # Parsed something but the search returned nothing — give the
         # user a helpful next step rather than dead air.
         await message.answer(
             t(lang, "search_no_results"),
