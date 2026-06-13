@@ -79,7 +79,35 @@ _BARE_DISTRICT_FORMS: dict[str, str] = {
     "хамзинский": "yashnobod",
 }
 
+# Extra district spellings the alias tables miss — used to EXPAND a
+# recognised district into every spelling the DB might store, so a
+# Latin query ("chilonzor") also matches Cyrillic rows ("Чиланзар") and a
+# Cyrillic query also matches Latin rows. The crawler stores the district
+# inconsistently across sources, so a single-spelling ILIKE under-returns.
+_DISTRICT_EXTRA_SPELLINGS: dict[str, tuple[str, ...]] = {
+    "chilonzor": ("chilonzor", "chilanzar", "чиланзар", "чилонзор"),
+    "yunusobod": ("yunusobod", "yunusabad", "юнусабад", "юнусобод"),
+    "mirzo_ulugbek": (
+        "mirzo ulug'bek", "mirzo ulugbek", "мирзо-улугбек", "мирзо улугбек",
+    ),
+    "mirobod": ("mirobod", "mirabad", "мирабад", "мирабод"),
+    "olmazor": ("olmazor", "алмазар", "олмазор"),
+    "sergeli": ("sergeli", "sergili", "сергели", "сергейли"),
+    "yashnobod": ("yashnobod", "яшнабад", "яшнобод"),
+    "shayxontohur": ("shayxontohur", "шайхантахур", "шайхонтохур"),
+    "uchtepa": ("uchtepa", "учтепа"),
+    "yakkasaroy": ("yakkasaroy", "яккасарай", "яккасарой"),
+    "bektemir": ("bektemir", "бектемир"),
+    "yangihayot": ("yangihayot", "yangixayot", "янгихаёт", "янгихает"),
+}
+
 logger = logging.getLogger(__name__)
+
+# Below this value a price bound in the default UZS currency is implausible
+# for any real-estate listing (rent is in the millions of sum, sales far
+# higher). Such a bound almost always means the user omitted "млн"/"тыс"
+# (e.g. "до 300"); applying it would zero out every result, so it is dropped.
+_MIN_PLAUSIBLE_PRICE_UZS = 1_000_000
 
 
 # =============================================================================
@@ -234,6 +262,42 @@ def canonical_district(text: Optional[str]) -> Optional[str]:
     return _parse_district(text or "")
 
 
+def _build_district_search_terms() -> dict[str, tuple[str, ...]]:
+    """Reverse index: canonical district key → every spelling to ILIKE.
+
+    Folds the alias tables (which recognise these spellings on *input*)
+    together with the extra Latin/Cyrillic forms, so the search can OR-match
+    all spellings of a recognised district against the listing text. Drops
+    forms shorter than 4 chars (unsafe as a substring filter) and any form
+    containing ``_`` (the canonical keys' word separator — ``_`` is also a
+    single-char wildcard in SQL LIKE, so it must never reach an ILIKE).
+    """
+    rev: dict[str, set[str]] = {}
+    for alias, canon in {**_DISTRICT_ALIASES, **_BARE_DISTRICT_FORMS}.items():
+        rev.setdefault(canon, set()).update({alias, canon})
+    for canon, extra in _DISTRICT_EXTRA_SPELLINGS.items():
+        rev.setdefault(canon, set()).update(extra)
+        rev[canon].add(canon)
+    return {
+        canon: tuple(sorted(s for s in spellings if len(s) >= 4 and "_" not in s))
+        for canon, spellings in rev.items()
+    }
+
+
+_DISTRICT_SEARCH_TERMS: dict[str, tuple[str, ...]] = _build_district_search_terms()
+
+
+def district_search_terms(canonical_key: Optional[str]) -> tuple[str, ...]:
+    """All spellings (Latin + Cyrillic) to ILIKE for a recognised district.
+
+    Returns an empty tuple when no district was recognised, so the caller
+    skips the district clause entirely.
+    """
+    if not canonical_key:
+        return ()
+    return _DISTRICT_SEARCH_TERMS.get(canonical_key, ())
+
+
 def _parse_rooms(text: str) -> tuple[Optional[int], Optional[int]]:
     """Return ``(rooms_min, rooms_max)``. MVP: same value for both."""
     # Digit form: "2-комн" / "3xonali" / "1 комнат"
@@ -351,6 +415,17 @@ def parse(text: str, lang: str = "ru") -> ParsedQuery:
     property_type = _parse_property_type(text)
     currency = _detect_currency(text)
     price_min, price_max = _parse_price(text)
+
+    # Drop an implausibly small price bound. A magnitude-less number in the
+    # default UZS currency ("до 300") almost always means the user omitted
+    # "млн"/"тыс"; applying such a bound zeroes out every result, which is
+    # worse than ignoring the ambiguous bound. Explicit-USD bounds stay —
+    # "до 300 $" is a plausible rent.
+    if currency != "USD":
+        if price_max is not None and price_max < _MIN_PLAUSIBLE_PRICE_UZS:
+            price_max = None
+        if price_min is not None and price_min < _MIN_PLAUSIBLE_PRICE_UZS:
+            price_min = None
 
     extracted: list[str] = []
     if district:
