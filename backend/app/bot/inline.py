@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import html
 import logging
+from urllib.parse import urlsplit
 
 from aiogram import Router
 from aiogram.types import (
@@ -32,6 +33,7 @@ from aiogram.types import (
 )
 
 from app.bot.i18n import DEFAULT_LANGUAGE, language_from_telegram_code, t
+from app.core.config import settings
 from app.services import bot_search, deeplink, query_parser
 
 logger = logging.getLogger(__name__)
@@ -102,16 +104,47 @@ def _format_card_html(r: bot_search.BotSearchResult, lang: str) -> str:
     return "\n".join(lines)
 
 
+def _public_image_url(url: str | None) -> str | None:
+    """Turn a stored image URL into a public HTTPS URL Telegram can fetch.
+
+    Stored image URLs are unusable by Telegram inline as-is: native rows hold
+    a host-less relative path ("/uploads/..."), crawled rows hold an internal
+    "http://localhost:8000/uploads/..." address, and seed/test rows hold a
+    fake "https://example.com/...". Inline photo results require an absolute,
+    publicly reachable URL — one bad URL makes Telegram reject the WHOLE
+    answerInlineQuery, so the bot then shows "nothing found".
+
+    Rewrite the URLs that map onto our own ``/uploads`` (relative, internal
+    host, or already the public host) to ``settings.f3_public_web_host``.
+    Return ``None`` for anything we can't vouch for (external/fake URLs), so
+    the caller renders a text card instead of a broken photo.
+    """
+    if not url:
+        return None
+    base = (settings.f3_public_web_host or "").rstrip("/")
+    if not base.startswith("https://"):
+        return None  # no public HTTPS host configured — never risk a bad photo
+    path = urlsplit(url).path or ""
+    # ``/uploads/`` is served exclusively by our own app (native uploads under
+    # /uploads/listings, crawled images under /uploads/crawler), so any image
+    # with that path — whether stored relative, as an internal localhost URL,
+    # or under the public host — resolves to the public HTTPS host. Anything
+    # else (external CDNs, fake example.com seed data) we can't vouch for.
+    if path.startswith("/uploads/"):
+        return f"{base}{path}"
+    return None
+
+
 def _to_inline_result(
-    r: bot_search.BotSearchResult, lang: str
+    r: bot_search.BotSearchResult, lang: str, *, allow_photo: bool = True
 ) -> InlineQueryResultArticle | InlineQueryResultPhoto:
     """Build one inline result from a BotSearchResult.
 
-    Listings with a usable image render as a photo card
-    (``InlineQueryResultPhoto``) — the photo IS the result, with the
-    details as caption and the deep-link button; tapping shares the photo.
-    Listings without an image fall back to a compact text article so they
-    still appear in the list.
+    A listing renders as a photo card (``InlineQueryResultPhoto``) only when
+    it has an image URL we can resolve to a public HTTPS address Telegram can
+    fetch (see :func:`_public_image_url`). Otherwise — or when ``allow_photo``
+    is False (a text-only retry after a photo answer was rejected) — it falls
+    back to a compact text article so it still appears in the list.
     """
     # Plain summary for the result-list labels (never formatted by Telegram);
     # HTML body for the message/caption that is actually posted into the chat.
@@ -123,11 +156,12 @@ def _to_inline_result(
             [InlineKeyboardButton(text=t(lang, "search_open_in_app"), url=open_url)]
         ]
     )
-    if r.photo_url:
+    photo_url = _public_image_url(r.photo_url) if allow_photo else None
+    if photo_url:
         return InlineQueryResultPhoto(
             id=r.id,
-            photo_url=r.photo_url,
-            thumbnail_url=r.photo_url,
+            photo_url=photo_url,
+            thumbnail_url=photo_url,
             title=r.title or plain,
             description=plain,
             caption=body_html,
@@ -213,15 +247,29 @@ async def handle_inline_query(query: InlineQuery) -> None:
                 is_personal=True,
             )
             return
-        await query.answer(
-            articles,
-            cache_time=_CACHE_TIME_SECONDS,
-            # Results are language-dependent (parsed + rendered per the
-            # user's locale). is_personal=True keeps Telegram from caching
-            # one user's localized output and serving it to everyone in a
-            # shared chat — e.g. an Uzbek user getting Russian results.
-            is_personal=True,
-        )
+        try:
+            await query.answer(
+                articles,
+                cache_time=_CACHE_TIME_SECONDS,
+                # Results are language-dependent (parsed + rendered per the
+                # user's locale). is_personal=True keeps Telegram from caching
+                # one user's localized output and serving it to everyone in a
+                # shared chat — e.g. an Uzbek user getting Russian results.
+                is_personal=True,
+            )
+        except Exception:
+            # A single unreachable photo URL makes Telegram reject the whole
+            # batch. Retry once with every result as a text article so the
+            # user still gets the listings instead of a "nothing found" card.
+            logger.warning(
+                "inline_query.answer_failed; retrying text-only q=%r", raw[:80]
+            )
+            text_only = [
+                _to_inline_result(r, lang, allow_photo=False) for r in results
+            ]
+            await query.answer(
+                text_only, cache_time=_CACHE_TIME_SECONDS, is_personal=True
+            )
     except Exception:
         # Fail-soft: log + show the "nothing found" card (not a blank
         # popup) so the user still gets feedback, not a Telegram error.
