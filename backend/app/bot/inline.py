@@ -28,7 +28,6 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineQuery,
     InlineQueryResultArticle,
-    InlineQueryResultPhoto,
     InputTextMessageContent,
 )
 
@@ -142,17 +141,23 @@ def _public_image_url(url: str | None) -> str | None:
 
 def _to_inline_result(
     r: bot_search.BotSearchResult, lang: str, *, allow_photo: bool = True
-) -> InlineQueryResultArticle | InlineQueryResultPhoto:
-    """Build one inline result from a BotSearchResult.
+) -> InlineQueryResultArticle:
+    """Build one inline *card* from a BotSearchResult.
 
-    A listing renders as a photo card (``InlineQueryResultPhoto``) only when
-    it has an image URL we can resolve to a public HTTPS address Telegram can
-    fetch (see :func:`_public_image_url`). Otherwise — or when ``allow_photo``
-    is False (a text-only retry after a photo answer was rejected) — it falls
-    back to a compact text article so it still appears in the list.
+    Every result is an ``InlineQueryResultArticle`` — a vertical list row with
+    a small thumbnail + title + description — so the inline popup reads as a
+    tidy list of listing cards rather than a wall of photos (which is how the
+    Telegram client renders ``InlineQueryResultPhoto`` results). The listing
+    image, resolved to a public HTTPS URL (:func:`_public_image_url`), becomes
+    the row thumbnail; tapping a card posts the formatted HTML card plus the
+    "open in app" button.
+
+    ``allow_photo`` is kept for the text-only retry path: when False the
+    thumbnail is dropped, so an unfetchable image can never make Telegram
+    reject the whole batch.
     """
     # Plain summary for the result-list labels (never formatted by Telegram);
-    # HTML body for the message/caption that is actually posted into the chat.
+    # HTML body for the message that is actually posted into the chat.
     plain = _format_card_text(r, lang)
     body_html = _format_card_html(r, lang)
     open_url = deeplink.build_listing_link(r.id)
@@ -161,22 +166,12 @@ def _to_inline_result(
             [InlineKeyboardButton(text=t(lang, "search_open_in_app"), url=open_url)]
         ]
     )
-    photo_url = _public_image_url(r.photo_url) if allow_photo else None
-    if photo_url:
-        return InlineQueryResultPhoto(
-            id=r.id,
-            photo_url=photo_url,
-            thumbnail_url=photo_url,
-            title=r.title or plain,
-            description=plain,
-            caption=body_html,
-            parse_mode="HTML",
-            reply_markup=keyboard,
-        )
+    thumbnail_url = _public_image_url(r.photo_url) if allow_photo else None
     return InlineQueryResultArticle(
         id=r.id,
         title=r.title or plain,
         description=plain,
+        thumbnail_url=thumbnail_url,
         input_message_content=InputTextMessageContent(
             message_text=body_html,
             parse_mode="HTML",
