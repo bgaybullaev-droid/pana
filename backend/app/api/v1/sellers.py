@@ -172,10 +172,39 @@ async def register_seller(
 @router.get("/me", response_model=SellerResponse)
 async def get_current_seller_profile(
     seller: Seller = Depends(get_current_seller),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get current seller's profile.
+
+    total_views / total_contacts / total_favorites are computed LIVE from the
+    seller's listings — the ``Seller.total_*`` cached columns are never
+    updated (view/contact counts accrue on ``Listing``, favorites on the
+    ``Favorite`` table), so reading them would always report 0. Mirrors the
+    aggregation in ``get_seller_dashboard`` so the profile reflects real
+    activity.
     """
+    totals = await db.execute(
+        select(
+            func.coalesce(func.sum(Listing.views_count), 0).label("total_views"),
+            func.coalesce(func.sum(Listing.contacts_count), 0).label(
+                "total_contacts"
+            ),
+        ).where(
+            Listing.seller_id == seller.id,
+            Listing.deleted_at.is_(None),
+        )
+    )
+    agg = totals.one()
+    total_favorites = (
+        await db.execute(
+            select(func.count())
+            .select_from(Favorite)
+            .join(Listing, Favorite.listing_id == Listing.id)
+            .where(Listing.seller_id == seller.id, Listing.deleted_at.is_(None))
+        )
+    ).scalar_one()
+
     return SellerResponse(
         id=seller.id,
         user_id=seller.user_id,
@@ -191,8 +220,9 @@ async def get_current_seller_profile(
         is_verified=seller.is_verified,
         verified_at=seller.verified_at,
         listings_count=seller.listings_count,
-        total_views=seller.total_views,
-        total_contacts=seller.total_contacts,
+        total_views=int(agg.total_views or 0),
+        total_contacts=int(agg.total_contacts or 0),
+        total_favorites=int(total_favorites or 0),
         created_at=seller.created_at,
         updated_at=seller.updated_at,
     )

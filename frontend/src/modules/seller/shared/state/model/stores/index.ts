@@ -34,7 +34,7 @@ export const $sellerStats = $sellerProfile.map((profile): SellerStats | null => 
     activeListings: profile.listings_count, // Will be updated when we fetch listings
     totalViews: profile.total_views,
     totalContacts: profile.total_contacts,
-    totalFavorites: 0, // Not tracked in backend yet
+    totalFavorites: profile.total_favorites ?? 0,
   };
 });
 

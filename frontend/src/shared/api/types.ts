@@ -263,6 +263,7 @@ export interface Seller {
 	listings_count: number;
 	total_views: number;
 	total_contacts: number;
+	total_favorites: number;
 	created_at: string;
 	updated_at: string;
 }

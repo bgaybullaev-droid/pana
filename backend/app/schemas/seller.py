@@ -55,6 +55,10 @@ class SellerResponse(SellerBase):
     listings_count: int
     total_views: int
     total_contacts: int
+    # Live portfolio favorites total. Defaults to 0 so the lighter response
+    # builders (register/patch) don't have to compute it; GET /me fills it in
+    # from the canonical Favorite table.
+    total_favorites: int = 0
     created_at: UTCDateTime
     updated_at: UTCDateTime
 
