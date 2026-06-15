@@ -705,6 +705,8 @@ export interface UnifiedListingListItem {
 	property_type: string;
 	price: number;
 	currency: string;
+	/** Ready-to-display human title from the backend (generated for crawled rows). */
+	title: string | null;
 	rooms: number | null;
 	area: number | null;
 	floor: number | null;

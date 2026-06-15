@@ -59,18 +59,16 @@ def _html_escape(text: str) -> str:
     return html.escape(text or "", quote=False)
 
 
-def _format_card_text(r: bot_search.BotSearchResult, lang: str) -> str:
-    """Compact plain-text summary for the inline result's title/description.
+def _format_card_meta(r: bot_search.BotSearchResult, lang: str) -> str:
+    """Compact plain-text meta line (area · price) for the inline result.
 
-    Telegram never renders formatting in the result-list ``title`` /
-    ``description`` fields, so this stays plain. The formatted version that
-    is posted into the chat lives in :func:`_format_card_html`.
+    The headline (rooms + property type + district) now lives in ``r.title``,
+    generated once by the shared normalization layer, so this only carries the
+    complementary area/price detail shown as the result's ``description``.
+    Telegram never renders formatting in the result-list fields, so it stays
+    plain; the formatted chat body lives in :func:`_format_card_html`.
     """
     bits: list[str] = []
-    if r.rooms:
-        bits.append(f"{r.rooms}-комн" if lang == "ru" else f"{r.rooms}-xona")
-    if r.district:
-        bits.append(r.district)
     if r.area:
         bits.append(f"{int(r.area)} м²" if lang == "ru" else f"{int(r.area)} m²")
     price = r.price
@@ -83,18 +81,12 @@ def _format_card_text(r: bot_search.BotSearchResult, lang: str) -> str:
 def _format_card_html(r: bot_search.BotSearchResult, lang: str) -> str:
     """HTML body posted into the chat when an inline result is tapped.
 
-    Renders the room/district headline in bold and the price in bold so the
+    Renders the shared human ``title`` in bold and the price in bold so the
     card reads at a glance. All dynamic text is HTML-escaped via
-    :func:`_html_escape`; the static labels ("2-комн", "м²", currency) carry
-    no HTML-special characters.
+    :func:`_html_escape`; the static labels ("м²", currency) carry no
+    HTML-special characters.
     """
-    head: list[str] = []
-    if r.rooms:
-        head.append(f"{r.rooms}-комн" if lang == "ru" else f"{r.rooms}-xona")
-    if r.district:
-        head.append(_html_escape(r.district))
-    title_line = " · ".join(head) or _html_escape(r.title or r.id)
-
+    title_line = _html_escape(r.title or r.id)
     lines = [f"🏠 <b>{title_line}</b>"]
 
     meta: list[str] = []
@@ -156,9 +148,9 @@ def _to_inline_result(
     thumbnail is dropped, so an unfetchable image can never make Telegram
     reject the whole batch.
     """
-    # Plain summary for the result-list labels (never formatted by Telegram);
+    # Meta line for the result-list description (never formatted by Telegram);
     # HTML body for the message that is actually posted into the chat.
-    plain = _format_card_text(r, lang)
+    meta = _format_card_meta(r, lang)
     body_html = _format_card_html(r, lang)
     open_url = deeplink.build_listing_link(r.id)
     keyboard = InlineKeyboardMarkup(
@@ -169,8 +161,8 @@ def _to_inline_result(
     thumbnail_url = _public_image_url(r.photo_url) if allow_photo else None
     return InlineQueryResultArticle(
         id=r.id,
-        title=r.title or plain,
-        description=plain,
+        title=r.title or meta,
+        description=meta,
         thumbnail_url=thumbnail_url,
         input_message_content=InputTextMessageContent(
             message_text=body_html,
@@ -231,12 +223,12 @@ async def handle_inline_query(query: InlineQuery) -> None:
             # Empty inline query — show the latest listings as examples.
             # Conversion-first: never return zero results without explanation.
             results = await bot_search.recent_listings(
-                limit=_PAGE_SIZE, offset=offset
+                limit=_PAGE_SIZE, offset=offset, lang=lang
             )
         else:
             parsed = query_parser.parse(raw, lang=lang)
             results = await bot_search.search(
-                parsed, limit=_PAGE_SIZE, offset=offset
+                parsed, limit=_PAGE_SIZE, offset=offset, lang=lang
             )
 
         articles = [_to_inline_result(r, lang) for r in results]

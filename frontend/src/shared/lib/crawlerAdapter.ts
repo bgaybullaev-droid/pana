@@ -110,7 +110,7 @@ export function unifiedToListItem(item: UnifiedListingListItem): SourcedListingL
     land_purpose: item.land_purpose || null,
     price: item.price,
     currency: (item.currency as 'USD' | 'UZS') || 'USD',
-    title: null,
+    title: item.title ?? null,
     views_count: 0,
     favorites_count: 0,
     comments_count: 0,

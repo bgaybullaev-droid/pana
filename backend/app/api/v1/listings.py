@@ -51,13 +51,21 @@ from app.schemas.listing import (
     SourceTextResponse,
 )
 from app.schemas.unified import (
-    UnifiedListingImage,
     UnifiedListingListItem,
     UnifiedListingResponse,
 )
 from app.services.crawler_service import (
     convert_olx_to_listing,
     convert_telegram_to_listing,
+)
+from app.services.listing_normalize import (
+    crawled_photo_url,
+    is_translated as _is_translated,
+    native_primary_photo,
+    native_to_canonical,
+    olx_to_canonical,
+    resolve_field as _resolve_field,
+    telegram_to_canonical,
 )
 from app.services.listing_quota import check_can_create_listing
 from app.services.listing_views import is_self_view
@@ -178,18 +186,6 @@ async def _maybe_publish_optin_listing(
         logger.warning(
             "autopost opt-in dispatch failed listing=%s", listing.id, exc_info=True
         )
-
-
-def _resolve_field(listing, field: str, lang: str) -> Optional[str]:
-    """Resolve a text field to the requested language with fallback."""
-    localized = getattr(listing, f"{field}_{lang}", None)
-    return localized or getattr(listing, field, None)
-
-
-def _is_translated(listing, lang: str) -> bool:
-    """Check if listing content is served in a translated language."""
-    orig = getattr(listing, "original_language", None) or "ru"
-    return orig != lang and getattr(listing, "translation_status", None) == "completed"
 
 
 # Uzbek-specific Cyrillic characters (not present in Russian)
@@ -1797,223 +1793,35 @@ async def list_facets(
 # Unified resolve & feed endpoints (must be above /{listing_id} catch-all)
 # =============================================================================
 
-LISTING_TYPE_MAP = {
-    "sale": "sell",
-    "daily_rent": "rent",
-    "rent": "rent",
-    "sell": "sell",
-}
-PROPERTY_TYPE_MAP = {"office": "commercial"}
 
+def _to_list_item(
+    canonical: UnifiedListingResponse, primary_image_url: Optional[str]
+) -> UnifiedListingListItem:
+    """Project the full canonical object onto the lightweight feed item.
 
-def _normalize_type(val: str) -> str:
-    return LISTING_TYPE_MAP.get(val, val)
-
-
-def _normalize_property_type(val: str) -> str:
-    return PROPERTY_TYPE_MAP.get(val, val)
-
-
-def _normalize_crawler_images(images) -> List[UnifiedListingImage]:
-    if not images:
-        return []
-    if isinstance(images, list):
-        return [UnifiedListingImage(url=img) for img in images if isinstance(img, str)]
-    return []
-
-
-def _main_listing_to_unified(
-    listing: Listing,
-    is_favorited: bool = False,
-    lang: str = "ru",
-) -> UnifiedListingResponse:
-    images = []
-    if listing.images:
-        for img in listing.images:
-            images.append(
-                UnifiedListingImage(
-                    url=img.large_url or img.original_url,
-                    thumbnail=img.thumbnail_url,
-                )
-            )
-
-    return UnifiedListingResponse(
-        source="main",
-        id=listing.id,
-        type=listing.type.value,
-        property_type=listing.property_type.value,
-        price=listing.price,
-        currency=listing.currency.value,
-        rooms=listing.rooms,
-        area=listing.area,
-        floor=listing.floor,
-        total_floors=listing.total_floors,
-        region=listing.region,
-        district=listing.district,
-        address=_resolve_field(listing, "address", lang),
-        latitude=listing.latitude,
-        longitude=listing.longitude,
-        description=_resolve_field(listing, "description", lang),
-        images=images,
-        contact_phone=listing.phone,
-        created_at=listing.created_at,
-        title=_resolve_field(listing, "title", lang),
-        views_count=listing.views_count or 0,
-        favorites_count=listing.favorites_count or 0,
-        comments_count=listing.comments_count or 0,
-        is_favorited=is_favorited,
-        is_boosted=listing.is_boosted or False,
-        is_highlighted=listing.is_highlighted or False,
-        seller_id=listing.seller_id,
-        seller_name=(
-            (
-                listing.seller.company_name
-                or (listing.seller.user.first_name if listing.seller.user else None)
-            )
-            if listing.seller
-            else None
-        ),
-        seller_avatar_url=(
-            (
-                listing.seller.logo_url
-                or (listing.seller.user.avatar_url if listing.seller.user else None)
-            )
-            if listing.seller
-            else None
-        ),
-        seller_verified=listing.seller.is_verified if listing.seller else False,
-        seller_type=listing.seller_type,
-        seller_telegram=listing.seller_telegram,
-        amenities=listing.amenities,
-        building_type=listing.building_type,
-        condition=listing.condition,
-        land_purpose=listing.land_purpose,
-        market_type=listing.market_type,
-        wall_material=listing.wall_material,
-        listing_subtype=listing.listing_subtype,
-        balcony=listing.balcony,
-        house_type=listing.house_type,
-        house_condition=listing.house_condition,
-        location_type=listing.location_type,
-        living_area=listing.living_area,
-        kitchen_area=listing.kitchen_area,
-        land_area=listing.land_area,
-        furniture=listing.furniture,
-        is_furnished=listing.is_furnished,
-        garage=listing.garage,
-        basement=listing.basement,
-        buildings_exist=listing.buildings_exist,
-        fence=listing.fence,
-        land_shape=listing.land_shape,
-        ceiling_height=listing.ceiling_height,
-        water_supply=listing.water_supply,
-        electricity=listing.electricity,
-        heating=listing.heating,
-        gas_supply=listing.gas_supply,
-        sewage=listing.sewage,
-        commercial_type=listing.commercial_type,
-        price_per_sqm=listing.price_per_sqm,
-        entrance=listing.entrance,
-        parking_comm=listing.parking_comm,
-        building_class=listing.building_class,
-        is_negotiable=listing.is_negotiable or False,
-        deed_type=listing.deed_type,
-        urgent_flag=listing.urgent_flag or False,
-        rent_period=listing.rent_period,
-        deposit=listing.deposit,
-        utilities_incl=listing.utilities_incl,
-        min_rent_months=listing.min_rent_months,
-        allowed_students=listing.allowed_students,
-        allowed_pets=listing.allowed_pets,
-        rent_payment=listing.rent_payment,
-        mortgage_ok=listing.mortgage_ok or False,
-        installment_ok=listing.installment_ok or False,
-        halol_ok=listing.halol_ok or False,
-        city=listing.city,
-        microdistrict=listing.microdistrict,
-        jk_name=listing.jk_name,
-        landmark=listing.landmark,
-        metro_station=listing.metro_station,
-        nearby_amenities=listing.nearby_amenities,
-        original_language=listing.original_language,
-        is_translated=_is_translated(listing, lang),
-    )
-
-
-def _telegram_listing_to_unified(
-    listing: TelegramListing,
-    is_favorited: bool = False,
-    favorites_count: int = 0,
-    lang: str = "ru",
-) -> UnifiedListingResponse:
-    return UnifiedListingResponse(
-        source="telegram",
-        id=listing.id,
-        type=_normalize_type(listing.listing_type),
-        property_type=_normalize_property_type(listing.property_type),
-        price=listing.price,
-        currency=listing.currency,
-        rooms=listing.rooms,
-        area=listing.area_sqm,
-        floor=listing.floor,
-        total_floors=listing.total_floors,
-        district=listing.district,
-        address=_resolve_field(listing, "address", lang),
-        description=_resolve_field(listing, "description", lang),
-        raw_text=listing.raw_text,
-        images=_normalize_crawler_images(listing.images),
-        contact_phone=listing.contact_phone,
-        created_at=listing.created_at,
-        amenities=listing.amenities,
-        confidence=listing.confidence,
-        source_url=listing.source_channel,
-        seller_name=listing.source_channel,
-        building_type=listing.building_type,
-        condition=listing.condition,
-        land_purpose=listing.land_purpose,
-        favorites_count=favorites_count,
-        is_favorited=is_favorited,
-        original_language=listing.original_language,
-        is_translated=_is_translated(listing, lang),
-    )
-
-
-def _olx_listing_to_unified(
-    listing: OLXListing,
-    is_favorited: bool = False,
-    favorites_count: int = 0,
-    lang: str = "ru",
-) -> UnifiedListingResponse:
-    return UnifiedListingResponse(
-        source="olx",
-        id=listing.id,
-        type=_normalize_type(listing.listing_type),
-        property_type=_normalize_property_type(listing.property_type),
-        price=listing.price,
-        currency=listing.currency,
-        rooms=listing.rooms,
-        area=listing.area_sqm,
-        floor=listing.floor,
-        total_floors=listing.total_floors,
-        district=listing.district,
-        address=_resolve_field(listing, "address", lang),
-        description=_resolve_field(listing, "description", lang),
-        raw_text=listing.raw_text,
-        images=_normalize_crawler_images(listing.images),
-        contact_phone=listing.contact_phone,
-        created_at=listing.created_at,
-        views_count=listing.views_count or 0,
-        amenities=listing.amenities,
-        confidence=listing.confidence,
-        source_url=listing.url,
-        seller_name=listing.seller_name,
-        building_type=listing.building_type,
-        condition=listing.condition,
-        land_purpose=listing.land_purpose,
-        favorites_count=favorites_count,
-        is_favorited=is_favorited,
-        original_language=listing.original_language,
-        is_translated=_is_translated(listing, lang),
+    The photo is passed in separately (resolved via the shared photo helpers)
+    because the canonical ``images`` list carries the detail-page variants,
+    while the feed card wants the lighter primary thumbnail.
+    """
+    return UnifiedListingListItem(
+        id=canonical.id,
+        source=canonical.source,
+        type=canonical.type,
+        property_type=canonical.property_type,
+        price=canonical.price,
+        currency=canonical.currency,
+        rooms=canonical.rooms,
+        area=canonical.area,
+        floor=canonical.floor,
+        total_floors=canonical.total_floors,
+        region=canonical.region,
+        district=canonical.district,
+        building_type=canonical.building_type,
+        condition=canonical.condition,
+        land_purpose=canonical.land_purpose,
+        primary_image_url=primary_image_url,
+        created_at=canonical.created_at,
+        title=canonical.title,
     )
 
 
@@ -2053,7 +1861,7 @@ async def resolve_listing(
             )
             is_favorited = fav_result.scalar_one_or_none() is not None
 
-        return _main_listing_to_unified(main_listing, is_favorited, lang=lang)
+        return native_to_canonical(main_listing, is_favorited, lang=lang)
 
     # Check favorite status and count for crawler listings
     is_favorited = False
@@ -2077,7 +1885,7 @@ async def resolve_listing(
     )
     telegram_listing = telegram_res.scalar_one_or_none()
     if telegram_listing:
-        return _telegram_listing_to_unified(
+        return telegram_to_canonical(
             telegram_listing, is_favorited, favorites_count, lang=lang
         )
 
@@ -2103,8 +1911,8 @@ async def resolve_listing(
                 conv_listing.views_count = (conv_listing.views_count or 0) + 1
                 await db.commit()
                 await db.refresh(conv_listing)
-                return _main_listing_to_unified(conv_listing, is_favorited, lang=lang)
-        return _olx_listing_to_unified(
+                return native_to_canonical(conv_listing, is_favorited, lang=lang)
+        return olx_to_canonical(
             olx_listing, is_favorited, favorites_count, lang=lang
         )
 
@@ -2130,6 +1938,7 @@ def _jsonb_has_items(col):
 
 @router.get("/feed", response_model=PaginatedResponse[UnifiedListingListItem])
 async def listing_feed(
+    request: Request,
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=50),
     exclude_id: Optional[UUID] = Query(None),
@@ -2430,104 +2239,39 @@ async def listing_feed(
         olx_order = OLXListing.created_at.desc()
 
     main_res = await db.execute(
-        main_query.options(selectinload(Listing.images))
+        main_query.options(
+            selectinload(Listing.images),
+            selectinload(Listing.seller).selectinload(Seller.user),
+        )
         .order_by(main_order)
         .limit(fetch_limit)
     )
     tg_res = await db.execute(tg_query.order_by(tg_order).limit(fetch_limit))
     olx_res = await db.execute(olx_query.order_by(olx_order).limit(fetch_limit))
 
-    # Build unified list items
+    # Build unified list items by projecting the canonical object (the single
+    # normalization layer in services/listing_normalize.py) — same mapping the
+    # detail endpoint and the bot use, so the feed never re-implements it.
+    lang = get_content_language(request)
     items: List[UnifiedListingListItem] = []
 
     for listing in main_res.scalars().all():
         if exclude_id and listing.id == exclude_id:
             continue
-        primary_image = next(
-            (img for img in listing.images if img.is_primary),
-            listing.images[0] if listing.images else None,
-        )
-        items.append(
-            UnifiedListingListItem(
-                id=listing.id,
-                source="main",
-                type=listing.type.value,
-                property_type=listing.property_type.value,
-                price=listing.price,
-                currency=listing.currency.value,
-                rooms=listing.rooms,
-                area=listing.area,
-                floor=listing.floor,
-                total_floors=listing.total_floors,
-                region=listing.region,
-                district=listing.district,
-                building_type=listing.building_type,
-                condition=listing.condition,
-                land_purpose=listing.land_purpose,
-                primary_image_url=primary_image.medium_url if primary_image else None,
-                created_at=listing.created_at,
-            )
-        )
+        canonical = native_to_canonical(listing, lang=lang)
+        items.append(_to_list_item(canonical, native_primary_photo(listing)))
 
     for listing in tg_res.scalars().all():
         if exclude_id and listing.id == exclude_id:
             continue
-        first_img = (
-            listing.images[0]
-            if listing.images and isinstance(listing.images, list)
-            else None
-        )
-        items.append(
-            UnifiedListingListItem(
-                id=listing.id,
-                source="telegram",
-                type=_normalize_type(listing.listing_type),
-                property_type=_normalize_property_type(listing.property_type),
-                price=listing.price,
-                currency=listing.currency,
-                rooms=listing.rooms,
-                area=listing.area_sqm,
-                floor=listing.floor,
-                total_floors=listing.total_floors,
-                region=listing.region,
-                district=listing.district,
-                building_type=listing.building_type,
-                condition=listing.condition,
-                land_purpose=listing.land_purpose,
-                primary_image_url=first_img if isinstance(first_img, str) else None,
-                created_at=listing.created_at,
-            )
-        )
+        canonical = telegram_to_canonical(listing, lang=lang)
+        items.append(_to_list_item(canonical, crawled_photo_url(listing.images)))
 
     for listing in olx_res.scalars().all():
         if exclude_id and listing.id == exclude_id:
             continue
-        first_img = (
-            listing.images[0]
-            if listing.images and isinstance(listing.images, list)
-            else None
-        )
-        items.append(
-            UnifiedListingListItem(
-                id=listing.id,
-                source="olx",
-                type=_normalize_type(listing.listing_type),
-                property_type=_normalize_property_type(listing.property_type),
-                price=listing.price,
-                currency=listing.currency,
-                rooms=listing.rooms,
-                area=listing.area_sqm,
-                floor=listing.floor,
-                total_floors=listing.total_floors,
-                region=listing.region,
-                district=listing.district,
-                building_type=listing.building_type,
-                condition=listing.condition,
-                land_purpose=listing.land_purpose,
-                primary_image_url=first_img if isinstance(first_img, str) else None,
-                created_at=listing.created_at,
-            )
-        )
+        canonical = olx_to_canonical(listing, lang=lang)
+        items.append(_to_list_item(canonical, crawled_photo_url(listing.images)))
 
     # Load user preferences and exchange rate for ranking (if authenticated).
     # Skipped for explicit sorts — relevance scoring is not used there.

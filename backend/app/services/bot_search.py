@@ -33,6 +33,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from app.services.listing_normalize import (
+    crawled_photo_url,
+    native_primary_photo,
+    native_to_canonical,
+    olx_to_canonical,
+    telegram_to_canonical,
+)
 from app.services.query_parser import (
     ParsedQuery,
     canonical_district,
@@ -40,6 +47,11 @@ from app.services.query_parser import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Default render language for results when a caller doesn't pass one (the
+# bot resolves the user's locale and threads it through). Kept as a bare
+# string so this service never imports the bot layer.
+DEFAULT_RESULT_LANG = "ru"
 
 # Cap on results returned to the caller. Bot in-chat search shows
 # 5–10 (DECISION_MATRIX D5-Q6); Inline Mode shows up to 20 (D5 spec).
@@ -137,71 +149,40 @@ def _free_text_tokens(raw: str) -> list[str]:
     return tokens
 
 
-def _crawler_photo_url(images) -> Optional[str]:
-    """First usable image URL from a crawled listing's JSONB ``images``.
+def _from_canonical(canonical, photo_url: Optional[str]) -> BotSearchResult:
+    """Project the shared canonical object onto the bot's result card.
 
-    Crawled rows store ``images`` as a list of absolute URL strings.
+    The bot shows only a handful of fields; the heavy lifting (normalized
+    type/property_type, currency, the ready human ``title``) is done once in
+    ``services/listing_normalize``. ``photo_url`` is resolved separately via
+    the shared photo helpers because the bot wants the lighter thumbnail, not
+    the canonical detail-page image list.
     """
-    if isinstance(images, list):
-        for img in images:
-            if isinstance(img, str) and img:
-                return img
-    return None
-
-
-def _native_photo_url(listing) -> Optional[str]:
-    """Best display photo for a native Listing, mirroring the feed card:
-    the ``is_primary`` image, else the first, preferring a lighter variant.
-
-    Relies on the caller eager-loading ``images`` (``selectinload``) so this
-    never triggers a lazy load.
-    """
-    try:
-        images = list(getattr(listing, "images", None) or [])
-    except Exception:
-        return None
-    if not images:
-        return None
-    chosen = next((im for im in images if getattr(im, "is_primary", False)), images[0])
-    return (
-        getattr(chosen, "medium_url", None)
-        or getattr(chosen, "large_url", None)
-        or getattr(chosen, "original_url", None)
-    )
-
-
-def _native_to_result(listing) -> BotSearchResult:
+    price = canonical.price
     return BotSearchResult(
-        id=str(listing.id),
-        title=listing.title,
-        district=listing.district,
-        rooms=listing.rooms,
-        area=listing.area,
-        price=listing.price,
-        currency=listing.currency.value if listing.currency is not None else None,
-        deal_type=listing.type.value if listing.type is not None else None,
-        property_type=(
-            listing.property_type.value if listing.property_type is not None else None
-        ),
-        photo_url=_native_photo_url(listing),
-    )
-
-
-def _crawled_to_result(row, source: str) -> BotSearchResult:
-    del source  # currently unused; kept for call-site symmetry / future use
-    price = getattr(row, "price", None)
-    currency = getattr(row, "currency", None) or ""
-    return BotSearchResult(
-        id=str(row.id),
-        title=None,  # crawled rows have no title — the card renders from body
-        district=getattr(row, "district", None),
-        rooms=getattr(row, "rooms", None),
-        area=getattr(row, "area_sqm", None),
+        id=str(canonical.id),
+        title=canonical.title,
+        district=canonical.district,
+        rooms=canonical.rooms,
+        area=canonical.area,
         price=int(price) if price is not None else None,
-        currency=currency.upper() or None,
-        deal_type=getattr(row, "listing_type", None) or None,
-        property_type=getattr(row, "property_type", None) or None,
-        photo_url=_crawler_photo_url(getattr(row, "images", None)),
+        currency=canonical.currency or None,
+        deal_type=canonical.type,
+        property_type=canonical.property_type,
+        photo_url=photo_url,
+    )
+
+
+def _native_to_result(listing, lang: str) -> BotSearchResult:
+    return _from_canonical(
+        native_to_canonical(listing, lang=lang), native_primary_photo(listing)
+    )
+
+
+def _crawled_to_result(row, source: str, lang: str) -> BotSearchResult:
+    to_canonical = olx_to_canonical if source == "olx" else telegram_to_canonical
+    return _from_canonical(
+        to_canonical(row, lang=lang), crawled_photo_url(getattr(row, "images", None))
     )
 
 
@@ -215,32 +196,38 @@ async def search(
     *,
     limit: int = DEFAULT_BOT_LIMIT,
     offset: int = 0,
+    lang: str = DEFAULT_RESULT_LANG,
 ) -> list[BotSearchResult]:
     """Run a search and return up to ``limit`` result cards.
 
     Reads Postgres across native + crawled tables, newest first. ``offset``
     skips the first N globally-ordered rows — used by Inline Mode to page
-    results in as the user scrolls. Never raises — any failure logs a
-    warning and returns an empty list so the caller can show its fallback.
+    results in as the user scrolls. ``lang`` localizes the generated human
+    title (ru / uz / uz_cyrl). Never raises — any failure logs a warning and
+    returns an empty list so the caller can show its fallback.
     """
     capped = max(1, min(int(limit), DEFAULT_INLINE_LIMIT))
     off = max(0, int(offset))
     try:
-        return await _search_postgres(parsed, capped, off)
+        return await _search_postgres(parsed, capped, off, lang)
     except Exception as exc:
         logger.warning("bot_search: postgres query failed: %s", exc, exc_info=True)
         return []
 
 
 async def recent_listings(
-    limit: int = DEFAULT_INLINE_LIMIT, offset: int = 0
+    limit: int = DEFAULT_INLINE_LIMIT,
+    offset: int = 0,
+    lang: str = DEFAULT_RESULT_LANG,
 ) -> list[BotSearchResult]:
     """Empty-query fallback for Inline Mode: most-recent listings (paged)."""
-    return await search(ParsedQuery(raw_text=""), limit=limit, offset=offset)
+    return await search(
+        ParsedQuery(raw_text=""), limit=limit, offset=offset, lang=lang
+    )
 
 
 async def _search_postgres(
-    parsed: ParsedQuery, limit: int, offset: int = 0
+    parsed: ParsedQuery, limit: int, offset: int = 0, lang: str = DEFAULT_RESULT_LANG
 ) -> list[BotSearchResult]:
     """The actual Postgres read. Mirrors the visibility + text-match rules
     of ``GET /listings/feed`` so the bot and the app surface the same rows.
@@ -254,6 +241,7 @@ async def _search_postgres(
         ListingStatus,
         ModerationStatus,
         OLXListing,
+        Seller,
         TelegramListing,
     )
 
@@ -381,7 +369,10 @@ async def _search_postgres(
     # (the n-th global row is within the first n rows of some single source).
     fetch = offset + limit
     main_q = (
-        main_q.options(selectinload(Listing.images))
+        main_q.options(
+            selectinload(Listing.images),
+            selectinload(Listing.seller).selectinload(Seller.user),
+        )
         .order_by(Listing.created_at.desc())
         .limit(fetch)
     )
@@ -397,11 +388,11 @@ async def _search_postgres(
         # images) is safe before the connection is released.
         merged: list[tuple[Optional[datetime], BotSearchResult]] = []
         for listing in main_rows:
-            merged.append((listing.created_at, _native_to_result(listing)))
+            merged.append((listing.created_at, _native_to_result(listing, lang)))
         for row in tg_rows:
-            merged.append((row.created_at, _crawled_to_result(row, "telegram")))
+            merged.append((row.created_at, _crawled_to_result(row, "telegram", lang)))
         for row in olx_rows:
-            merged.append((row.created_at, _crawled_to_result(row, "olx")))
+            merged.append((row.created_at, _crawled_to_result(row, "olx", lang)))
 
     # Global newest-first merge; rows without a timestamp sort last. Slice out
     # the requested page [offset, offset+limit).

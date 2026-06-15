@@ -143,6 +143,10 @@ class UnifiedListingListItem(BaseModel):
     property_type: str
     price: float
     currency: str
+    # Ready-to-display human title from the shared normalization layer
+    # (services/listing_normalize). Crawled rows have no DB title, so it is
+    # generated ("rooms + property type + district") identically everywhere.
+    title: Optional[str] = None
     rooms: Optional[int] = None
     area: Optional[float] = None
     floor: Optional[int] = None

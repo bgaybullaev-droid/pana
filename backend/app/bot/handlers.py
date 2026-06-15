@@ -2261,7 +2261,7 @@ async def _run_bot_search_reply(
         # we silently skip (caller returns False).
         return False
 
-    results = await _search.search(parsed, limit=_search.DEFAULT_BOT_LIMIT)
+    results = await _search.search(parsed, limit=_search.DEFAULT_BOT_LIMIT, lang=lang)
     if not results:
         # Parsed something but the search returned nothing — give the
         # user a helpful next step rather than dead air.
@@ -2271,14 +2271,11 @@ async def _run_bot_search_reply(
         )
         return True
 
-    # Build a compact text listing.
+    # Build a compact text listing. The headline (rooms + property type +
+    # district) comes from the shared human title; area/price are appended.
     lines = [t(lang, "search_header", count=len(results))]
     for i, r in enumerate(results, start=1):
-        bits: list[str] = [f"{i}."]
-        if r.rooms:
-            bits.append(f"{r.rooms}-комн" if lang == "ru" else f"{r.rooms}-xona")
-        if r.district:
-            bits.append(r.district)
+        bits: list[str] = [f"{i}. {r.title}" if r.title else f"{i}."]
         if r.area:
             bits.append(f"{int(r.area)} м²" if lang == "ru" else f"{int(r.area)} m²")
         if r.price:
