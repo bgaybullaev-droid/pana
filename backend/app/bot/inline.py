@@ -18,6 +18,7 @@ Per Block D guardrails:
 
 from __future__ import annotations
 
+import html
 import logging
 
 from aiogram import Router
@@ -42,11 +43,22 @@ inline_router = Router(name="inline_search")
 _CACHE_TIME_SECONDS = 60
 
 
-def _format_card_text(r: bot_search.BotSearchResult, lang: str) -> str:
-    """Compact one-message body for an inline result.
+def _html_escape(text: str) -> str:
+    """Escape the three characters Telegram's HTML parse_mode is sensitive to.
 
-    Avoids HTML; inline results are plain text by default. Keep it
-    short so chats with character-limited messages still work.
+    The bot runs with a default ``parse_mode="HTML"`` (see ``bot/main.py``),
+    so any dynamic text dropped into a sent message must be escaped or a stray
+    ``<`` / ``&`` in a listing's district/title breaks the whole message.
+    """
+    return html.escape(text or "", quote=False)
+
+
+def _format_card_text(r: bot_search.BotSearchResult, lang: str) -> str:
+    """Compact plain-text summary for the inline result's title/description.
+
+    Telegram never renders formatting in the result-list ``title`` /
+    ``description`` fields, so this stays plain. The formatted version that
+    is posted into the chat lives in :func:`_format_card_html`.
     """
     bits: list[str] = []
     if r.rooms:
@@ -62,6 +74,34 @@ def _format_card_text(r: bot_search.BotSearchResult, lang: str) -> str:
     return ", ".join(bits) if bits else (r.title or r.id)
 
 
+def _format_card_html(r: bot_search.BotSearchResult, lang: str) -> str:
+    """HTML body posted into the chat when an inline result is tapped.
+
+    Renders the room/district headline in bold and the price in bold so the
+    card reads at a glance. All dynamic text is HTML-escaped via
+    :func:`_html_escape`; the static labels ("2-комн", "м²", currency) carry
+    no HTML-special characters.
+    """
+    head: list[str] = []
+    if r.rooms:
+        head.append(f"{r.rooms}-комн" if lang == "ru" else f"{r.rooms}-xona")
+    if r.district:
+        head.append(_html_escape(r.district))
+    title_line = " · ".join(head) or _html_escape(r.title or r.id)
+
+    lines = [f"🏠 <b>{title_line}</b>"]
+
+    meta: list[str] = []
+    if r.area:
+        meta.append(f"{int(r.area)} м²" if lang == "ru" else f"{int(r.area)} m²")
+    if r.price:
+        sym = "$" if r.currency == "USD" else ("сум" if lang == "ru" else "so'm")
+        meta.append(f"💰 <b>{r.price:,} {sym}</b>")
+    if meta:
+        lines.append(" · ".join(meta))
+    return "\n".join(lines)
+
+
 def _to_inline_result(
     r: bot_search.BotSearchResult, lang: str
 ) -> InlineQueryResultArticle | InlineQueryResultPhoto:
@@ -73,7 +113,10 @@ def _to_inline_result(
     Listings without an image fall back to a compact text article so they
     still appear in the list.
     """
-    body = _format_card_text(r, lang)
+    # Plain summary for the result-list labels (never formatted by Telegram);
+    # HTML body for the message/caption that is actually posted into the chat.
+    plain = _format_card_text(r, lang)
+    body_html = _format_card_html(r, lang)
     open_url = deeplink.build_listing_link(r.id)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -85,17 +128,19 @@ def _to_inline_result(
             id=r.id,
             photo_url=r.photo_url,
             thumbnail_url=r.photo_url,
-            title=r.title or body,
-            description=body,
-            caption=body,
+            title=r.title or plain,
+            description=plain,
+            caption=body_html,
+            parse_mode="HTML",
             reply_markup=keyboard,
         )
     return InlineQueryResultArticle(
         id=r.id,
-        title=r.title or body,
-        description=body,
+        title=r.title or plain,
+        description=plain,
         input_message_content=InputTextMessageContent(
-            message_text=body,
+            message_text=body_html,
+            parse_mode="HTML",
             disable_web_page_preview=True,
         ),
         reply_markup=keyboard,
