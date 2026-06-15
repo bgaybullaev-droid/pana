@@ -214,27 +214,34 @@ async def search(
     parsed: ParsedQuery,
     *,
     limit: int = DEFAULT_BOT_LIMIT,
+    offset: int = 0,
 ) -> list[BotSearchResult]:
     """Run a search and return up to ``limit`` result cards.
 
-    Reads Postgres across native + crawled tables, newest first. Never
-    raises — any failure logs a warning and returns an empty list so the
-    caller can show its "nothing found" fallback.
+    Reads Postgres across native + crawled tables, newest first. ``offset``
+    skips the first N globally-ordered rows — used by Inline Mode to page
+    results in as the user scrolls. Never raises — any failure logs a
+    warning and returns an empty list so the caller can show its fallback.
     """
     capped = max(1, min(int(limit), DEFAULT_INLINE_LIMIT))
+    off = max(0, int(offset))
     try:
-        return await _search_postgres(parsed, capped)
+        return await _search_postgres(parsed, capped, off)
     except Exception as exc:
         logger.warning("bot_search: postgres query failed: %s", exc, exc_info=True)
         return []
 
 
-async def recent_listings(limit: int = DEFAULT_INLINE_LIMIT) -> list[BotSearchResult]:
-    """Empty-query fallback for Inline Mode: most-recent listings."""
-    return await search(ParsedQuery(raw_text=""), limit=limit)
+async def recent_listings(
+    limit: int = DEFAULT_INLINE_LIMIT, offset: int = 0
+) -> list[BotSearchResult]:
+    """Empty-query fallback for Inline Mode: most-recent listings (paged)."""
+    return await search(ParsedQuery(raw_text=""), limit=limit, offset=offset)
 
 
-async def _search_postgres(parsed: ParsedQuery, limit: int) -> list[BotSearchResult]:
+async def _search_postgres(
+    parsed: ParsedQuery, limit: int, offset: int = 0
+) -> list[BotSearchResult]:
     """The actual Postgres read. Mirrors the visibility + text-match rules
     of ``GET /listings/feed`` so the bot and the app surface the same rows.
     """
@@ -369,14 +376,17 @@ async def _search_postgres(parsed: ParsedQuery, limit: int) -> list[BotSearchRes
         tg_q = tg_q.where(TelegramListing.price <= price_max)
         olx_q = olx_q.where(OLXListing.price <= price_max)
 
-    # Newest first per source; fetch up to `limit` from each, then merge.
+    # Newest first per source. To return the global page [offset, offset+limit)
+    # after merging, each source must yield at least its first offset+limit rows
+    # (the n-th global row is within the first n rows of some single source).
+    fetch = offset + limit
     main_q = (
         main_q.options(selectinload(Listing.images))
         .order_by(Listing.created_at.desc())
-        .limit(limit)
+        .limit(fetch)
     )
-    tg_q = tg_q.order_by(TelegramListing.created_at.desc()).limit(limit)
-    olx_q = olx_q.order_by(OLXListing.created_at.desc()).limit(limit)
+    tg_q = tg_q.order_by(TelegramListing.created_at.desc()).limit(fetch)
+    olx_q = olx_q.order_by(OLXListing.created_at.desc()).limit(fetch)
 
     async with async_session_maker() as session:
         main_rows = (await session.execute(main_q)).scalars().all()
@@ -393,9 +403,10 @@ async def _search_postgres(parsed: ParsedQuery, limit: int) -> list[BotSearchRes
         for row in olx_rows:
             merged.append((row.created_at, _crawled_to_result(row, "olx")))
 
-    # Global newest-first merge; rows without a timestamp sort last.
+    # Global newest-first merge; rows without a timestamp sort last. Slice out
+    # the requested page [offset, offset+limit).
     merged.sort(key=lambda pair: (pair[0] is not None, pair[0]), reverse=True)
-    return [result for _, result in merged[:limit]]
+    return [result for _, result in merged[offset : offset + limit]]
 
 
 __all__ = (

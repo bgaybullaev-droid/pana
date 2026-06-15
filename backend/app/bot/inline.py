@@ -44,6 +44,11 @@ inline_router = Router(name="inline_search")
 # Stale-but-useful trade-off is acceptable for inline search.
 _CACHE_TIME_SECONDS = 60
 
+# Results loaded per scroll batch. Telegram requests the next batch (passing
+# our ``next_offset`` back as ``query.offset``) when the user scrolls to the
+# end, so the list grows lazily instead of dumping everything at once.
+_PAGE_SIZE = 8
+
 
 def _html_escape(text: str) -> str:
     """Escape the three characters Telegram's HTML parse_mode is sensitive to.
@@ -220,33 +225,47 @@ async def handle_inline_query(query: InlineQuery) -> None:
     lang = _resolve_lang(query)
     raw = (query.query or "").strip()
 
+    # Telegram passes our previous ``next_offset`` back as ``query.offset``
+    # when the user scrolls to the end; parse it to a page start (an empty or
+    # malformed value means the first page).
+    raw_offset = (query.offset or "").strip()
+    offset = int(raw_offset) if raw_offset.isdigit() else 0
+
     try:
         if not raw:
             # Empty inline query — show the latest listings as examples.
-            # Conversion-first: never return zero results without
-            # explanation. Telegram silently drops the inline popup
-            # when results=[] which is the worst UX.
+            # Conversion-first: never return zero results without explanation.
             results = await bot_search.recent_listings(
-                limit=bot_search.DEFAULT_INLINE_LIMIT
+                limit=_PAGE_SIZE, offset=offset
             )
         else:
             parsed = query_parser.parse(raw, lang=lang)
             results = await bot_search.search(
-                parsed, limit=bot_search.DEFAULT_INLINE_LIMIT
+                parsed, limit=_PAGE_SIZE, offset=offset
             )
 
         articles = [_to_inline_result(r, lang) for r in results]
         if not articles:
-            # Zero hits: Telegram collapses the inline popup entirely on an
-            # empty result list, which reads as a broken bot. Show one
-            # "nothing found" card instead. Short cache_time so real
-            # results surface as soon as the index has data.
-            await query.answer(
-                [_no_results_article(lang)],
-                cache_time=5,
-                is_personal=True,
-            )
+            if offset == 0:
+                # First page, zero hits: Telegram collapses the popup on an
+                # empty list (reads as a broken bot), so show one explanatory
+                # card. Short cache_time so real results surface quickly.
+                await query.answer(
+                    [_no_results_article(lang)], cache_time=5, is_personal=True
+                )
+            else:
+                # Scrolled past the last result — stop paging quietly with an
+                # empty answer (no "nothing found" card mid-scroll).
+                await query.answer(
+                    [], cache_time=5, is_personal=True, next_offset=""
+                )
             return
+
+        # A full page implies there are likely more rows: hand Telegram the
+        # next page marker so it requests the following batch on scroll. A
+        # short page means we hit the end → empty next_offset stops paging.
+        next_offset = str(offset + _PAGE_SIZE) if len(results) == _PAGE_SIZE else ""
+
         try:
             await query.answer(
                 articles,
@@ -256,6 +275,7 @@ async def handle_inline_query(query: InlineQuery) -> None:
                 # one user's localized output and serving it to everyone in a
                 # shared chat — e.g. an Uzbek user getting Russian results.
                 is_personal=True,
+                next_offset=next_offset,
             )
         except Exception:
             # A single unreachable photo URL makes Telegram reject the whole
@@ -268,7 +288,10 @@ async def handle_inline_query(query: InlineQuery) -> None:
                 _to_inline_result(r, lang, allow_photo=False) for r in results
             ]
             await query.answer(
-                text_only, cache_time=_CACHE_TIME_SECONDS, is_personal=True
+                text_only,
+                cache_time=_CACHE_TIME_SECONDS,
+                is_personal=True,
+                next_offset=next_offset,
             )
     except Exception:
         # Fail-soft: log + show the "nothing found" card (not a blank
