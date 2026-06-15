@@ -12,6 +12,20 @@ export const authenticateWithTelegramFx = createEffect(
 	},
 );
 
+// Silent session restore on app open inside Telegram. Hits the same
+// /auth/telegram endpoint, but is wired to populate $user WITHOUT touching
+// $authError — so a previously linked user (telegram_id already on file) is
+// re-authenticated with no contact prompt, while a genuinely new user fails
+// here quietly and falls through to the PhoneGate (no red error flashes).
+export const restoreTelegramSessionFx = createEffect(
+	async (initData: string) => {
+		const response = await apiClient.post<AuthResponse>("/auth/telegram", {
+			init_data: initData,
+		});
+		return response.data;
+	},
+);
+
 export const checkSessionFx = createEffect(async () => {
 	const response = await apiClient.get<UserMeResponse>("/auth/me");
 	return response.data;

@@ -18,6 +18,7 @@ import {
 } from "../events";
 import {
 	authenticateWithTelegramFx,
+	restoreTelegramSessionFx,
 	checkSessionFx,
 	logoutFx,
 	loginWithOLXPhoneFx,
@@ -54,6 +55,7 @@ $user
 	.on(authenticateWithTelegramFx.doneData, (_, data) =>
 		authResponseToUser(data),
 	)
+	.on(restoreTelegramSessionFx.doneData, (_, data) => authResponseToUser(data))
 	.on(loginWithOLXPhoneFx.doneData, (_, data) => authResponseToUser(data))
 	.on(loginWithTelegramChannelFx.doneData, (_, data) =>
 		authResponseToUser(data),
@@ -80,6 +82,7 @@ $hasLoggedOut
 	.on(logoutFx.done, () => true)
 	.reset(checkSessionFx.done)
 	.reset(authenticateWithTelegramFx.done)
+	.reset(restoreTelegramSessionFx.done)
 	.reset(loginWithOLXPhoneFx.done)
 	.reset(loginWithTelegramChannelFx.done)
 	.reset(loginWithBuyerPhoneFx.done)
@@ -95,6 +98,10 @@ $isLoading
 	// checkSessionFx.fail intentionally NOT handled — fallback auth will set loading to false
 	.on(authenticateWithTelegramFx.pending, (_, pending) => pending)
 	.on(authenticateWithTelegramFx.finally, () => false)
+	// Silent restore on open keeps the spinner up while it runs, then clears it
+	// (success → authenticated; failure → falls through to PhoneGate).
+	.on(restoreTelegramSessionFx.pending, (_, pending) => pending)
+	.on(restoreTelegramSessionFx.finally, () => false)
 	// Handle buyer/seller phone login loading states
 	.on(loginWithBuyerPhoneFx.pending, (_, pending) => pending)
 	.on(loginWithBuyerPhoneFx.finally, () => false)

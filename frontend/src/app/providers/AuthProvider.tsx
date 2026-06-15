@@ -10,6 +10,7 @@ import {
 	devLogin,
 	checkSession,
 	checkSessionFx,
+	restoreTelegramSessionFx,
 } from "@shared/state/auth/model";
 import { PhoneGate } from "@shared/ui/PhoneGate";
 import i18n, { backendToFrontendLocale } from "@shared/i18n";
@@ -49,7 +50,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-	const { isReady, isTelegramWebApp, user: tgUser } = useTelegram();
+	const { isReady, isTelegramWebApp, initData, user: tgUser } = useTelegram();
 	const [user, isAuthenticated, isLoading] = useUnit([
 		$user,
 		$isAuthenticated,
@@ -72,6 +73,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			}
 
 			if (isTelegramWebApp) {
+				// Before gating, try a SILENT re-auth with initData. A user who
+				// is already linked (telegram_id on file) is authenticated by
+				// the backend with no contact prompt — this is what lets a
+				// registered user open a channel deep-link without being asked
+				// to share their phone every time. Only a genuinely new/unlinked
+				// user fails here (PHONE_REQUIRED) and falls through to the gate.
+				if (initData) {
+					try {
+						await restoreTelegramSessionFx(initData);
+						return;
+					} catch {
+						// Not linked yet — fall through to PhoneGate.
+					}
+				}
 				// Stop the loading spinner so PhoneGate renders.
 				authCheckComplete();
 				return;
@@ -86,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		};
 
 		init();
-	}, [isReady, isTelegramWebApp]);
+	}, [isReady, isTelegramWebApp, initData]);
 
 	// Telegram account-switch defense. The Mini App runs in a single WebView
 	// per Telegram client — cookies and localStorage persist across account
