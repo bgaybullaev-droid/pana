@@ -15,6 +15,7 @@ import {
 	IconChartLine,
 	IconPhoto,
 	IconShieldExclamation,
+	IconGauge,
 } from "@tabler/icons-react";
 import { $dashboardStats } from "@modules/admin/shared/state";
 
@@ -82,6 +83,11 @@ export const NAV_ITEMS: NavItem[] = [
 		icon: IconShieldExclamation,
 		labelKey: "nav.suspicions",
 		path: "/admin/suspicions",
+	},
+	{
+		icon: IconGauge,
+		labelKey: "nav.botLimits",
+		path: "/admin/bot-limits",
 	},
 	{
 		icon: IconServerCog,

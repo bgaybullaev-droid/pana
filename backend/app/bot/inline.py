@@ -31,6 +31,7 @@ from aiogram.types import (
     InputTextMessageContent,
 )
 
+from app.bot import rate_limit
 from app.bot.i18n import DEFAULT_LANGUAGE, language_from_telegram_code, t
 from app.core.config import settings
 from app.services import bot_search, deeplink, query_parser
@@ -194,6 +195,23 @@ def _no_results_article(lang: str) -> InlineQueryResultArticle:
     )
 
 
+def _rate_limited_article(text: str) -> InlineQueryResultArticle:
+    """Single card shown when an inline query is rate-limited.
+
+    Telegram collapses the popup on an empty answer (reads as a broken bot),
+    so instead of returning nothing we surface one explanatory card carrying
+    the admin-editable "too many requests" message (FU3).
+    """
+    return InlineQueryResultArticle(
+        id="rate_limited",
+        title=text,
+        input_message_content=InputTextMessageContent(
+            message_text=text,
+            disable_web_page_preview=True,
+        ),
+    )
+
+
 def _resolve_lang(query: InlineQuery) -> str:
     """Pick the result language for an inline query.
 
@@ -210,6 +228,19 @@ def _resolve_lang(query: InlineQuery) -> str:
 async def handle_inline_query(query: InlineQuery) -> None:
     """Entry point for ``@ucharmarket_bot <q>`` from any chat."""
     lang = _resolve_lang(query)
+
+    # D5 spam guard (FU3): inline fires on every keystroke, so the cap is
+    # generous and admin-configurable. Over the limit we show a single card
+    # with the admin-editable message (not an empty popup), with a short
+    # cache_time so the notice isn't cached for a full minute.
+    user_id = query.from_user.id if query.from_user else 0
+    if user_id and not await rate_limit.hit("inline", user_id):
+        text = await rate_limit.limit_message(lang)
+        await query.answer(
+            [_rate_limited_article(text)], cache_time=5, is_personal=True
+        )
+        return
+
     raw = (query.query or "").strip()
 
     # Telegram passes our previous ``next_offset`` back as ``query.offset``

@@ -6,6 +6,7 @@ from app.api.v1 import (
     activity_log,
     admin,
     admin_ai,
+    admin_bot_limits,
     admin_export_templates,
     admin_sources,
     admin_suspicions,
@@ -107,6 +108,8 @@ router.include_router(ai_feedback.router)  # /ai-feedback (seller-side)
 router.include_router(admin_ai.router)  # /admin/ai/*
 # Block F V2.0 F2 — synonym dictionary admin CRUD.
 router.include_router(admin_synonyms.router)  # /admin/synonyms
+# Block D FU3 — admin-managed bot rate-limit settings.
+router.include_router(admin_bot_limits.router)  # /admin/bot-rate-limits
 # Block F V2.0 F4a — cabinet text exports.
 router.include_router(seller_exports.router)
 router.include_router(admin_export_templates.router)

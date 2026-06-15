@@ -2250,9 +2250,20 @@ async def _run_bot_search_reply(
     Returns True if a reply was sent, False otherwise (caller decides
     whether to fall through to other handlers).
     """
+    from app.bot import rate_limit as _rate_limit
     from app.services import bot_search as _search
     from app.services import deeplink as _deeplink
     from app.services import query_parser as _parser
+
+    # D5 spam guard (FU3): cap bot search per user (admin-configurable). This is
+    # the single choke point for both /search and free text. On the limit we
+    # reply with the admin-editable message and return True so cmd_search does
+    # not also append "search_not_understood".
+    if message.from_user and not await _rate_limit.hit(
+        "search", message.from_user.id
+    ):
+        await message.answer(await _rate_limit.limit_message(lang))
+        return True
 
     parsed = _parser.parse(raw_query, lang=lang)
 

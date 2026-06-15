@@ -8,6 +8,7 @@ from uuid import uuid4
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     Float,
@@ -2858,4 +2859,74 @@ class ReferralReward(Base):
             "referrer_user_id",
             "granted_at",
         ),
+    )
+
+
+# =============================================================================
+# Block D (FU3) — bot rate-limit settings (admin-managed)
+# =============================================================================
+
+
+class BotRateLimitSettings(Base):
+    """Singleton config row backing the bot's per-user rate limiter.
+
+    Block D / FU3. The two spammy bot surfaces — in-chat search (``/search`` +
+    free text) and Inline Mode — are throttled per Telegram user. The numeric
+    caps, on/off toggles and the "too many requests" message are admin-editable
+    from the panel rather than baked into code, so ops can tune them without a
+    deploy.
+
+    Exactly one row exists, pinned to ``id = 1`` by a CHECK constraint. The bot
+    reads this (through a short-lived Redis cache) on every search; the admin
+    API is the only writer. The three message columns are seeded with defaults
+    in all bot locales by the migration and are never blanked (the API enforces
+    non-empty), so the bot always has text to show.
+    """
+
+    __tablename__ = "bot_rate_limit_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+
+    # In-chat search ( /search + free text ).
+    search_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    search_limit: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("10")
+    )
+    search_window_sec: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("60")
+    )
+
+    # Inline Mode ( @bot <query> ).
+    inline_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    inline_limit: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("30")
+    )
+    inline_window_sec: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("60")
+    )
+
+    # "Too many requests" message — shown in chat and (as a single card) in
+    # inline. Pre-seeded in all three bot locales; editable but not blankable.
+    limit_message_ru: Mapped[str] = mapped_column(Text, nullable=False)
+    limit_message_uz: Mapped[str] = mapped_column(Text, nullable=False)
+    limit_message_uz_cyrl: Mapped[str] = mapped_column(Text, nullable=False)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    updated_by_admin_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    __table_args__ = (
+        CheckConstraint("id = 1", name="ck_bot_rate_limit_singleton"),
     )

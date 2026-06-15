@@ -21,7 +21,7 @@
 |----|----------|--------|--------|
 | FU1 | Быстрые фиксы (is_personal, «неактуально», RU-строки) | 0.5 д | ✅ смержен (#86) |
 | FU2 | D4 «последняя миля»: publish_to_channel + stale в «Моих объявлениях» | 2 д | ✅ выполнено (сверено с кодом 2026-06-15) |
-| FU3 | Rate limits бот-поиска и inline | 0.5 д | ⬜ не начат |
+| FU3 | Rate limits бот-поиска и inline (+ админ-страница настроек) | 1 д | ✅ смержен (#109) |
 | FU4 | Тесты Блока D (golden-корпус парсера и др.) | 1.5 д | ⬜ не начат |
 | FU5 | Телеметрия парсера запросов | 1 д | ⬜ не начат |
 | FU6 | Filter-дип-линки: фикс гидрации + маркетинговые слаги | 1 д | ⬜ не начат |
@@ -206,36 +206,57 @@ CLAUDE.md: тест-гейт → squash-merge в `main` → авто-зерка�
 
 ---
 
-## PR-FU3 — Rate limits бота (0.5 дня)
+## PR-FU3 — Rate limits бота + админ-страница настроек (1 день)
 
-**Цель:** защита поиска в боте и Inline Mode от спама (требование SOURCE_SPEC_V2 → D5).
+**Цель:** защита поиска в боте и Inline Mode от спама (требование
+SOURCE_SPEC_V2 → D5). По решению пользователя лимиты и текст сообщения
+**управляются из админки**, а не захардкожены.
 
-**Дизайн:** новый модуль `backend/app/bot/rate_limit.py`:
-`async def hit(scope: str, user_id: int, limit: int, window: int) -> bool` —
-Redis `INCR` + `EXPIRE` на первом инкременте, ключи `bot:rl:{scope}:{tg_id}`,
-**fail-open** при ошибках Redis (философия «Redis non-fatal», `bot/main.py:150-156`).
-Middleware сознательно НЕ используем: каталога `bot/middlewares/` нет,
-единственный `DbSessionMiddleware` (`bot/main.py:36-42`) зарегистрирован только
-на message/callback (:97-98) — **inline-хэндлеры живут без DB-сессии**, и
-поведение при превышении на двух поверхностях разное.
+**Хранение настроек:**
+- БД — источник правды: singleton-таблица `bot_rate_limit_settings`
+  (`id=1`, CHECK), миграция `20260615_add_bot_rate_limit_settings.py` сидит
+  дефолтную строку (search 10/60с, inline 30/60с) и текст сообщения на трёх
+  локалях бота. Модель `BotRateLimitSettings` в `db/models.py`.
+- Redis — кэш `bot:rl:config` (JSON, TTL 60с), write-through из админ-API →
+  правки применяются мгновенно даже в отдельном процессе бота.
+
+**Лимитер** `backend/app/bot/rate_limit.py`:
+`async def hit(scope, user_id) -> bool` — конфиг из кэша(Redis)→БД→дефолты,
+Redis `INCR`+`EXPIRE` на первом инкременте, ключи `bot:rl:{scope}:{tg_id}`,
+**fail-open** при любой ошибке (философия «Redis non-fatal», `bot/main.py`).
+`async def limit_message(lang) -> str` — админ-редактируемый текст (общий для
+поиска и inline). Middleware НЕ используем: каталога `bot/middlewares/` нет,
+inline-хэндлеры без DB-сессии, поэтому лимитер сам открывает сессию через
+`async_session_maker` при промахе кэша.
+
+**Админ-API** `api/v1/admin_bot_limits.py` (`get_current_admin`):
+`GET`/`PUT /admin/bot-rate-limits` (валидация limit 1..10000, window 1..3600,
+текст 1..500) + write-through Redis. Зарегистрирован в `api/v1/__init__.py`.
+
+**Фронтенд:** страница `modules/admin/pages/bot-limits/` (Switch + NumberInput
+лимит/окно для поиска и inline; 3 Textarea текста), роут `/admin/bot-limits`,
+пункт навигации `nav.botLimits` (IconGauge), i18n во все 4 локали админки.
 
 **Точки врезки:**
-- начало `_run_bot_search_reply` (`bot/handlers.py`, def перед :2240) — одна
-  точка покрывает и `/search` (:2316), и свободный текст (:2342). Лимит
-  **10/60с**; при превышении `message.answer(t(lang, "search_rate_limited"))`
-  и `return True` (чтобы `cmd_search` не добавил «не понял запрос»);
-- начало `handle_inline_query` (`bot/inline.py:102`). Лимит **30/60с**; при
-  превышении `query.answer([], cache_time=5, is_personal=True)` (короткий
-  cache_time, чтобы не закэшировать пустоту на 60с).
+- начало `_run_bot_search_reply` (`bot/handlers.py`) — одна точка покрывает и
+  `/search`, и свободный текст; при превышении
+  `message.answer(await rate_limit.limit_message(lang))` и `return True`;
+- начало `handle_inline_query` (`bot/inline.py`); при превышении — **одна
+  карточка** `_rate_limited_article(text)` через `query.answer([...],
+  cache_time=5, is_personal=True)` (короткий cache_time, чтобы не закэшировать
+  уведомление на 60с).
 
-Новый ключ `search_rate_limited` ×3 локали бота.
+Текст хранится в настройках; отдельный i18n-ключ бота больше не нужен (дефолты
+сидятся миграцией и продублированы константой `DEFAULT_LIMIT_MESSAGES`).
 
 **Критерии приёмки:** 11-й текстовый запрос за минуту получает локализованный
 ответ «слишком часто» (и `/search` не дублирует «не понял»); 31-й inline-запрос
-за минуту — пустой ответ с cache_time=5; при недоступном Redis поиск работает
-(fail-open).
+за минуту — карточка с тем же текстом (cache_time=5); правка лимитов/текста в
+админке применяется ≤60с; при недоступном Redis поиск работает (fail-open).
 
-**Тесты:** unit лимитера со стабом Redis (сброс окна, fail-open).
+**Тесты:** unit лимитера со стабом Redis (`tests/unit/test_bot_rate_limit.py`):
+сброс окна, независимость scope, выключенный scope, fail-open, текст по локалям,
+round-trip конфига.
 
 ---
 
