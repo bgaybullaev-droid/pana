@@ -146,6 +146,15 @@ function StartParamHandler() {
 			return;
 		}
 
+		// "notifications" is emitted by the saved-search digest push
+		// (Block D — FU7): the grouped "N new" message routes the buyer
+		// to their in-app notifications list.
+		if (startParam === "notifications") {
+			handledRef.current = true;
+			navigate("/notifications", { replace: true });
+			return;
+		}
+
 		const parsed = parseStartParam(startParam);
 		if (parsed == null) return;
 		handledRef.current = true;

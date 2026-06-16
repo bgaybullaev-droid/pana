@@ -127,6 +127,18 @@ def build_found_link() -> str:
     return _startapp_url("found")
 
 
+def build_notifications_link() -> str:
+    """Mini-App deep link that opens the buyer's notifications list.
+
+    Used by the saved-search digest push (FU7): a single consolidated
+    "N new" message with an "Open App" CTA. The frontend
+    ``StartParamHandler`` special-cases the bare ``notifications`` token
+    (no ``_`` body, so ``parseStartParam`` returns ``None``) and routes
+    to ``/notifications``.
+    """
+    return _startapp_url("notifications")
+
+
 async def build_filter_link(
     filters: Mapping[str, Any],
     db: AsyncSession,

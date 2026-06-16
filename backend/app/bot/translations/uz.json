@@ -112,6 +112,7 @@
   "push_fav_added_toast": "Sevimlilarga qo'shildi",
   "push_fav_removed_toast": "Sevimlilardan olib tashlandi",
   "push_listing_unavailable": "Bu e'lon endi mavjud emas",
+  "push_saved_search_digest": "🔍 Qidiruvlaringiz bo'yicha <b>{count}</b> ta yangi e'lon",
   "registration_auto_approved": "✅ <b>Ro'yxatdan o'tdingiz!</b>\n\nArizangiz avtomatik tasdiqlandi.\nEndi Real Estate veb-ilovasi orqali e'lonlar qo'shishingiz mumkin.",
   "registration_success": "✅ <b>Ariza yuborildi!</b>\n\n📋 <b>Keyingi qadamlar:</b>\n1. Administrator arizangizni ko'rib chiqadi\n2. Siz ushbu chatda xabar olasiz\n3. Tasdiqlangandan so'ng veb-ilovaga kirish ochiladi\n\n💡 Ariza holatini tekshirish uchun /start dan foydalaning",
   "rejection_reason_default": "Sabab ko'rsatilmagan",

@@ -1,10 +1,12 @@
 """Notification-related Celery tasks."""
 
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from uuid import UUID
 
 import redis
 from aiogram import Bot
@@ -536,7 +538,6 @@ async def _match_saved_searches(
     """
     from app.api.v1.saved_searches import _filters_to_listing_filters
     from app.db.models import SavedSearch, Seller
-    from app.services.listing_push import build_listing_action_kb_spec
     from app.services.saved_search_matcher import _match_listing_to_filters
 
     listing_id = listing_attrs["id"]
@@ -698,34 +699,38 @@ async def _match_saved_searches(
                 prefs.time_end,
             )
         else:
-            # Block D D2 — render the inline keyboard against the
-            # user's full language (incl. uz_cyrl). The push body uses
-            # the constrained ``lang`` because the message templates
-            # are still ru/uz-only (i18n sweep is a follow-up).
-            try:
-                kb_spec = build_listing_action_kb_spec(
-                    listing, seller, user.language or lang
-                )
-            except Exception:
-                logger.warning(
-                    "saved-search kb build failed user=%s listing=%s",
+            # FU7 — debounce-batch the Telegram side per user so a burst
+            # of crawler imports collapses into a single digest instead
+            # of N separate pushes (SOURCE_SPEC_V2 → D2 edge case). The
+            # in-app Notification row above is still written per-listing;
+            # only the push is deferred to flush_pending_saved_search_pushes.
+            # The daily limit is intentionally spent per-match here
+            # (conservative — the digest then sends ≤ the budget).
+            push_name = search_name or "Без названия"
+            if _enqueue_debounced_saved_search_push(
+                str(user.id), listing_id, push_name
+            ):
+                tg_count += 1
+                logger.info(
+                    "saved-search tg-queued user=%s listing=%s",
                     user.id,
                     listing_id,
-                    exc_info=True,
                 )
-                kb_spec = None
-            send_telegram_notification.delay(
-                user.telegram_id,
-                _SAVED_SEARCH_TELEGRAM[lang].format(**fmt),
-                "HTML",
-                kb_spec,
-            )
-            tg_count += 1
-            logger.info(
-                "saved-search tg-sent user=%s listing=%s",
-                user.id,
-                listing_id,
-            )
+            else:
+                # Redis unavailable → send the per-listing push immediately
+                # (Block D D2 rich card) so we never silently drop it.
+                body, kb_spec = _saved_search_rich_push(
+                    listing, seller, user.language or lang, push_name
+                )
+                send_telegram_notification.delay(
+                    user.telegram_id, body, "HTML", kb_spec
+                )
+                tg_count += 1
+                logger.info(
+                    "saved-search tg-sent-fallback user=%s listing=%s",
+                    user.id,
+                    listing_id,
+                )
 
     await db.commit()
     r.close()
@@ -742,6 +747,221 @@ async def _match_saved_searches(
         "notifications_sent": in_app,
         "telegram_sent": tg_count,
     }
+
+
+# ---------------------------------------------------------------------------
+# FU7 — saved-search push debounce / digest
+# ---------------------------------------------------------------------------
+#
+# Mirrors the A4 crawled-match debounce (``workers/tasks/crawled_match.py``)
+# for the buyer side: when several saved searches match within a short
+# window, batch the Telegram pushes into one message instead of spamming
+# the user. The window is deliberately wider than A4's 60s — crawler
+# imports arrive spread over minutes, so a 10-minute window catches the
+# whole burst. A delay of up to 10 minutes is acceptable for these alerts.
+#
+# In-app ``Notification`` rows are still written immediately, per listing,
+# inside ``_match_saved_searches``; only the Telegram channel is debounced.
+
+_SAVED_SEARCH_BATCH_WINDOW_SEC = 600  # 10-min debounce (FU7; cf. A4's 60s)
+
+# Redis keys: ``saved_search:pending:<user_id>`` -> LIST of JSON entries
+# ``{"l": listing_id, "s": search_name}``. Companion
+# ``saved_search:scheduled:<user_id>`` -> "1" with TTL while a flush is
+# pending so we don't double-schedule.
+_SS_PENDING_KEY = "saved_search:pending:{user_id}"
+_SS_SCHEDULED_KEY = "saved_search:scheduled:{user_id}"
+
+
+def _enqueue_debounced_saved_search_push(
+    user_id: str, listing_id: str, search_name: str
+) -> bool:
+    """Stage one saved-search match in the per-user debounce window.
+
+    Appends to the pending list and, if no flush is already scheduled,
+    schedules :func:`flush_pending_saved_search_pushes` with a countdown.
+    Returns ``True`` on success, ``False`` when Redis is unreachable so
+    the caller can fall back to an immediate per-listing push.
+    """
+    pending_key = _SS_PENDING_KEY.format(user_id=user_id)
+    scheduled_key = _SS_SCHEDULED_KEY.format(user_id=user_id)
+    try:
+        r = _get_sync_redis()
+        entry = json.dumps({"l": listing_id, "s": search_name})
+        with r.pipeline() as pipe:
+            pipe.rpush(pending_key, entry)
+            pipe.expire(pending_key, _SAVED_SEARCH_BATCH_WINDOW_SEC + 60)
+            pipe.execute()
+        # SET NX with TTL: only schedule a flush when one isn't pending.
+        first_hit = bool(
+            r.set(scheduled_key, "1", nx=True, ex=_SAVED_SEARCH_BATCH_WINDOW_SEC + 60)
+        )
+        if first_hit:
+            flush_pending_saved_search_pushes.apply_async(
+                args=[user_id], countdown=_SAVED_SEARCH_BATCH_WINDOW_SEC
+            )
+        r.close()
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "saved-search debounce enqueue failed (%s); push falls back", exc
+        )
+        return False
+
+
+def _dedupe_saved_search_entries(raw_entries: List[str]) -> List[Tuple[str, str]]:
+    """Parse RPUSH'd JSON entries and dedupe by listing_id, keeping order.
+
+    Each raw entry is ``{"l": listing_id, "s": search_name}``. The first
+    occurrence of a listing wins (keeps its search_name). Malformed
+    entries are skipped. Returns ``[(listing_id, search_name), ...]``.
+    """
+    seen: set[str] = set()
+    out: List[Tuple[str, str]] = []
+    for raw in raw_entries:
+        try:
+            obj = json.loads(raw)
+            lid = obj["l"]
+            name = obj.get("s") or ""
+        except (ValueError, TypeError, KeyError):
+            continue
+        if lid in seen:
+            continue
+        seen.add(lid)
+        out.append((lid, name))
+    return out
+
+
+def _saved_search_rich_push(
+    listing: "Listing",
+    seller,
+    user_lang: str,
+    search_name: str,
+) -> Tuple[str, Optional[list]]:
+    """Render ``(body_html, kb_spec)`` for a single saved-search match.
+
+    The body uses the constrained ``ru``/``uz`` template set; the inline
+    keyboard is rendered against the user's full language (incl. uz_cyrl)
+    via :func:`build_listing_action_kb_spec`. Reused by the immediate
+    fallback path and by the flush task's single-match branch.
+    """
+    from app.services.listing_push import build_listing_action_kb_spec
+
+    lang = user_lang if user_lang in ("ru", "uz") else "ru"
+    listing_id = str(listing.id)
+    rooms = listing.rooms
+    currency = listing.currency.value
+    currency_symbol = "$" if currency == "USD" else "сум"
+    property_label = _PROPERTY_TYPE_LABELS[lang].get(
+        listing.property_type.value, listing.property_type.value
+    )
+    listing_type_label = _LISTING_TYPE_LABELS[lang].get(
+        listing.type.value, listing.type.value
+    )
+    fmt = dict(
+        search_name=search_name or "Без названия",
+        listing_type=listing_type_label,
+        property_type=property_label,
+        rooms_text=_ROOMS_TEXT[lang].format(n=rooms) if rooms else "",
+        district=listing.district or "—",
+        price=f"{listing.price:,} {currency_symbol}" if listing.price else "—",
+        link=_listing_deep_link(listing_id),
+    )
+    body = _SAVED_SEARCH_TELEGRAM[lang].format(**fmt)
+    try:
+        kb_spec = build_listing_action_kb_spec(listing, seller, user_lang or lang)
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "saved-search kb build failed listing=%s", listing_id, exc_info=True
+        )
+        kb_spec = None
+    return body, kb_spec
+
+
+@celery_app.task(
+    name="app.workers.tasks.notifications.flush_pending_saved_search_pushes",
+)
+def flush_pending_saved_search_pushes(user_id: str) -> Dict[str, Any]:
+    """Drain a user's debounced saved-search matches and send one push.
+
+    Single match in the window → the standard rich card with the listing
+    action keyboard (same shape as the immediate path). Multiple matches
+    → a digest ("N new") with an Open-App button to the notifications
+    list, no per-listing keyboard.
+    """
+    return asyncio.run(_flush_pending_saved_search(user_id))
+
+
+async def _flush_pending_saved_search(user_id: str) -> Dict[str, Any]:
+    from app.bot.i18n import t
+    from app.db.models import Seller
+
+    pending_key = _SS_PENDING_KEY.format(user_id=user_id)
+    scheduled_key = _SS_SCHEDULED_KEY.format(user_id=user_id)
+
+    raw_entries: List[str] = []
+    try:
+        r = _get_sync_redis()
+        with r.pipeline() as pipe:
+            pipe.lrange(pending_key, 0, -1)
+            pipe.delete(pending_key)
+            pipe.delete(scheduled_key)
+            results = pipe.execute()
+        raw_entries = list(results[0] or [])
+        r.close()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("saved-search flush: redis drain failed: %s", exc)
+        return {"status": "redis_unavailable", "sent": 0}
+
+    entries = _dedupe_saved_search_entries(raw_entries)
+    if not entries:
+        return {"status": "empty", "sent": 0}
+
+    async with _get_session() as db:
+        user = (
+            await db.execute(select(User).where(User.id == UUID(user_id)))
+        ).scalar_one_or_none()
+        if user is None or not user.telegram_id:
+            return {"status": "no_recipient", "sent": 0}
+
+        lang = user.language if user.language in ("ru", "uz") else "ru"
+
+        # Single match → rich card (re-load listing + seller for the kb).
+        if len(entries) == 1:
+            listing_id, search_name = entries[0]
+            listing = (
+                await db.execute(select(Listing).where(Listing.id == UUID(listing_id)))
+            ).scalar_one_or_none()
+            if listing is None:
+                return {"status": "missing_listing", "sent": 0}
+            seller = None
+            if listing.seller_id:
+                seller = (
+                    await db.execute(
+                        select(Seller).where(Seller.id == listing.seller_id)
+                    )
+                ).scalar_one_or_none()
+            body, kb_spec = _saved_search_rich_push(
+                listing, seller, user.language or lang, search_name
+            )
+            send_telegram_notification.delay(user.telegram_id, body, "HTML", kb_spec)
+            logger.info(
+                "saved-search flush single user=%s listing=%s", user_id, listing_id
+            )
+            return {"status": "ok", "sent": 1, "mode": "single"}
+
+        # Multiple matches → digest with an Open-App CTA.
+        from app.services.deeplink import build_notifications_link
+
+        count = len(entries)
+        digest_lang = user.language or lang
+        body = t(digest_lang, "push_saved_search_digest", count=count)
+        kb_spec = [
+            [{"text": t(digest_lang, "btn_open_app"), "url": build_notifications_link()}]
+        ]
+        send_telegram_notification.delay(user.telegram_id, body, "HTML", kb_spec)
+        logger.info("saved-search flush digest user=%s count=%d", user_id, count)
+        return {"status": "ok", "sent": 1, "mode": "digest", "count": count}
 
 
 async def _match_and_notify(
