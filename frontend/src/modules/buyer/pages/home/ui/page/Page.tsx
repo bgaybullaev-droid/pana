@@ -73,6 +73,7 @@ import { ROOMS_OPTIONS_KEYS } from "@shared/lib/constants";
 import {
 	getRegionKeys,
 	getDistrictsForRegion,
+	getRegionForDistrict,
 	translateRegion,
 	translateDistrict,
 } from "@shared/lib/regions";
@@ -384,7 +385,14 @@ function Page() {
 			const isRentOnly = filters.type?.length === 1 && filters.type[0] === "rent";
 			const max = filters.price_max || (isRentOnly ? 5000 : 500000);
 			setLocalPriceRange([min, max]);
-			setSelectedRegion(filters.region?.[0] || null);
+			// A filter deep link carries only `district` (no region), but the
+			// district chips render only once their region is selected. Derive
+			// the region from the district so the applied district shows as
+			// highlighted. Feed filtering is unaffected — region is not added
+			// to the query, only to the panel's region selector.
+			setSelectedRegion(
+				filters.region?.[0] || getRegionForDistrict(filters.district?.[0]) || null,
+			);
 		}
 	}, [drawerOpened, filters]);
 
