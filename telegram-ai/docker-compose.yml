@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: telegram-ai-db
+    environment:
+      POSTGRES_DB: telegram_listings
+      POSTGRES_USER: telegram_user
+      POSTGRES_PASSWORD: telegram_pass_2024
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./api/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telegram_user -d telegram_listings"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - telegram-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: telegram-ai-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@telegram-ai.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - telegram-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  telegram-network:
+    driver: bridge

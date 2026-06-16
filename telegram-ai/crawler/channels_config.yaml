@@ -1,0 +1,55 @@
+# Channel Configuration for Telegram Crawler
+# This file controls which channels the bot monitors
+
+# Mode: 'whitelist' or 'blacklist' or 'all'
+# - whitelist: Only monitor channels in the whitelist
+# - blacklist: Monitor all channels EXCEPT those in blacklist
+# - all: Monitor all channels (no filtering)
+mode: whitelist
+
+# Whitelist: Channels to monitor (only used when mode = 'whitelist')
+# Add channel usernames without @ symbol
+whitelist:
+  - electronics_uz
+  - smartphone_market
+  - gadgets_tashkent
+  - tech_deals_uz
+  - testReiltor
+  # Add more channels here
+
+# Blacklist: Channels to ignore (only used when mode = 'blacklist')
+# Add channel usernames without @ symbol
+blacklist:
+  - spam_channel
+  - news_channel
+  - chat_group
+  # Add more channels here
+
+# Filters: Additional filtering options
+filters:
+  # Require images: Skip messages without photos
+  require_images: true
+
+  # Require text: Skip messages without text description
+  require_text: true
+
+  # Minimum text length (characters)
+  min_text_length: 10
+
+  # Skip forwards: Ignore forwarded messages
+  skip_forwards: false
+
+  # Skip edits: Ignore edited messages
+  skip_edits: true
+
+# Logging
+logging:
+  # Log every processed message
+  verbose: true
+
+  # Log skipped messages
+  log_skipped: true
+
+  # Save logs to file
+  save_to_file: true
+  log_file: crawler_log.txt

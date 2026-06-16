@@ -1,0 +1,147 @@
+# Schema for Product Listing Channels (Electronics, Gadgets, etc.)
+schema_name: product_listing
+version: 1.0
+description: "Schema for marketplace product listings with pricing and contact info"
+
+# Channels using this schema
+channels:
+  - electronics_uz
+  - smartphone_market
+  - gadgets_tashkent
+  - tech_deals_uz
+  - laptop_market_uz
+
+# Expected data structure
+fields:
+  - name: title
+    type: string
+    required: true
+    description: "Product title/name"
+    extraction:
+      # First line of message or first 100 chars
+      pattern: "^(.{1,100})"
+      fallback: "extract_first_line"
+
+  - name: description
+    type: text
+    required: true
+    description: "Full product description"
+    extraction:
+      # Full message text
+      source: "message.text"
+
+  - name: price
+    type: decimal
+    required: false
+    description: "Product price"
+    extraction:
+      # Extract price patterns like: 1000000, 1.000.000, $1000, 1000 sum
+      patterns:
+        - '\$?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:sum|сум|USD|so\'m)?'
+        - 'Narx[:\s]+(\d+)'
+        - 'Price[:\s]+(\d+)'
+      unit_patterns:
+        - 'sum|сум|so\'m'
+        - 'USD|\$'
+
+  - name: currency
+    type: string
+    required: false
+    description: "Currency type (UZS, USD)"
+    extraction:
+      patterns:
+        - '(sum|сум|so\'m)' # -> UZS
+        - '(USD|\$)' # -> USD
+      mapping:
+        'sum|сум|so\'m': 'UZS'
+        'USD|\$': 'USD'
+      default: 'UZS'
+
+  - name: contact_phone
+    type: string
+    required: false
+    description: "Seller contact phone"
+    extraction:
+      patterns:
+        - '\+998\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}'
+        - '998\d{9}'
+        - '\d{2}\s*\d{3}\s*\d{2}\s*\d{2}'
+
+  - name: location
+    type: string
+    required: false
+    description: "Product location"
+    extraction:
+      patterns:
+        - '(?:Toshkent|Tashkent|Самарканд|Samarkand|Buxoro|Bukhara|Andijon|Andijan|Namangan|Farg\'ona|Fergana)'
+      case_insensitive: true
+
+  - name: condition
+    type: enum
+    required: false
+    description: "Product condition"
+    values: [new, used, refurbished]
+    extraction:
+      patterns:
+        - 'yangi|new|новый' # -> new
+        - 'ishlatilgan|used|б/у' # -> used
+        - 'restored|refurbished|восстановленный' # -> refurbished
+      mapping:
+        'yangi|new|новый': 'new'
+        'ishlatilgan|used|б/у': 'used'
+        'restored|refurbished|восстановленный': 'refurbished'
+
+  - name: images
+    type: array
+    required: true
+    description: "Product images"
+    extraction:
+      source: "message.photos"
+      min_count: 1
+
+  - name: channel_username
+    type: string
+    required: true
+    description: "Source channel"
+    extraction:
+      source: "channel.username"
+
+  - name: message_id
+    type: integer
+    required: true
+    description: "Original message ID"
+    extraction:
+      source: "message.id"
+
+  - name: posted_at
+    type: datetime
+    required: true
+    description: "When message was posted"
+    extraction:
+      source: "message.date"
+
+# Validation rules
+validation:
+  require_images: true
+  require_text: true
+  min_text_length: 20
+  skip_forwards: false
+  skip_edits: true
+
+# Post-processing
+processing:
+  # Convert price to standard format
+  normalize_price: true
+  # Extract brand names from text
+  extract_brands: true
+  # Categorize by keywords
+  auto_categorize: true
+  categories:
+    smartphones:
+      keywords: [iphone, samsung, xiaomi, phone, smartphone, телефон]
+    laptops:
+      keywords: [laptop, macbook, notebook, ноутбук]
+    tablets:
+      keywords: [ipad, tablet, планшет]
+    accessories:
+      keywords: [charger, case, headphone, airpods, чехол, наушники]

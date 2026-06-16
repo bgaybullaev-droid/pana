@@ -1,0 +1,179 @@
+# Schema for Job Posting Channels
+schema_name: job_posting
+version: 1.0
+description: "Schema for job vacancies and career opportunities"
+
+# Channels using this schema
+channels:
+  - jobs_uz
+  - vacancy_tashkent
+  - it_jobs_uzbekistan
+  - remote_jobs_uz
+
+# Expected data structure
+fields:
+  - name: job_title
+    type: string
+    required: true
+    description: "Job position title"
+    extraction:
+      patterns:
+        - '^(?:Вакансия|Vacancy|Ish)[::\s]+(.+?)(?:\n|$)'
+        - '^(.+?)(?:требуется|kerak|needed)'
+      fallback: "extract_first_line"
+
+  - name: company_name
+    type: string
+    required: false
+    description: "Hiring company name"
+    extraction:
+      patterns:
+        - 'Kompaniya[::\s]+(.+?)(?:\n|$)'
+        - 'Company[::\s]+(.+?)(?:\n|$)'
+        - 'Компания[::\s]+(.+?)(?:\n|$)'
+
+  - name: description
+    type: text
+    required: true
+    description: "Full job description"
+    extraction:
+      source: "message.text"
+
+  - name: salary_min
+    type: decimal
+    required: false
+    description: "Minimum salary"
+    extraction:
+      patterns:
+        - 'Maosh[::\s]+(?:от\s+)?(\d+)'
+        - 'Salary[::\s]+(?:from\s+)?(\d+)'
+        - 'Зарплата[::\s]+(?:от\s+)?(\d+)'
+
+  - name: salary_max
+    type: decimal
+    required: false
+    description: "Maximum salary"
+    extraction:
+      patterns:
+        - 'до\s+(\d+)'
+        - 'to\s+(\d+)'
+        - 'gacha\s+(\d+)'
+
+  - name: employment_type
+    type: enum
+    required: false
+    description: "Employment type"
+    values: [full_time, part_time, contract, remote, freelance]
+    extraction:
+      patterns:
+        - 'to\'liq ish kuni|full[- ]time|полная занятость' # -> full_time
+        - 'yarim ish kuni|part[- ]time|частичная занятость' # -> part_time
+        - 'shartnoma|contract|контракт' # -> contract
+        - 'masofaviy|remote|удаленно' # -> remote
+        - 'freelance|фриланс' # -> freelance
+      mapping:
+        'to\'liq ish kuni|full[- ]time|полная занятость': 'full_time'
+        'yarim ish kuni|part[- ]time|частичная занятость': 'part_time'
+        'shartnoma|contract|контракт': 'contract'
+        'masofaviy|remote|удаленно': 'remote'
+        'freelance|фриланс': 'freelance'
+
+  - name: experience_years
+    type: integer
+    required: false
+    description: "Required years of experience"
+    extraction:
+      patterns:
+        - 'Tajriba[::\s]+(\d+)'
+        - 'Experience[::\s]+(\d+)'
+        - 'Опыт[::\s]+(\d+)'
+        - '(\d+)\s+(?:yil|years?|лет|года)'
+
+  - name: location
+    type: string
+    required: false
+    description: "Job location"
+    extraction:
+      patterns:
+        - 'Joylashuv[::\s]+(.+?)(?:\n|$)'
+        - 'Location[::\s]+(.+?)(?:\n|$)'
+        - 'Местоположение[::\s]+(.+?)(?:\n|$)'
+        - '(?:Toshkent|Tashkent|Самарканд|Samarkand|Buxoro|Bukhara)'
+
+  - name: contact_phone
+    type: string
+    required: false
+    description: "Contact phone"
+    extraction:
+      patterns:
+        - '\+998\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}'
+        - '998\d{9}'
+
+  - name: contact_email
+    type: string
+    required: false
+    description: "Contact email"
+    extraction:
+      patterns:
+        - '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+
+  - name: requirements
+    type: array
+    required: false
+    description: "Job requirements"
+    extraction:
+      section_markers:
+        - 'Talablar|Requirements|Требования'
+      list_patterns:
+        - '[-•*]\s*(.+?)(?:\n|$)'
+
+  - name: images
+    type: array
+    required: false
+    description: "Job posting images"
+    extraction:
+      source: "message.photos"
+
+  - name: channel_username
+    type: string
+    required: true
+    description: "Source channel"
+    extraction:
+      source: "channel.username"
+
+  - name: message_id
+    type: integer
+    required: true
+    description: "Original message ID"
+    extraction:
+      source: "message.id"
+
+  - name: posted_at
+    type: datetime
+    required: true
+    description: "When job was posted"
+    extraction:
+      source: "message.date"
+
+# Validation rules
+validation:
+  require_images: false
+  require_text: true
+  min_text_length: 50
+  skip_forwards: false
+  skip_edits: true
+
+# Post-processing
+processing:
+  normalize_salary: true
+  extract_skills: true
+  auto_categorize: true
+  categories:
+    it_development:
+      keywords: [developer, programmer, python, java, javascript, frontend, backend]
+    marketing:
+      keywords: [marketing, smm, seo, content, digital]
+    sales:
+      keywords: [sales, savdo, продажи, manager, менеджер]
+    design:
+      keywords: [designer, dizayner, дизайнер, graphics, ui, ux]

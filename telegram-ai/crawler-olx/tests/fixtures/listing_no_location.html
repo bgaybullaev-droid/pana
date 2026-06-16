@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- JSON-LD without areaServed -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Test","offers":{"@type":"Offer","priceCurrency":"USD","price":100}}</script>
+</head>
+<body>
+<div data-cy="ad_container">
+  <h4 data-cy="ad_title">Flat for sale</h4>
+  <div data-testid="ad-price-container">100 у.е.</div>
+  <!-- Only 3 breadcrumb items — not enough to be detected -->
+  <ul>
+    <li><a href="/">Главная</a></li>
+    <li><a href="/nedvizhimost/">Недвижимость</a></li>
+  </ul>
+  <div data-cy="ad_description">Some description</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,129 @@
+# OLX.uz Sites Configuration
+# This file defines target URLs and extraction settings
+
+source:
+  name: "olx_uz"
+  base_url: "https://www.olx.uz"
+  languages:
+    - ru  # Russian (Cyrillic)
+    - uz  # Uzbek (Latin)
+
+# URL patterns
+urls:
+  # Category page (shows list of listings)
+  category_page: "https://www.olx.uz/nedvizhimost/"
+
+  # Listing page pattern (individual listing)
+  # Example: https://www.olx.uz/d/obyavlenie/3-honali-kvartira-sotiladi-ID4hiGs.html
+  listing_pattern: "/d/obyavlenie/*-ID*.html"
+
+  # Pagination
+  pagination: "?page={page}"
+  max_pages: 25
+
+# Categories to crawl
+targets:
+  - name: "all_real_estate"
+    path: "/nedvizhimost/"
+    description: "All real estate listings"
+
+  - name: "apartments"
+    path: "/nedvizhimost/kvartiry/"
+    description: "Apartments for sale and rent"
+
+  - name: "apartments_sale"
+    path: "/nedvizhimost/kvartiry/prodazha/"
+    description: "Apartments for sale"
+
+  - name: "apartments_rent"
+    path: "/nedvizhimost/kvartiry/arenda/"
+    description: "Apartments for rent"
+
+  - name: "houses"
+    path: "/nedvizhimost/doma/"
+    description: "Houses and villas"
+
+  - name: "land"
+    path: "/nedvizhimost/zemlja/"
+    description: "Land plots"
+
+  - name: "commercial"
+    path: "/nedvizhimost/kommercheskie-pomeshcheniya/"
+    description: "Commercial real estate"
+
+# Selectors for category page (to find listing URLs)
+selectors:
+  category_page:
+    listing_cards: '[data-cy="l-card"]'
+    listing_link: 'a[href*="/d/obyavlenie/"]'
+    next_page: '[data-testid="pagination-forward"]'
+    total_count: '[data-testid="total-count"]'
+
+  # Selectors for listing page (to extract content)
+  listing_page:
+    title: 'h4[data-cy="ad_title"]'
+    price: '[data-testid="ad-price-container"]'
+    description: '[data-cy="ad_description"]'
+    parameters: '[data-testid="ad-parameters-container"]'
+    location: '[class*="location"]'
+    seller: '[data-testid="seller-card"]'
+    images: 'img[src*="images.olx"]'
+    gallery: '[data-cy="gallery"]'
+    breadcrumbs: '[data-testid="breadcrumbs"]'
+    posted_date: '[data-testid="ad-creation-date"]'
+
+# Content extraction settings
+extraction:
+  # Schema to use for extraction
+  schema: "real_estate"
+
+  # Pre-processing
+  strip_elements:
+    - script
+    - style
+    - nav
+    - footer
+    - iframe
+    - noscript
+    - svg
+
+  # Elements to extract for markdown
+  keep_elements:
+    - h1
+    - h2
+    - h3
+    - h4
+    - h5
+    - h6
+    - p
+    - ul
+    - ol
+    - li
+    - table
+    - tr
+    - td
+    - th
+    - span
+    - div
+    - a
+
+# Filters
+filters:
+  require_images: true
+  min_text_length: 30
+  skip_promoted: false
+
+# Rate limiting
+rate_limits:
+  delay_between_requests: 1.0  # seconds
+  delay_between_listings: 0.5  # seconds
+  max_retries: 3
+  retry_delay: 5.0  # seconds
+
+# Output settings
+output:
+  save_markdown: true  # Save intermediate markdown files
+  save_json: true
+  save_images: true
+  image_quality: 85
+  max_images_per_listing: 12

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram AI - Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Telegram AI - Admin Dashboard</h1>
+            <div class="header-actions">
+                <button id="refreshBtn" class="btn btn-primary">Refresh</button>
+                <div class="status-indicator">
+                    <span id="apiStatus" class="status-dot"></span>
+                    <span id="apiStatusText">Checking...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="realtime">Real-time Listings</button>
+            <button class="tab-btn" data-tab="csv-export">CSV Export</button>
+        </div>
+
+        <!-- Tab Content: Real-time Listings -->
+        <div id="realtime-tab" class="tab-content active">
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">P</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalListings">-</div>
+                        <div class="stat-label">Total Listings</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">C</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalChannels">-</div>
+                        <div class="stat-label">Channels</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">I</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalImages">-</div>
+                        <div class="stat-label">Total Images</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">T</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="todayListings">-</div>
+                        <div class="stat-label">Today's Listings</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="controls-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search listings...">
+                </div>
+                <div class="filter-group">
+                    <label for="channelFilter">Channel:</label>
+                    <select id="channelFilter">
+                        <option value="">All Channels</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sortBy">Sort by:</label>
+                    <select id="sortBy">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="images">Most Images</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Listings Table -->
+            <div class="listings-section">
+                <h2>Recent Listings</h2>
+                <div class="table-container">
+                    <table class="listings-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Description</th>
+                                <th>Channel</th>
+                                <th>Images</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listingsTableBody">
+                            <tr>
+                                <td colspan="6" class="loading">Loading listings...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button id="prevPage" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPage" class="btn btn-secondary" disabled>Next</button>
+                </div>
+            </div>
+
+            <!-- Channel Statistics -->
+            <div class="channel-stats-section">
+                <h2>Channel Activity</h2>
+                <div class="table-container">
+                    <table class="channel-stats-table">
+                        <thead>
+                            <tr>
+                                <th>Channel</th>
+                                <th>Listings</th>
+                                <th>Images</th>
+                                <th>Last Activity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="channelStatsBody">
+                            <tr>
+                                <td colspan="4" class="loading">Loading channel statistics...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: CSV Export -->
+        <div id="csv-export-tab" class="tab-content">
+            <!-- CSV Export Controls -->
+            <div class="csv-export-section">
+                <h2>CSV Export Crawler</h2>
+                <p class="section-description">Crawl Telegram channels and export real estate listings to CSV format with images.</p>
+
+                <div class="crawl-controls">
+                    <div class="control-row">
+                        <div class="control-group">
+                            <label for="messagesPerChannel">Messages per Channel:</label>
+                            <input type="number" id="messagesPerChannel" value="20" min="1" max="100">
+                        </div>
+                        <div class="control-buttons">
+                            <button id="startCrawlBtn" class="btn btn-success">Start Crawl</button>
+                            <button id="stopCrawlBtn" class="btn btn-danger" disabled>Stop Crawl</button>
+                            <button id="downloadCsvBtn" class="btn btn-secondary">Download CSV</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Channel Selection -->
+                <div class="channel-selection">
+                    <div class="channel-header">
+                        <h3>Select Channels</h3>
+                        <div class="channel-actions">
+                            <button id="selectAllChannels" class="btn btn-small">Select All</button>
+                            <button id="deselectAllChannels" class="btn btn-small">Deselect All</button>
+                        </div>
+                    </div>
+                    <div id="channelCheckboxes" class="channel-grid">
+                        <p class="loading">Loading channels...</p>
+                    </div>
+                </div>
+
+                <!-- Crawl Progress -->
+                <div id="crawlProgress" class="crawl-progress hidden">
+                    <h3>Crawl Progress</h3>
+                    <div class="progress-info">
+                        <span id="crawlStatus" class="status-badge">Pending</span>
+                        <span id="crawlChannel">-</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="progressPercent">0%</span>
+                        <span id="progressChannels">0 / 0 channels</span>
+                    </div>
+                    <div class="crawl-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Success:</span>
+                            <span id="statSuccess" class="stat-value success">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Failed:</span>
+                            <span id="statFailed" class="stat-value failed">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Skipped:</span>
+                            <span id="statSkipped" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Images:</span>
+                            <span id="statImages" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="crawl-logs">
+                        <h4>Recent Logs</h4>
+                        <div id="logContainer" class="log-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSV Listings Stats -->
+            <div class="csv-stats-section">
+                <h2>CSV Data Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">L</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="csvTotalListings">-</div>
+                            <div class="stat-label">CSV Listings</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">C</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="csvTotalChannels">-</div>
+                            <div class="stat-label">Channels</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">S</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="csvFileSize">-</div>
+                            <div class="stat-label">CSV Size</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">I</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="csvImagesCount">-</div>
+                            <div class="stat-label">Images</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSV Listings Filter -->
+            <div class="controls-section">
+                <div class="search-box">
+                    <input type="text" id="csvSearchInput" placeholder="Search CSV listings...">
+                </div>
+                <div class="filter-group">
+                    <label for="csvChannelFilter">Channel:</label>
+                    <select id="csvChannelFilter">
+                        <option value="">All Channels</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- CSV Listings Table -->
+            <div class="listings-section">
+                <h2>CSV Listings</h2>
+                <div class="table-container">
+                    <table class="csv-listings-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Channel</th>
+                                <th>Rooms</th>
+                                <th>Price</th>
+                                <th>Area</th>
+                                <th>District</th>
+                                <th>Images</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csvListingsTableBody">
+                            <tr>
+                                <td colspan="8" class="loading">Loading CSV listings...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button id="csvPrevPage" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="csvPageInfo">Page 1 of 1</span>
+                    <button id="csvNextPage" class="btn btn-secondary" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listing Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Listing Details</h2>
+            <div id="detailContent">
+                <p class="loading">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Listing Detail Modal -->
+    <div id="csvDetailModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="csv-close">&times;</span>
+            <h2>CSV Listing Details</h2>
+            <div id="csvDetailContent">
+                <p class="loading">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>

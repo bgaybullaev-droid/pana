@@ -1,0 +1,187 @@
+# Schema for OLX.uz Real Estate Listings
+# Extends the base real_estate schema with OLX-specific fields
+
+schema_name: olx_real_estate
+version: 1.0
+description: Schema for OLX.uz property listings (apartments, houses, commercial, land)
+extends: real_estate
+
+# Supported languages in OLX.uz listings
+languages:
+  - ru  # Russian (Cyrillic) - primary
+  - uz  # Uzbek (Latin)
+
+# OLX.uz specific URL patterns
+url_patterns:
+  listing: "/d/obyavlenie/{slug}-ID{id}.html"
+  category: "/nedvizhimost/{subcategory}/"
+
+# Base fields (inherited from real_estate)
+fields:
+  - name: property_type
+    type: enum
+    required: true
+    description: "Type of property"
+    values:
+      - apartment
+      - house
+      - commercial
+      - land
+      - office
+
+  - name: listing_type
+    type: enum
+    required: true
+    description: "Sale or rent"
+    values:
+      - sale
+      - rent
+      - daily_rent
+
+  - name: price
+    type: decimal
+    required: true
+    description: "Numeric price value"
+
+  - name: currency
+    type: enum
+    required: false
+    description: "USD (у.е., $) or UZS (сум, so'm)"
+    values:
+      - UZS
+      - USD
+
+  - name: rooms
+    type: integer
+    required: false
+    description: "Number of rooms (комнат, xona)"
+
+  - name: area_sqm
+    type: decimal
+    required: false
+    description: "Total area in square meters (м², sotix)"
+
+  - name: floor
+    type: integer
+    required: false
+    description: "Floor number (этаж, qavat)"
+
+  - name: total_floors
+    type: integer
+    required: false
+    description: "Total floors in building (этажность)"
+
+  - name: district
+    type: string
+    required: false
+    description: "District or area name"
+
+  - name: address
+    type: string
+    required: false
+    description: "Full address or landmark"
+
+  - name: description
+    type: text
+    required: false
+    description: "Property description"
+
+  - name: amenities
+    type: array
+    required: false
+    description: "Available amenities (мебель, кондиционер, парковка)"
+
+  - name: contact_phone
+    type: string
+    required: false
+    description: "Phone in +998XXXXXXXXX format"
+
+  - name: images
+    type: array
+    required: true
+    description: "Property images"
+
+# OLX-specific additional fields
+additional_fields:
+  - name: olx_id
+    type: string
+    required: true
+    description: "OLX listing ID (from URL, e.g., ID4hiGs)"
+
+  - name: url
+    type: string
+    required: true
+    description: "Full OLX listing URL"
+
+  - name: seller_type
+    type: enum
+    required: false
+    values:
+      - business  # Агентство
+      - private   # Частное лицо
+    description: "Seller type"
+
+  - name: seller_name
+    type: string
+    required: false
+    description: "Seller/agent name"
+
+  - name: views_count
+    type: integer
+    required: false
+    description: "Number of views on listing"
+
+  - name: posted_date
+    type: string
+    required: false
+    description: "When listing was posted"
+
+  - name: crawled_at
+    type: datetime
+    required: true
+    description: "When listing was crawled"
+
+  - name: building_type
+    type: string
+    required: false
+    description: "Building type (кирпич, панель, монолит)"
+
+  - name: condition
+    type: string
+    required: false
+    description: "Property condition (евроремонт, косметический, без ремонта)"
+
+  - name: furnishing
+    type: string
+    required: false
+    description: "Furniture included (меблирована, частично, без мебели)"
+
+  - name: ceiling_height
+    type: decimal
+    required: false
+    description: "Ceiling height in meters"
+
+  - name: bathroom
+    type: string
+    required: false
+    description: "Bathroom type (совмещенный, раздельный)"
+
+# OLX parameter mappings (Russian → field)
+parameter_mappings:
+  "Количество комнат": rooms
+  "Общая площадь": area_sqm
+  "Этаж": floor
+  "Этажность дома": total_floors
+  "Тип строения": building_type
+  "Планировка": layout
+  "Санузел": bathroom
+  "Меблирована": furnishing
+  "Высота потолков": ceiling_height
+  "Ремонт": condition
+  "Комиссионные": commission
+
+# Validation rules
+validation:
+  require_images: true
+  require_text: true
+  min_text_length: 30

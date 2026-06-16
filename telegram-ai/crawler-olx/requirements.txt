@@ -1,0 +1,35 @@
+# OLX.uz Crawler Dependencies
+
+# Browser automation
+playwright>=1.40.0
+
+# HTML to Markdown conversion
+markdownify>=0.11.6
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# HTTP client (for image downloads)
+requests>=2.31.0
+aiohttp>=3.9.0
+
+# Progress and CLI
+tqdm>=4.66.0
+click>=8.1.0
+
+# Utilities
+python-dateutil>=2.8.0
+
+# Google Gemini (for n8n crawler)
+google-generativeai>=0.3.0
+
+# Note: These are shared with Telegram crawler (should already be installed):
+# anthropic - LLM API
+# openai - Alternative LLM
+# chromadb - Vector database
+# sentence-transformers - Text embeddings
+# torch - PyTorch for ML models
+# Pillow - Image processing
+# numpy - Numerical operations

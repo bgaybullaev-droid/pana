@@ -1,0 +1,212 @@
+# Schema for Real Estate Channels
+schema_name: real_estate
+version: 1.0
+description: "Schema for property listings (apartments, houses, commercial)"
+
+# Channels using this schema
+channels:
+  - baburieltor
+  - realtor_alii
+  - UyCharxiy9
+  - Kvartira_doma_Tashkent
+  - Nedvijimosss
+  - uybozor_realtor
+  - realtor_yunusov
+  - grandestate2019
+  - RealestTash
+  - vitrinanedvizhimosti
+  - arentash
+  - Imkonuyjoysavdoo
+  - ANDIJON_UYJOY
+  - NAMANGAN_UYJOY_BOZORI
+
+# Expected data structure
+fields:
+  - name: property_type
+    type: enum
+    required: true
+    description: "Type of property"
+    values: [apartment, house, commercial, land, office]
+    extraction:
+      patterns:
+        - 'kvartira|apartment|квартира' # -> apartment
+        - 'uy|house|дом|cottage|коттедж' # -> house
+        - 'do\'kon|shop|магазин|офис|office' # -> commercial
+        - 'yer|land|участок|земля' # -> land
+      mapping:
+        'kvartira|apartment|квартира': 'apartment'
+        'uy|house|дом|cottage|коттедж': 'house'
+        'do\'kon|shop|магазин|офис|office': 'commercial'
+        'yer|land|участок|земля': 'land'
+
+  - name: listing_type
+    type: enum
+    required: true
+    description: "Sale or rent"
+    values: [sale, rent, daily_rent]
+    extraction:
+      patterns:
+        - 'sotiladi|sale|продается|продажа' # -> sale
+        - 'ijaraga|rent|аренда|сдается' # -> rent
+        - 'kunlik|daily|посуточно' # -> daily_rent
+      mapping:
+        'sotiladi|sale|продается|продажа': 'sale'
+        'ijaraga|rent|аренда|сдается': 'rent'
+        'kunlik|daily|посуточно': 'daily_rent'
+
+  - name: price
+    type: decimal
+    required: true
+    description: "Property price"
+    extraction:
+      patterns:
+        - '\$?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:sum|сум|USD|so\'m)?'
+        - 'Narx[:\s]+(\d+)'
+        - 'Price[:\s]+(\d+)'
+
+  - name: currency
+    type: string
+    required: false
+    description: "Currency"
+    extraction:
+      patterns:
+        - '(sum|сум|so\'m)' # -> UZS
+        - '(USD|\$)' # -> USD
+      mapping:
+        'sum|сум|so\'m': 'UZS'
+        'USD|\$': 'USD'
+      default: 'USD'
+
+  - name: rooms
+    type: integer
+    required: false
+    description: "Number of rooms"
+    extraction:
+      patterns:
+        - '(\d+)[- ]?(?:xonali|room|комнатная|хонали)'
+        - '(\d+)[- ]?(?:BR|bedroom)'
+
+  - name: area_sqm
+    type: decimal
+    required: false
+    description: "Area in square meters"
+    extraction:
+      patterns:
+        - '(\d+(?:[.,]\d+)?)\s*(?:m²|m2|kv\.m|кв\.м|метр)'
+
+  - name: floor
+    type: integer
+    required: false
+    description: "Floor number"
+    extraction:
+      patterns:
+        - '(\d+)[/-]qavat'
+        - '(\d+)[/-]этаж'
+        - '(\d+)(?:st|nd|rd|th)\s+floor'
+
+  - name: total_floors
+    type: integer
+    required: false
+    description: "Total floors in building"
+    extraction:
+      patterns:
+        - '(\d+)/(\d+)[- ](?:qavat|этаж|floor)'
+      group: 2
+
+  - name: address
+    type: string
+    required: false
+    description: "Property address"
+    extraction:
+      patterns:
+        - 'Manzil[::\s]+(.+?)(?:\n|$)'
+        - 'Address[::\s]+(.+?)(?:\n|$)'
+        - 'Адрес[::\s]+(.+?)(?:\n|$)'
+
+  - name: district
+    type: string
+    required: false
+    description: "City district"
+    extraction:
+      patterns:
+        - '(Yunusobod|Mirzo Ulug\'bek|Chilonzor|Sergeli|Yakkasaroy|Olmazor|Bektemir|Yashnobod|Shayxontohur|Mirobod|Uchtepa)'
+      case_insensitive: true
+
+  - name: description
+    type: text
+    required: true
+    description: "Full property description"
+    extraction:
+      source: "message.text"
+
+  - name: amenities
+    type: array
+    required: false
+    description: "Property amenities"
+    extraction:
+      keywords:
+        - 'remont|евроремонт|ta\'mirlangan|renovated'
+        - 'mebel|мебель|mebellar|furniture'
+        - 'konditsioner|кондиционер|AC'
+        - 'parkovka|парковка|parking'
+        - 'lift|лифт|elevator'
+
+  - name: contact_phone
+    type: string
+    required: false
+    description: "Contact phone"
+    extraction:
+      patterns:
+        - '\+998\s*\d{2}\s*\d{3}\s*\d{2}\s*\d{2}'
+        - '998\d{9}'
+
+  - name: images
+    type: array
+    required: true
+    description: "Property images"
+    extraction:
+      source: "message.photos"
+      min_count: 1
+
+  - name: channel_username
+    type: string
+    required: true
+    description: "Source channel"
+    extraction:
+      source: "channel.username"
+
+  - name: message_id
+    type: integer
+    required: true
+    description: "Original message ID"
+    extraction:
+      source: "message.id"
+
+  - name: posted_at
+    type: datetime
+    required: true
+    description: "When listing was posted"
+    extraction:
+      source: "message.date"
+
+# Validation rules
+validation:
+  require_images: true
+  require_text: true
+  min_text_length: 30
+  skip_forwards: false
+  skip_edits: true
+
+# Post-processing
+processing:
+  normalize_price: true
+  calculate_price_per_sqm: true
+  geocode_address: false
+  auto_categorize: true
+  categories:
+    luxury:
+      keywords: [elita|элитный|premium|luxury|VIP]
+      min_price_usd: 200000
+    budget:
+      keywords: [arzon|дешево|budget|affordable]
+      max_price_usd: 50000

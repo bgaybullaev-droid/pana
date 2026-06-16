@@ -1,0 +1,484 @@
+{
+  "name": "OLX.uz Real Estate Crawler (Gemini)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "98302224-65db-4a37-acca-bc867e895f8c",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-16, -112]
+    },
+    {
+      "parameters": {},
+      "id": "23db91d3-2404-474c-b6d6-df2e51750e04",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-16, 96]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate all category+page combinations to crawl\nconst MAX_PAGES = parseInt($env.OLX_MAX_PAGES || '3', 10);\nconst REGION_ID = $env.OLX_REGION_ID || '';\n\nconst categories = [\n  { name: 'apartments_sale', path: '/nedvizhimost/kvartiry/prodazha/' },\n  { name: 'apartments_rent', path: '/nedvizhimost/kvartiry/arenda/' },\n  { name: 'houses',          path: '/nedvizhimost/doma/' },\n  { name: 'land',            path: '/nedvizhimost/zemlja/' },\n  { name: 'commercial',      path: '/nedvizhimost/kommercheskie-pomeshcheniya/' }\n];\n\n// Reset run counters in persistent static data\nconst sd = $getWorkflowStaticData('global');\nsd.run_started = new Date().toISOString();\nsd.pages_crawled = 0;\nsd.urls_found = 0;\nsd.dedup_skipped = 0;\nsd.gemini_valid = 0;\nsd.gemini_invalid = 0;\n\nconst items = [];\nfor (const cat of categories) {\n  for (let page = 1; page <= MAX_PAGES; page++) {\n    let url = 'https://www.olx.uz' + cat.path;\n    const params = [];\n    if (page > 1) params.push('page=' + page);\n    if (REGION_ID) params.push('search%5Bdistrict_id%5D=' + REGION_ID);\n    if (params.length > 0) url += '?' + params.join('&');\n    items.push({ json: { category: cat.name, page, url } });\n  }\n}\n\nreturn items;"
+      },
+      "id": "b1a1a001-0001-0001-0001-000000000001",
+      "name": "Generate Category Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, -16]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "id": "92c30538-60f6-4db2-84db-0a7ad6745366",
+      "name": "Get OLX Category Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, -16],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract listing URLs from OLX category page HTML\nconst html = $input.first().json.data || '';\nconst category = $input.first().json.category;\nconst MAX_PER_PAGE = parseInt($env.OLX_MAX_LISTINGS_PER_PAGE || '40', 10);\n\nconst sd = $getWorkflowStaticData('global');\nsd.pages_crawled = (sd.pages_crawled || 0) + 1;\n\nif (!html || html.length < 500) {\n  return [];  // Empty or error page\n}\n\nconst seen = new Set();\nconst items = [];\n\nconst relPattern = /href=[\"'](\\/d\\/obyavlenie\\/[^\"']+)[\"']/g;\nlet match;\nwhile ((match = relPattern.exec(html)) !== null) {\n  const full = 'https://www.olx.uz' + match[1];\n  if (seen.has(full)) continue;\n  seen.add(full);\n  const idMatch = full.match(/-(ID[a-zA-Z0-9]+)\\.html/);\n  if (idMatch) {\n    items.push({ json: { url: full, listing_id: idMatch[1], category } });\n  }\n}\n\nconst absPattern = /href=[\"'](https:\\/\\/www\\.olx\\.uz\\/d\\/obyavlenie\\/[^\"']+)[\"']/g;\nwhile ((match = absPattern.exec(html)) !== null) {\n  const full = match[1];\n  if (seen.has(full)) continue;\n  seen.add(full);\n  const idMatch = full.match(/-(ID[a-zA-Z0-9]+)\\.html/);\n  if (idMatch) {\n    items.push({ json: { url: full, listing_id: idMatch[1], category } });\n  }\n}\n\nconst escPattern = /href=\\\\[\"'](\\/d\\/obyavlenie\\/[^\\\\]+)\\\\[\"']/g;\nwhile ((match = escPattern.exec(html)) !== null) {\n  const full = 'https://www.olx.uz' + match[1];\n  if (seen.has(full)) continue;\n  seen.add(full);\n  const idMatch = full.match(/-(ID[a-zA-Z0-9]+)\\.html/);\n  if (idMatch) {\n    items.push({ json: { url: full, listing_id: idMatch[1], category } });\n  }\n}\n\nconst result = items.slice(0, MAX_PER_PAGE);\nsd.urls_found = (sd.urls_found || 0) + result.length;\nreturn result;"
+      },
+      "id": "64c22d87-5c47-4010-ade6-ab949f42543b",
+      "name": "Extract Listing URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, -16]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Persistent dedup: skip OLX IDs crawled within the TTL window\nconst sd = $getWorkflowStaticData('global');\nconst TTL_HOURS = parseInt($env.OLX_DEDUP_TTL_HOURS || '168', 10);\nconst now = Date.now();\nconst ttlMs = TTL_HOURS * 3600 * 1000;\n\nif (!sd.dedup_cache) sd.dedup_cache = {};\nconst cache = sd.dedup_cache;\n\n// Evict expired entries\nfor (const id in cache) {\n  if (now - cache[id] > ttlMs) delete cache[id];\n}\n\n// Filter items\nconst items = $input.all();\nconst output = [];\nlet skipped = 0;\n\nfor (const item of items) {\n  const olxId = item.json.listing_id;\n  if (cache[olxId]) {\n    skipped++;\n  } else {\n    cache[olxId] = now;\n    output.push(item);\n  }\n}\n\n// Bound cache to 5000 entries (FIFO eviction)\nconst ids = Object.keys(cache);\nif (ids.length > 5000) {\n  ids.sort((a, b) => cache[a] - cache[b]);\n  const remove = ids.length - 5000;\n  for (let i = 0; i < remove; i++) delete cache[ids[i]];\n}\n\nsd.dedup_skipped = (sd.dedup_skipped || 0) + skipped;\n\nreturn output;"
+      },
+      "id": "d1a1a001-0001-0001-0001-000000000001",
+      "name": "Dedup Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, -16]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 5000
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "18ac25e2-2a9e-44f7-b104-c12f6a210ec0",
+      "name": "Get Listing Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, -16],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert HTML to clean text for Gemini + extract images\nconst html = $input.first().json.data || '';\nconst url = $input.first().json.url;\nconst listing_id = $input.first().json.listing_id;\nconst category = $input.first().json.category;\n\nif (!html || html.length < 500) {\n  return [{ json: { _skip: true, listing_id, url, reason: 'empty_page' } }];\n}\n\nlet text = html\n  .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst imagePattern = /src=\"(https:\\/\\/[^\"]*apollo\\.olxcdn\\.com[^\"]+)\"/g;\nconst images = [];\nconst seenImgs = new Set();\nlet imgMatch;\nwhile ((imgMatch = imagePattern.exec(html)) !== null) {\n  let imgUrl = imgMatch[1];\n  imgUrl = imgUrl.replace(/;s=\\d+x\\d+/, ';s=1024x768');\n  if (!seenImgs.has(imgUrl)) {\n    seenImgs.add(imgUrl);\n    images.push(imgUrl);\n  }\n}\n\nif (images.length === 0) {\n  return [{ json: { _skip: true, listing_id, url, reason: 'no_images' } }];\n}\n\nreturn [{\n  json: {\n    _skip: false,\n    url,\n    listing_id,\n    category,\n    text_content: text.substring(0, 6000),\n    images: images.slice(0, 12),\n    raw_html_length: html.length\n  }\n}];"
+      },
+      "id": "4dcdc273-b2d3-4059-96ec-d2bc48ee7865",
+      "name": "Parse HTML Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, -16]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "filter-skip",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f1a1a001-0001-0001-0001-000000000002",
+      "name": "Has Content?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1680, -16]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Gemini prompt with all OLX-specific fields\nconst item = $input.first().json;\n\nconst prompt = 'You are a real estate data extractor for OLX.uz (Uzbekistan). Extract structured data from this listing text.\\n\\nReturn ONLY valid JSON with these fields (use null for unknown):\\n{\\n  \"property_type\": \"apartment\" | \"house\" | \"commercial\" | \"land\",\\n  \"listing_type\": \"sell\" | \"rent\",\\n  \"price\": <number, no currency symbol>,\\n  \"currency\": \"USD\" | \"UZS\",\\n  \"rooms\": <integer or null>,\\n  \"area_sqm\": <number or null>,\\n  \"floor\": <integer or null>,\\n  \"total_floors\": <integer or null>,\\n  \"district\": <string or null>,\\n  \"address\": <string or null>,\\n  \"description\": <string in ORIGINAL language, max 2000 chars>,\\n  \"amenities\": [<strings in ORIGINAL language>] or null,\\n  \"contact_phone\": <string in +998XXXXXXXXX format, or null>,\\n  \"building_type\": <string e.g. кирпич/панель/монолит, or null>,\\n  \"condition\": <string e.g. евроремонт/косметический/без ремонта, or null>,\\n  \"furnishing\": <string e.g. меблирована/частично/без мебели, or null>,\\n  \"ceiling_height\": <number in meters, or null>,\\n  \"bathroom\": <string e.g. совмещенный/раздельный, or null>,\\n  \"seller_type\": \"business\" | \"private\" | null,\\n  \"seller_name\": <string or null>,\\n  \"posted_date\": <string or null>,\\n  \"views_count\": <integer or null>,\\n  \"original_language\": \"ru\" | \"uz\"\\n}\\n\\nRULES:\\n- property_type MUST be one of: apartment, house, commercial, land\\n  - офис/office/магазин/помещение/склад = \"commercial\"\\n- listing_type MUST be one of: sell, rent\\n  - продажа/sotish/sale = \"sell\"\\n  - аренда/ijara/daily_rent/посуточно = \"rent\"\\n- PRICE: у.е. / $ / dollar = USD; сум / so\\'m = UZS\\n  - \"85 000 у.е.\" = 85000 USD\\n- Do NOT translate description or amenities — keep original language\\n- original_language: \"ru\" if primarily Cyrillic, \"uz\" if Latin\\n\\nLISTING TEXT:\\n' + item.text_content + '\\n\\nReturn ONLY the JSON object.';\n\nconst requestBody = {\n  contents: [{ parts: [{ text: prompt }] }],\n  generationConfig: {\n    temperature: 0,\n    maxOutputTokens: 2000\n  }\n};\n\nreturn [{\n  json: {\n    request_body: JSON.stringify(requestBody),\n    _meta: {\n      url: item.url,\n      listing_id: item.listing_id,\n      category: item.category,\n      images: item.images,\n      text_content: item.text_content\n    }\n  }\n}];"
+      },
+      "id": "ca9072a7-e492-4d62-bad6-bda011870817",
+      "name": "Prepare Gemini Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, -16]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.request_body }}",
+        "options": {
+          "timeout": 30000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "id": "7fc290dc-e7fd-4783-91da-36c2c0298b2f",
+      "name": "Call Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, -16],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini response, merge with carried metadata, normalize enums\nconst input = $input.first().json;\nconst meta = input._meta || {};\nconst sd = $getWorkflowStaticData('global');\n\nconst geminiText = input.candidates?.[0]?.content?.parts?.[0]?.text || '';\n\nlet jsonStr = geminiText\n  .replace(/```json\\s*/g, '')\n  .replace(/```\\s*/g, '')\n  .trim();\n\nlet extracted;\ntry {\n  extracted = JSON.parse(jsonStr);\n} catch (e) {\n  sd.gemini_invalid = (sd.gemini_invalid || 0) + 1;\n  return [{\n    json: {\n      _valid: false,\n      _error: 'gemini_parse_failed',\n      _raw_response: geminiText.substring(0, 500),\n      listing_id: meta.listing_id,\n      url: meta.url\n    }\n  }];\n}\n\n// Enum normalization\nconst LT_MAP = { 'sale': 'sell', 'daily_rent': 'rent' };\nconst PT_MAP = { 'office': 'commercial' };\n\nlet lt = (extracted.listing_type || '').toLowerCase();\nif (LT_MAP[lt]) lt = LT_MAP[lt];\nif (!['sell', 'rent'].includes(lt)) {\n  if (meta.category && /rent/i.test(meta.category)) lt = 'rent';\n  else lt = 'sell';\n}\n\nlet pt = (extracted.property_type || '').toLowerCase();\nif (PT_MAP[pt]) pt = PT_MAP[pt];\nif (!['apartment', 'house', 'commercial', 'land'].includes(pt)) {\n  if (/house/i.test(meta.category || '')) pt = 'house';\n  else if (/land/i.test(meta.category || '')) pt = 'land';\n  else if (/commercial/i.test(meta.category || '')) pt = 'commercial';\n  else pt = 'apartment';\n}\n\nconst price = parseFloat(extracted.price);\nif (!price || price <= 0) {\n  sd.gemini_invalid = (sd.gemini_invalid || 0) + 1;\n  return [{\n    json: {\n      _valid: false,\n      _error: 'invalid_price',\n      listing_id: meta.listing_id,\n      url: meta.url\n    }\n  }];\n}\n\nlet currency = (extracted.currency || 'USD').toUpperCase();\nif (!['USD', 'UZS'].includes(currency)) currency = 'USD';\n\nlet phone = extracted.contact_phone || null;\nif (phone) {\n  phone = phone.replace(/[\\s\\-()]/g, '');\n  if (/^998/.test(phone)) phone = '+' + phone;\n  if (!/^\\+998\\d{9}$/.test(phone)) phone = null;\n}\n\nsd.gemini_valid = (sd.gemini_valid || 0) + 1;\n\nconst listing = {\n  _valid: true,\n  olx_id: meta.listing_id,\n  url: meta.url,\n  crawled_at: new Date().toISOString(),\n  property_type: pt,\n  listing_type: lt,\n  price: price,\n  currency: currency,\n  rooms: extracted.rooms ? parseInt(extracted.rooms, 10) : null,\n  area_sqm: extracted.area_sqm ? parseFloat(extracted.area_sqm) : null,\n  floor: extracted.floor ? parseInt(extracted.floor, 10) : null,\n  total_floors: extracted.total_floors ? parseInt(extracted.total_floors, 10) : null,\n  district: extracted.district || null,\n  address: extracted.address || null,\n  description: extracted.description ? extracted.description.substring(0, 5000) : null,\n  amenities: Array.isArray(extracted.amenities) ? extracted.amenities : null,\n  contact_phone: phone,\n  images: meta.images || [],\n  source: 'olx_uz',\n  seller_type: ['business', 'private'].includes(extracted.seller_type) ? extracted.seller_type : null,\n  seller_name: extracted.seller_name || null,\n  views_count: extracted.views_count ? parseInt(extracted.views_count, 10) : null,\n  posted_date: extracted.posted_date || null,\n  building_type: extracted.building_type || null,\n  condition: extracted.condition || null,\n  furnishing: extracted.furnishing || null,\n  ceiling_height: extracted.ceiling_height ? parseFloat(extracted.ceiling_height) : null,\n  bathroom: extracted.bathroom || null,\n  raw_text: (meta.text_content || '').substring(0, 10000),\n  original_language: ['ru', 'uz'].includes(extracted.original_language) ? extracted.original_language : 'ru'\n};\n\nreturn [{ json: listing }];"
+      },
+      "id": "997f9252-998a-4596-9ae1-a1dbcba7bad1",
+      "name": "Process Gemini Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, -16]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "filter-valid",
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f1a1a001-0001-0001-0001-000000000003",
+      "name": "Valid Extraction?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [2640, -16]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all valid listings, chunk into batches of 50 for backend\nconst allItems = $input.all();\nconst BATCH_SIZE = 50;\n\nconst listings = allItems.map(item => {\n  const { _valid, _error, _raw_response, ...rest } = item.json;\n  return rest;\n});\n\nif (listings.length === 0) {\n  // Output a no-op item so the summary still fires downstream\n  return [{ json: { _noop: true, payload: { listings: [] }, count: 0 } }];\n}\n\nconst batches = [];\nfor (let i = 0; i < listings.length; i += BATCH_SIZE) {\n  batches.push(listings.slice(i, i + BATCH_SIZE));\n}\n\nreturn batches.map(batch => ({\n  json: {\n    _noop: false,\n    payload: { listings: batch },\n    count: batch.length\n  }\n}));"
+      },
+      "id": "2c686450-cea0-4efa-8b48-4f88e40ae8d2",
+      "name": "Prepare Batched Payloads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, -16]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "filter-noop",
+              "leftValue": "={{ $json._noop }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f1a1a001-0001-0001-0001-000000000005",
+      "name": "Has Payload?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [3120, -16]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL || 'http://localhost:7879' }}/api/v1/crawler/olx/import",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "4c577722-a3b3-477a-8b7b-0d68bcfc6eb9",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3360, -16],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all backend responses + staticData counters into a summary\nconst sd = $getWorkflowStaticData('global');\nconst responses = $input.all();\n\nlet db_created = 0, db_updated = 0, db_duplicates = 0, db_errors = 0;\nfor (const r of responses) {\n  const d = r.json;\n  db_created += d.created || 0;\n  db_updated += d.updated || 0;\n  db_duplicates += d.duplicates || 0;\n  db_errors += d.errors || 0;\n}\n\nconst duration = sd.run_started\n  ? Math.round((Date.now() - new Date(sd.run_started).getTime()) / 1000)\n  : 0;\n\nconst summary = {\n  run_started: sd.run_started || 'unknown',\n  duration_seconds: duration,\n  pages_crawled: sd.pages_crawled || 0,\n  urls_found: sd.urls_found || 0,\n  dedup_skipped: sd.dedup_skipped || 0,\n  sent_to_gemini: (sd.gemini_valid || 0) + (sd.gemini_invalid || 0),\n  gemini_valid: sd.gemini_valid || 0,\n  gemini_invalid: sd.gemini_invalid || 0,\n  db_created,\n  db_updated,\n  db_duplicates,\n  db_errors\n};\n\n// Build Telegram message\nconst msg = '<b>OLX Crawler Run Complete</b>\\n'\n  + '\\n'\n  + '<b>Coverage</b>\\n'\n  + 'Pages crawled: ' + summary.pages_crawled + '\\n'\n  + 'URLs found: ' + summary.urls_found + '\\n'\n  + 'Dedup skipped: ' + summary.dedup_skipped + '\\n'\n  + '\\n'\n  + '<b>Extraction</b>\\n'\n  + 'Sent to Gemini: ' + summary.sent_to_gemini + '\\n'\n  + 'Valid: ' + summary.gemini_valid + '\\n'\n  + 'Invalid: ' + summary.gemini_invalid + '\\n'\n  + '\\n'\n  + '<b>Database</b>\\n'\n  + 'Created: ' + summary.db_created + '\\n'\n  + 'Updated: ' + summary.db_updated + '\\n'\n  + 'Duplicates: ' + summary.db_duplicates + '\\n'\n  + 'Errors: ' + summary.db_errors + '\\n'\n  + '\\n'\n  + 'Duration: ' + summary.duration_seconds + 's';\n\n// Check if Telegram alert is configured\nconst botToken = $env.ALERT_TELEGRAM_BOT_TOKEN || '';\nconst chatId = $env.ALERT_TELEGRAM_CHAT_ID || '';\n\nif (!botToken || !chatId) {\n  // No alert configured, return summary only (no downstream Telegram call)\n  return [];\n}\n\nreturn [{\n  json: {\n    summary,\n    bot_token: botToken,\n    chat_id: chatId,\n    message: msg\n  }\n}];"
+      },
+      "id": "d1a1a001-0001-0001-0001-000000000002",
+      "name": "Build Run Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3600, -16]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.bot_token }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: $json.message, parse_mode: 'HTML' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "d1a1a001-0001-0001-0001-000000000003",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3840, -16],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "content": "## OLX.uz Real Estate Crawler (Gemini)\n\n### Required Environment Variables\n\n| Variable | Description |\n|----------|-------------|\n| `SCRAPERAPI_KEY` | ScraperAPI key for fetching OLX pages |\n| `GEMINI_API_KEY` | Google Gemini API key for LLM extraction |\n| `BACKEND_URL` | Backend API base URL (default: `http://localhost:7879`) |\n\n### Optional Environment Variables\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `OLX_MAX_PAGES` | `3` | Pages per category |\n| `OLX_MAX_LISTINGS_PER_PAGE` | `40` | Max listings extracted per page |\n| `OLX_REGION_ID` | _(all)_ | OLX region filter (26=Tashkent, 37=Samarkand, 31=Bukhara) |\n| `OLX_DEDUP_TTL_HOURS` | `168` | Hours to remember crawled IDs (7 days) |\n| `ALERT_TELEGRAM_BOT_TOKEN` | _(none)_ | Telegram bot token for run alerts |\n| `ALERT_TELEGRAM_CHAT_ID` | _(none)_ | Telegram chat ID for run alerts |\n\n### Data Flow\n```\nGenerate Pages → Fetch Category → Extract URLs\n→ Dedup Filter → Fetch Listing → Parse HTML\n→ Gemini Extract → Normalize → Filter Invalid\n→ Batch(50) → POST /api/v1/crawler/olx/import\n→ Summary → Telegram Alert\n```\n\n### Schedule: Every 6 hours",
+        "height": 620,
+        "width": 420
+      },
+      "id": "a74d79fa-5d52-4f24-b17b-84f5562719e3",
+      "name": "Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-500, -300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "Generate Category Pages", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          { "node": "Generate Category Pages", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Generate Category Pages": {
+      "main": [
+        [
+          { "node": "Get OLX Category Page", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get OLX Category Page": {
+      "main": [
+        [
+          { "node": "Extract Listing URLs", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract Listing URLs": {
+      "main": [
+        [
+          { "node": "Dedup Filter", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Dedup Filter": {
+      "main": [
+        [
+          { "node": "Get Listing Page", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Listing Page": {
+      "main": [
+        [
+          { "node": "Parse HTML Content", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse HTML Content": {
+      "main": [
+        [
+          { "node": "Has Content?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Has Content?": {
+      "main": [
+        [
+          { "node": "Prepare Gemini Request", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Gemini Request": {
+      "main": [
+        [
+          { "node": "Call Gemini API", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Call Gemini API": {
+      "main": [
+        [
+          { "node": "Process Gemini Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Process Gemini Response": {
+      "main": [
+        [
+          { "node": "Valid Extraction?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Valid Extraction?": {
+      "main": [
+        [
+          { "node": "Prepare Batched Payloads", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Batched Payloads": {
+      "main": [
+        [
+          { "node": "Has Payload?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Has Payload?": {
+      "main": [
+        [
+          { "node": "Save to Database", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          { "node": "Build Run Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Run Summary": {
+      "main": [
+        [
+          { "node": "Send Telegram Alert", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "versionId": "d325c5e5-f1fb-4af6-b8d8-a68077368179",
+  "meta": {
+    "instanceId": "5f5a39d6556f81b70224d369f0c4cb85d33ea6b95a0a54f801ebe28548f10d02"
+  },
+  "id": "KRX1HYZYpfOa5kKo",
+  "tags": [
+    {
+      "updatedAt": "2026-02-02T13:01:51.894Z",
+      "createdAt": "2026-02-02T13:01:51.894Z",
+      "id": "mSLhbOkkpBYG6hWs",
+      "name": "olx"
+    },
+    {
+      "updatedAt": "2026-02-02T13:01:51.797Z",
+      "createdAt": "2026-02-02T13:01:51.797Z",
+      "id": "pgB2ojsOGZDbCaAo",
+      "name": "real-estate"
+    },
+    {
+      "updatedAt": "2026-02-02T13:01:51.843Z",
+      "createdAt": "2026-02-02T13:01:51.843Z",
+      "id": "tobXvIg7jXw8lud4",
+      "name": "crawler"
+    }
+  ]
+}

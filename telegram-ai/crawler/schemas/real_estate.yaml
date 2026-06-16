@@ -1,0 +1,165 @@
+# Schema for Real Estate Channels (Uzbekistan)
+schema_name: real_estate
+version: 2.0
+description: Schema for property listings from Uzbekistan Telegram channels (apartments, houses, commercial, land)
+
+# Supported languages in channel posts
+languages:
+  - uz  # Uzbek (Latin)
+  - ru  # Russian (Cyrillic)
+
+# Channels using this schema
+# Grouped by region and language for clarity
+#
+# DEPRECATED (Block A V2.0 — A8): the channel list is now sourced from
+# Postgres ``parser_sources`` and managed via the admin sources page at
+# /admin/sources. The YAML list below is kept ONLY as a fallback for
+# when the DB is unreachable (degraded-mode operation).
+channels:
+  # Tashkent - Russian language channels
+  - baburieltor          # 306 subs, Tashkent, sale-focused
+  - realtor_alii         # 29.9K subs, Tashkent/Sergeli, mixed Uzbek+Russian
+  - Kvartira_doma_Tashkent  # 1.9K subs, Tashkent center
+  - Nedvijimosss         # 420 subs, Mirzo Ulugbek district
+  - realtor_yunusov      # 16.8K subs, Tashkent center, structured format
+  - grandestate2019      # 12.4K subs, Tashkent center, premium listings
+  - RealestTash          # 7.5K subs, Tashkent
+  - vitrinanedvizhimosti # 3.5K subs, Tashkent, rental-focused
+  - arentash             # 16.9K subs, Tashkent, rental-focused
+
+  # Regional - Uzbek language channels
+  - UyCharxiy9           # 196K subs, Kokand/Fergana valley, largest channel
+  - Imkonuyjoysavdoo     # 1.3K subs, Fergana region
+  - ANDIJON_UYJOY        # 31.9K subs, Andijan region
+  - NAMANGAN_UYJOY_BOZORI  # 762 subs, Namangan region
+
+  # Test channels
+  - testReiltor          # https://t.me/testReiltor
+
+  # NOTE: uybozor_realtor removed - channel is dead (19 subs, no activity)
+
+# Expected data structure
+fields:
+  - name: property_type
+    type: enum
+    required: true
+    description: "Type of property. Uzbek: kvartira/uy/do'kon/yer. Russian: квартира/дом/магазин/участок"
+    values:
+      - apartment
+      - house
+      - commercial
+      - land
+      - office
+
+  - name: listing_type
+    type: enum
+    required: true
+    description: "Sale or rent. Uzbek: sotiladi/ijaraga/sutkalik. Russian: продается/аренда/посуточно"
+    values:
+      - sale
+      - rent
+      - daily_rent
+
+  - name: price
+    type: decimal
+    required: true
+    description: "Numeric price value without currency. Formats: 85000, 350000000, 35"
+
+  - name: currency
+    type: enum
+    required: false
+    description: "USD ($, dollar, у.е.) or UZS (so'm, сум, sum). Default USD for Tashkent, UZS for regions"
+    values:
+      - UZS
+      - USD
+
+  - name: rooms
+    type: integer
+    required: false
+    description: "Number of rooms. Formats: 3-xonali, 3к, 3-комнатная, 2/1/1 layout"
+
+  - name: area_sqm
+    type: decimal
+    required: false
+    description: "Area in square meters. Convert sotka to m² (1 sotka = 100 m²). Formats: 65m², 4 sotix"
+
+  - name: floor
+    type: integer
+    required: false
+    description: "Floor number. Often in format 3/9 (floor/total)"
+
+  - name: total_floors
+    type: integer
+    required: false
+    description: "Total floors in building. Often in format 3/9 (floor/total)"
+
+  - name: district
+    type: string
+    required: false
+    description: "District or city name in Latin script. Tashkent: Chilonzor, Yunusobod, Sergeli, etc. Regions: Andijon, Namangan, Qo'qon"
+
+  - name: address
+    type: string
+    required: false
+    description: "Full address or landmark. MFY (mahalla), street name, metro station, etc."
+
+  - name: building_type
+    type: enum
+    required: false
+    description: "Building class. Uzbek: yangi bino/yangi uy. Russian: новостройка/вторичка. Determine from context, building age, or explicit mention"
+    values:
+      - new
+      - secondary
+
+  - name: condition
+    type: enum
+    required: false
+    description: "Renovation/repair state. Uzbek: yevroremont/ta'mir talab. Russian: евроремонт/косметический/черновая/требует ремонта"
+    values:
+      - euro
+      - cosmetic
+      - needs_repair
+      - rough
+
+  - name: land_purpose
+    type: enum
+    required: false
+    description: "Land plot purpose (only for property_type=land). Uzbek: xususiy qurilish/sanoat. Russian: частное строительство/промышленное"
+    values:
+      - private
+      - industrial
+
+  - name: description
+    type: text
+    required: false
+    description: "Property description including condition, features"
+
+  - name: amenities
+    type: array
+    required: false
+    description: "Available amenities: mebel/мебель (furniture), konditsioner, lift, parking, hovli (yard)"
+
+  - name: contact_phone
+    type: string
+    required: false
+    description: "Phone in +998XXXXXXXXX format. Common prefixes: 90, 91, 93, 94, 95, 97, 98, 99, 33, 55"
+
+  - name: detected_language
+    type: enum
+    required: true
+    description: "Detected language of the original post text. ru = Russian, uz = Uzbek (Latin or Cyrillic), en = English"
+    values:
+      - ru
+      - uz
+      - en
+
+  - name: images
+    type: array
+    required: true
+    description: Property images
+
+# Validation rules
+validation:
+  require_images: true
+  require_text: true
+  min_text_length: 30

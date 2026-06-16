@@ -1,0 +1,41 @@
+# Core Telegram client
+telethon
+
+# Schema and configuration
+pyyaml
+
+# Environment variables
+python-dotenv
+
+# HTTP requests
+requests
+
+# Postgres driver — used by db_sources.py to read parser_sources
+# and write source_metric counters back. Same DB the backend uses.
+psycopg2-binary
+
+# LLM providers
+anthropic  # Claude API
+openai     # GPT API (alternative)
+
+# Image embeddings (CLIP)
+torch
+torchvision
+ftfy
+regex
+Pillow
+
+# Install CLIP from GitHub
+# pip install git+https://github.com/openai/CLIP.git
+
+# Vector database
+chromadb
+
+# Text embeddings
+sentence-transformers
+
+# Optional: FAISS for faster similarity search (if you have millions of images)
+# faiss-cpu  # or faiss-gpu if you have CUDA
+
+# Progress bars
+tqdm
