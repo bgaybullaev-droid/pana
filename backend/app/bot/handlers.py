@@ -323,17 +323,27 @@ async def _start_payload_filter(
     user: User | None,
     telegram_id: int,
 ) -> tuple[bool, str]:
-    """``/start filter_<short_id>`` — verify the payload exists, hand off to TWA."""
+    """``/start filter_<short_id>`` — verify the payload exists, hand off to TWA.
+
+    Falls back to decoding a human marketing slug (FU6) such as
+    ``filter_chilonzor_2rooms_rent`` when no stored short-id matches. In
+    that case we hand off on the same ``filter_<body>`` payload — the
+    frontend re-decodes it through ``GET /deep-links/{body}``.
+    """
     del user, telegram_id
     payload = await deeplink.resolve_filter_payload(body, session)
-    if payload is None:
+    if payload is not None:
+        await session.commit()
+        outcome = deeplink.OUTCOME_RESOLVED
+    elif deeplink.parse_filter_slug(body) is not None:
+        outcome = deeplink.OUTCOME_RESOLVED_SLUG
+    else:
         return False, deeplink.OUTCOME_REJECTED_UNKNOWN
-    await session.commit()
     await message.answer(
         t(lang, "deep_link_open_filter"),
         reply_markup=_twa_open_kb(f"filter_{body}", lang),
     )
-    return True, deeplink.OUTCOME_RESOLVED
+    return True, outcome
 
 
 async def _start_payload_claim(

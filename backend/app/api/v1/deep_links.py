@@ -14,6 +14,7 @@ DECISION_MATRIX D3-Q2.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -25,6 +26,12 @@ from app.services import deeplink
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Opaque short-ids are 12 uppercase base32 chars; marketing slugs (FU6)
+# are lowercase words joined by underscores (``chilonzor_2rooms_rent``).
+# This guard accepts both shapes and hard-caps length so a malicious
+# caller can't probe with megabyte URLs before we touch the DB.
+_VALID_SHORT_ID = re.compile(r"^[A-Za-z0-9_]{1,32}$")
 
 
 class DeepLinkResponse(BaseModel):
@@ -41,44 +48,61 @@ async def resolve_deep_link(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> DeepLinkResponse:
-    """Resolve a ``filter_*`` payload by short ID.
+    """Resolve a ``filter_*`` payload by short ID or marketing slug.
+
+    Resolution order:
+      1. stored ``filter`` short-id in ``deep_link_payloads`` (increments
+         its use-count);
+      2. FU6 fallback — decode a human marketing slug
+         (``chilonzor_2rooms_rent``) into a synthesised filter payload.
 
     Returns 404 for unknown IDs and for any payload kind other than
     ``filter`` — keeps claim/agent/ref opaque to the TWA.
     """
-    # Defensive: keep the resolver's surface tiny. Hard-cap length so a
-    # malicious caller can't probe with megabyte URLs.
-    if len(short_id) > 16 or not short_id.isalnum():
-        logger.info("deeplink.resolve.bad_id id=%r", short_id[:16])
+    if not _VALID_SHORT_ID.match(short_id):
+        logger.info("deeplink.resolve.bad_id id=%r", short_id[:32])
         raise HTTPException(status_code=404, detail="Deep link not found")
 
     payload = await deeplink.resolve_filter_payload(short_id, db)
-    if payload is None:
-        # Resolver did not find a ``filter`` kind. Log analytics row
-        # for visibility into broken share URLs in the wild.
+    if payload is not None:
         await deeplink.record_event(
             "filter",
             f"filter_{short_id}",
             db,
             user_id=None,
             is_new_user=False,
-            outcome=deeplink.OUTCOME_REJECTED_UNKNOWN,
+            outcome=deeplink.OUTCOME_RESOLVED,
         )
         await db.commit()
-        raise HTTPException(status_code=404, detail="Deep link not found")
+        return DeepLinkResponse(
+            id=payload.id,
+            kind=payload.kind,
+            payload=payload.payload,
+        )
 
+    # No stored short-id — try decoding a human marketing slug (FU6).
+    slug_payload = deeplink.parse_filter_slug(short_id)
+    if slug_payload is not None:
+        await deeplink.record_event(
+            "filter",
+            f"filter_{short_id}",
+            db,
+            user_id=None,
+            is_new_user=False,
+            outcome=deeplink.OUTCOME_RESOLVED_SLUG,
+        )
+        await db.commit()
+        return DeepLinkResponse(id=short_id, kind="filter", payload=slug_payload)
+
+    # Neither a known short-id nor a decodable slug. Log analytics row
+    # for visibility into broken share URLs in the wild.
     await deeplink.record_event(
         "filter",
         f"filter_{short_id}",
         db,
         user_id=None,
         is_new_user=False,
-        outcome=deeplink.OUTCOME_RESOLVED,
+        outcome=deeplink.OUTCOME_REJECTED_UNKNOWN,
     )
     await db.commit()
-
-    return DeepLinkResponse(
-        id=payload.id,
-        kind=payload.kind,
-        payload=payload.payload,
-    )
+    raise HTTPException(status_code=404, detail="Deep link not found")

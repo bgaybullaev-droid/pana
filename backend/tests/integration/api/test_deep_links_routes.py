@@ -58,10 +58,11 @@ class TestResolveFilterDeepLink:
         assert resp.status_code == 404
 
     async def test_malformed_id_rejected_before_db(self, client: AsyncClient):
-        # Non-alphanumeric and over-length ids are bounced by the guard.
-        assert (await client.get("/api/v1/deep-links/bad-id_here")).status_code == 404
+        # Non-allowed characters (hyphen) and over-length ids are bounced
+        # by the guard before any DB / slug work.
+        assert (await client.get("/api/v1/deep-links/bad-id-here")).status_code == 404
         assert (
-            await client.get("/api/v1/deep-links/waytoolongidentifier12345")
+            await client.get("/api/v1/deep-links/" + "a" * 33)
         ).status_code == 404
 
     async def test_resolve_increments_use_count(
@@ -82,3 +83,45 @@ class TestResolveFilterDeepLink:
             )
         ).scalar_one()
         assert fresh == 1
+
+
+class TestResolveFilterSlug:
+    """FU6 — marketing slugs resolve without a stored short-id row."""
+
+    async def test_full_slug_resolves(self, client: AsyncClient):
+        resp = await client.get("/api/v1/deep-links/chilonzor_2rooms_rent")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["id"] == "chilonzor_2rooms_rent"
+        assert body["kind"] == "filter"
+        assert body["payload"] == {
+            "district": "chilonzor",
+            "rooms_min": 2,
+            "rooms_max": 2,
+            "deal_type": "rent",
+        }
+
+    async def test_bare_district_slug_resolves(self, client: AsyncClient):
+        resp = await client.get("/api/v1/deep-links/yunusobod")
+        assert resp.status_code == 200
+        assert resp.json()["payload"] == {"district": "yunusobod"}
+
+    async def test_unknown_slug_returns_404(self, client: AsyncClient):
+        # Valid charset, but the head resolves to no known district.
+        assert (
+            await client.get("/api/v1/deep-links/qwerty_zzz")
+        ).status_code == 404
+
+    async def test_stored_short_id_wins_over_slug(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        # A stored short-id always takes precedence over slug decoding.
+        await _add_payload(
+            db_session,
+            short_id="yunusobod",
+            kind="filter",
+            payload={"district": "stored"},
+        )
+        resp = await client.get("/api/v1/deep-links/yunusobod")
+        assert resp.status_code == 200
+        assert resp.json()["payload"] == {"district": "stored"}

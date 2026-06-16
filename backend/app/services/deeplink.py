@@ -31,6 +31,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import re
 import secrets
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
@@ -53,6 +54,9 @@ _SHORT_ID_LENGTH = 12
 # than a Postgres ENUM so analytics queries can use simple string compare.
 OUTCOME_OPEN = "open"
 OUTCOME_RESOLVED = "resolved"
+# FU6: a ``filter_<slug>`` marketing link that had no stored short-id but
+# decoded into a valid filter via :func:`parse_filter_slug`.
+OUTCOME_RESOLVED_SLUG = "resolved_slug"
 OUTCOME_REJECTED_UNKNOWN = "rejected_unknown"
 OUTCOME_REJECTED_EXPIRED = "rejected_expired"
 OUTCOME_REJECTED_CONSUMED = "rejected_consumed"
@@ -283,6 +287,84 @@ async def resolve_filter_payload(
     )
     logger.info("deeplink.filter.resolved id=%s use_count=%d", short_id, obj.used_count + 1)
     return obj
+
+
+# Deal-type tokens accepted in a human slug; synonyms fold into the two
+# canonical values the buyer feed understands (``deal_type = sell|rent``).
+_SLUG_DEAL_TOKENS: dict[str, str] = {
+    "buy": "sell",
+    "sale": "sell",
+    "sell": "sell",
+    "rent": "rent",
+}
+
+# Trailing ``<N>rooms`` / ``<N>room`` token (e.g. ``2rooms``, ``3room``).
+_SLUG_ROOMS_RE = re.compile(r"^(\d{1,2})rooms?$")
+
+
+def parse_filter_slug(slug: str) -> Optional[dict]:
+    """Decode a human-readable marketing slug into a filter payload (FU6).
+
+    Grammar: ``<district>[_<N>rooms][_buy|_sale|_sell|_rent]`` — e.g.
+    ``chilonzor_2rooms_rent`` or ``mirzo_ulugbek_3rooms``. The optional
+    rooms/deal tokens are peeled off the tail (either order); whatever
+    remains must resolve to a known district through the shared alias
+    tables (so ``chilanzar`` / typos still work).
+
+    Returns a dict in the SAME shape the bot writes to
+    ``deep_link_payloads`` (``district`` / ``rooms_min`` / ``rooms_max`` /
+    ``deal_type``) so the TWA hydration path is identical for stored
+    short-ids and synthesised slugs. Returns ``None`` when no district can
+    be resolved — the district head is mandatory, so a bare ``2rooms_rent``
+    or pure garbage falls through to "unknown" handling.
+    """
+    if not slug:
+        return None
+
+    # Imported lazily: keeps the deeplink module's import graph light and
+    # avoids any import-time coupling to the parser's regex compilation.
+    from app.core.regions import ALL_DISTRICTS
+    from app.services.query_parser import canonical_district
+
+    tokens = slug.lower().split("_")
+    deal_type: Optional[str] = None
+    rooms: Optional[int] = None
+
+    # Peel optional rooms/deal tokens off the tail (order-independent),
+    # stopping at the first token that is neither — that is the district.
+    while tokens:
+        tail = tokens[-1]
+        if deal_type is None and tail in _SLUG_DEAL_TOKENS:
+            deal_type = _SLUG_DEAL_TOKENS[tail]
+            tokens.pop()
+            continue
+        rooms_match = _SLUG_ROOMS_RE.match(tail)
+        if rooms is None and rooms_match and 1 <= int(rooms_match.group(1)) <= 9:
+            rooms = int(rooms_match.group(1))
+            tokens.pop()
+            continue
+        break
+
+    if not tokens:
+        return None  # rooms/deal only, no district → not a valid filter slug
+
+    candidate = "_".join(tokens)
+    if candidate in ALL_DISTRICTS:
+        district = candidate
+    else:
+        district = canonical_district(candidate) or canonical_district(
+            candidate.replace("_", " ")
+        )
+    if not district:
+        return None
+
+    payload: dict[str, Any] = {"district": district}
+    if rooms is not None:
+        payload["rooms_min"] = rooms
+        payload["rooms_max"] = rooms
+    if deal_type is not None:
+        payload["deal_type"] = deal_type
+    return payload
 
 
 async def resolve_referral_payload(

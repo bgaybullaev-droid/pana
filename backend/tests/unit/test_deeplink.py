@@ -44,6 +44,65 @@ class TestBuildFoundLink:
         assert url.endswith("?startapp=found")
 
 
+class TestParseFilterSlug:
+    """FU6 — decode human marketing slugs into filter payloads.
+
+    Grammar: ``<district>[_<N>rooms][_buy|_sale|_sell|_rent]``. The
+    district head is mandatory and resolved through the shared alias
+    tables; rooms/deal tokens are optional and order-independent.
+    """
+
+    def test_full_slug(self):
+        assert deeplink.parse_filter_slug("chilonzor_2rooms_rent") == {
+            "district": "chilonzor",
+            "rooms_min": 2,
+            "rooms_max": 2,
+            "deal_type": "rent",
+        }
+
+    def test_bare_district(self):
+        assert deeplink.parse_filter_slug("yunusobod") == {"district": "yunusobod"}
+
+    def test_alias_district_folds_to_canonical_key(self):
+        # Latin / typo spellings collapse to the canonical key.
+        assert deeplink.parse_filter_slug("chilanzar_rent") == {
+            "district": "chilonzor",
+            "deal_type": "rent",
+        }
+
+    def test_multiword_district_key(self):
+        # District keys that themselves contain underscores survive the
+        # tail-peeling (rooms/deal are stripped first, the rest re-joined).
+        assert deeplink.parse_filter_slug("mirzo_ulugbek_3rooms") == {
+            "district": "mirzo_ulugbek",
+            "rooms_min": 3,
+            "rooms_max": 3,
+        }
+
+    def test_buy_and_sale_synonyms_fold_to_sell(self):
+        assert deeplink.parse_filter_slug("sergeli_buy")["deal_type"] == "sell"
+        assert deeplink.parse_filter_slug("sergeli_sale")["deal_type"] == "sell"
+
+    def test_tail_order_is_independent(self):
+        # Defensive: deal-before-rooms still decodes the same.
+        assert deeplink.parse_filter_slug("chilonzor_rent_2rooms") == {
+            "district": "chilonzor",
+            "rooms_min": 2,
+            "rooms_max": 2,
+            "deal_type": "rent",
+        }
+
+    def test_rooms_only_is_rejected(self):
+        # No district head → not a valid filter slug.
+        assert deeplink.parse_filter_slug("2rooms_rent") is None
+
+    def test_garbage_is_rejected(self):
+        assert deeplink.parse_filter_slug("qwerty_zzz") is None
+
+    def test_empty_is_none(self):
+        assert deeplink.parse_filter_slug("") is None
+
+
 class TestGenerateShortId:
     def test_default_length(self):
         assert len(deeplink.generate_short_id()) == deeplink._SHORT_ID_LENGTH == 12

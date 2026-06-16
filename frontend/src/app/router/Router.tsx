@@ -5,8 +5,6 @@ import { useUnit } from "effector-react";
 import { useTelegram } from "@app/providers/useTelegram";
 import { $backHandlers } from "@shared/lib/telegram/backStack";
 import { parseStartParam, fetchDeepLinkPayload } from "@shared/lib/deepLinks";
-import { filtersApplied } from "@modules/buyer/feature/filter/model";
-import type { BuyerFilterState } from "@shared/api/types";
 
 // Auth pages (kept local to shell)
 const AuthPage = lazy(() =>
@@ -21,23 +19,48 @@ const AdminRouter = lazy(() =>
 	import("@modules/admin/app").then((m) => ({ default: m.AdminRouter })),
 );
 
-// Coerce a raw payload dict into BuyerFilterState shape. Unknown / missing
-// fields fall back to defaults so a malformed payload row can't crash
-// the home page — worst case the user sees an unfiltered list.
-function coerceFilterPayload(raw: Record<string, unknown>): BuyerFilterState {
-	const sorting =
-		typeof raw.sortingSelected === "number" ? raw.sortingSelected : -1;
-	const priceRange = Array.isArray(raw.priceRange) && raw.priceRange.length === 2
-		? [Number(raw.priceRange[0]) || 0, Number(raw.priceRange[1]) || 2000000]
-		: [0, 2000000];
-	const regions = Array.isArray(raw.regions)
-		? raw.regions.filter((x): x is string => typeof x === "string")
-		: [];
-	return {
-		sortingSelected: sorting,
-		priceRange: priceRange as [number, number],
-		regions,
-	};
+// Map a resolved filter payload onto the buyer-feed URL params the home
+// page hydrates from on mount (see home/ui/page/Page.tsx "Initialize from
+// URL params"). The payload comes either from a stored short-id row or
+// from a synthesised marketing slug (FU6) — both share the bot's key
+// shape (district / rooms_min / rooms_max / deal_type / price_*). Unknown
+// or malformed fields are skipped; an empty result lands the user on the
+// plain (unfiltered) home rather than crashing.
+function buildFilterSearch(raw: Record<string, unknown>): string {
+	const params = new URLSearchParams();
+
+	if (typeof raw.district === "string" && raw.district) {
+		params.set("district", raw.district);
+	}
+	if (raw.deal_type === "sell" || raw.deal_type === "rent") {
+		params.set("type", raw.deal_type);
+	}
+	if (typeof raw.property_type === "string" && raw.property_type) {
+		params.set("property_type", raw.property_type);
+	}
+
+	// rooms_min..rooms_max → discrete multiselect chips, capped at 5
+	// (the feed bins "5+" into a single 5 chip).
+	const min = Number(raw.rooms_min);
+	const rawMax = raw.rooms_max ?? raw.rooms_min;
+	const max = Number(rawMax);
+	if (Number.isFinite(min) && min > 0) {
+		const ceiling = Math.min(Number.isFinite(max) && max >= min ? max : min, 5);
+		const rooms: number[] = [];
+		for (let r = Math.max(1, min); r <= ceiling; r++) rooms.push(r);
+		if (rooms.length) params.set("rooms", rooms.join(","));
+	}
+
+	const priceMin = Number(raw.price_min);
+	if (Number.isFinite(priceMin) && priceMin > 0) {
+		params.set("price_min", String(priceMin));
+	}
+	const priceMax = Number(raw.price_max);
+	if (Number.isFinite(priceMax) && priceMax > 0) {
+		params.set("price_max", String(priceMax));
+	}
+
+	return params.toString();
 }
 
 /**
@@ -84,14 +107,18 @@ function StartParamHandler() {
 		}
 
 		if (prefix === "filter") {
-			// Fire-and-forget: hydrate the filter store, then land on home.
-			// Network failure is silent — user just sees the unfiltered home.
+			// Fire-and-forget: resolve the payload, then land on home with
+			// the filter encoded as URL params — the home page hydrates its
+			// feed filters from these on mount. Network failure (or an
+			// undecodable link) is silent: the user just sees the
+			// unfiltered home.
 			(async () => {
 				const data = await fetchDeepLinkPayload(body);
-				if (data && data.kind === "filter") {
-					filtersApplied(coerceFilterPayload(data.payload));
-				}
-				navigate("/", { replace: true });
+				const qs =
+					data && data.kind === "filter"
+						? buildFilterSearch(data.payload)
+						: "";
+				navigate(qs ? `/?${qs}` : "/", { replace: true });
 			})();
 			return;
 		}
