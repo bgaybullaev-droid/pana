@@ -241,6 +241,11 @@ function Page() {
 	const observerRef = useRef<IntersectionObserver | null>(null);
 	const loadMoreRef = useRef<HTMLDivElement | null>(null);
 	const initializedRef = useRef(false);
+	// Tracks the last URL query string we hydrated filters from. A filter deep
+	// link (?startapp=filter_…) is resolved asynchronously and lands in the URL
+	// *after* this page mounts, so URL hydration can't be a one-shot — this ref
+	// lets us re-apply when a new non-empty filter set appears later.
+	const appliedUrlSearchRef = useRef<string | null>(null);
 	const [drawerOpened, { open: openDrawer, close: closeDrawer }] =
 		useDisclosure(false);
 	// Inline sort bottom-sheet (replaces the drawer's old sort card).
@@ -405,11 +410,17 @@ function Page() {
 		};
 	}, [drawerOpened, draftFilters]);
 
-	// Initialize from URL params
+	// Initialize / hydrate filters from URL params.
+	//
+	// Filter deep links (?startapp=filter_…) are resolved asynchronously by the
+	// shell's StartParamHandler and pushed into the URL *after* this page has
+	// already mounted and initialised. So URL hydration can't be a one-shot on
+	// first mount — otherwise the late URL change is swallowed and the user
+	// sees an unfiltered feed (the FU6 bug). We re-apply whenever the URL
+	// carries a *new* non-empty filter set. This is safe because the home page
+	// only ever writes an EMPTY query string itself (clear actions), so a
+	// non-empty set always originates from a deep link / share URL.
 	useEffect(() => {
-		if (initializedRef.current) return;
-		initializedRef.current = true;
-
 		const urlFilters: Partial<HomeFilters> = {};
 		const q = searchParams.get("q");
 		const type = searchParams.get("type");
@@ -433,15 +444,27 @@ function Page() {
 		if (district) urlFilters.district = district.split(",");
 
 		const hasUrlFilters = Object.keys(urlFilters).length > 0;
-		if (hasUrlFilters) {
-			filtersChanged(urlFilters);
-		}
+		const search = searchParams.toString();
 
-		// Skip re-fetch if we already have listings and no new URL filters are being applied.
-		// Effector stores survive unmount/remount, so on back-navigation the data is still there.
-		if (listings.length > 0 && !hasUrlFilters) {
+		if (hasUrlFilters && appliedUrlSearchRef.current !== search) {
+			// New filter set from the URL — initial deep link or one that
+			// arrived after mount. Apply it and fetch a fresh filtered page 1.
+			// A late-arriving deep link supersedes any in-flight unfiltered
+			// fetch: the connections layer discards responses whose params no
+			// longer match the current filters.
+			appliedUrlSearchRef.current = search;
+			initializedRef.current = true;
+			filtersChanged(urlFilters);
+			pageOpened();
 			return;
 		}
+
+		if (initializedRef.current) return;
+		initializedRef.current = true;
+
+		// No URL filters. Effector stores survive unmount/remount, so on
+		// back-navigation the data is still there — skip the refetch.
+		if (listings.length > 0) return;
 
 		pageOpened();
 	// eslint-disable-next-line react-hooks/exhaustive-deps
