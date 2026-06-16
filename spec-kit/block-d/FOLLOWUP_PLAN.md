@@ -25,7 +25,7 @@
 | FU4 | Тесты Блока D (golden-корпус парсера и др.) | 1.5 д | ✅ выполнено |
 | FU5 | Телеметрия парсера запросов | 1 д | ✅ выполнено |
 | FU6 | Filter-дип-линки: фикс гидрации + маркетинговые слаги | 1 д | ✅ смержен (#113) |
-| FU7 | Дайджест push-уведомлений по сохранённым поискам | 1.5 д | ⬜ не начат |
+| FU7 | Дайджест push-уведомлений по сохранённым поискам | 1.5 д | ✅ смержен (#118) |
 | FU8 | Доки/ops: BotFather-док, e2e чек-лист, 48h-spike | 0.5 д | ⬜ не начат |
 
 Статусы: ⬜ не начат · 🟨 в работе · ✅ смержен (`#номер PR`).
@@ -380,6 +380,19 @@ DECISION_MATRIX (порог пересмотра: >10% промахов за м�
 ---
 
 ## PR-FU7 — Дайджест сохранённых поисков (1.5 дня)
+
+> **Статус: ✅ смержен (#118).** Реализовано: дебаунс saved-search пушей в
+> `_match_saved_searches` (Redis `saved_search:pending/scheduled:{user_id}`,
+> flush-таск `flush_pending_saved_search_pushes` с `countdown=600`); 1 матч →
+> rich-карточка (рендер вынесен в `_saved_search_rich_push`), >1 → дайджест
+> `push_saved_search_digest` + кнопка `btn_open_app` → `build_notifications_link()`
+> (`?startapp=notifications`, bare-токен `notifications` → `/notifications` в
+> `Router.tsx`). In-app `Notification` остаются по-объектно, дневной лимит
+> списывается в момент матча, fail-open при недоступном Redis. Новый ключ
+> `push_saved_search_digest` ×3 локали бота. Тесты:
+> `tests/unit/test_saved_search_digest.py` (dedupe, планирование дебаунса,
+> рендер дайджеста, deep-link, одиночный rich-push). **Следующий незакрытый
+> PR — FU8.**
 
 **Цель:** «5 поисков сработали разом → одно сообщение, не пять» (edge case
 SOURCE_SPEC_V2 → D2; в decision-pass отдан A4 — реализуем по паттерну A4).
