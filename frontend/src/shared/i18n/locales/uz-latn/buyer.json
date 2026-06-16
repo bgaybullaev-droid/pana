@@ -108,6 +108,8 @@
   "home.searchPlaceholder": "Ko'chmas mulk qidirish...",
   "home.found": "Topildi: {{total}}",
   "home.filters": "Filtrlar",
+  "home.shareFilter": "Filtrni ulashish",
+  "home.shareFilterError": "Havola yaratib bo'lmadi",
   "home.propertyType": "Mulk turi",
   "home.allTypes": "Barcha turlar",
   "home.roomsCount": "Xonalar soni",

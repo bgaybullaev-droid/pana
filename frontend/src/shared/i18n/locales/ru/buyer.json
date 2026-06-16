@@ -108,6 +108,8 @@
   "home.searchPlaceholder": "Поиск недвижимости...",
   "home.found": "Найдено: {{total}}",
   "home.filters": "Фильтры",
+  "home.shareFilter": "Поделиться фильтром",
+  "home.shareFilterError": "Не удалось создать ссылку",
   "home.propertyType": "Тип недвижимости",
   "home.allTypes": "Все типы",
   "home.roomsCount": "Количество комнат",

@@ -44,6 +44,7 @@ import {
 	IconClock,
 	IconHeart,
 	IconHeartFilled,
+	IconShare,
 } from "@tabler/icons-react";
 import {
 	getConditionFilterOpts,
@@ -109,6 +110,9 @@ import {
 } from "@modules/buyer/feature/saved-searches";
 import { notifications } from "@mantine/notifications";
 import { useAuth } from "@app/providers/useAuth";
+import { useTelegram } from "@app/providers/useTelegram";
+import { createFilterLink } from "@shared/lib/deepLinks";
+import { BUYER_BOT_USERNAME } from "@shared/lib/constants";
 import { HomeBanners } from "@modules/buyer/feature/home-banners";
 import { useTelegramBackClose } from "@shared/hooks/useTelegramBackClose";
 
@@ -256,8 +260,10 @@ function Page() {
 	useTelegramBackClose(drawerOpened, closeDrawer);
 	const { openSearch, searchOpen } = useLayoutContext();
 	const { isAuthenticated } = useAuth();
+	const { webApp } = useTelegram();
 
 	const [viewMode] = useState<"grid" | "masonry">("grid");
+	const [sharingFilter, setSharingFilter] = useState(false);
 	const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
 		0, 500000,
 	]);
@@ -451,6 +457,42 @@ function Page() {
 		}
 		if (district) urlFilters.district = district.split(",");
 
+		// Advanced filters (rich share links): read every remaining field so
+		// a shared link round-trips the full filter set, not just the basics.
+		const numParam = (key: keyof HomeFilters) => {
+			const v = searchParams.get(key as string);
+			if (v != null && v !== "" && Number.isFinite(Number(v))) {
+				(urlFilters as any)[key] = Number(v);
+			}
+		};
+		const boolParam = (key: keyof HomeFilters) => {
+			if (searchParams.get(key as string) === "true") {
+				(urlFilters as any)[key] = true;
+			}
+		};
+		const strParam = (key: keyof HomeFilters) => {
+			const v = searchParams.get(key as string);
+			if (v) (urlFilters as any)[key] = v;
+		};
+		(
+			[
+				"area_min", "area_max", "floor_min", "floor_max",
+				"total_floors_min", "total_floors_max", "posted_within",
+			] as const
+		).forEach(numParam);
+		(
+			[
+				"not_first_floor", "not_last_floor", "has_photo", "mortgage_ok",
+				"installment_ok", "halol_ok", "furnished", "allowed_pets",
+				"allowed_students", "utilities_incl",
+			] as const
+		).forEach(boolParam);
+		strParam("building_type");
+		strParam("rent_period");
+		strParam("sort");
+		const condition = searchParams.get("condition");
+		if (condition) urlFilters.condition = condition.split(",");
+
 		const hasUrlFilters = Object.keys(urlFilters).length > 0;
 		const search = searchParams.toString();
 
@@ -582,6 +624,45 @@ function Page() {
 		setSelectedRegion(null);
 		setSearchParams({});
 	};
+
+	// Share the drawer's current filter set as a deep link. The full set is
+	// encoded server-side (Telegram's start_param can't hold it inline) and
+	// opened in Telegram's native share sheet — same flow as listing share.
+	const shareableFilters = pruneHiddenFilters(draftFilters);
+	const hasShareableFilters = Object.entries(shareableFilters).some(
+		([k, v]) =>
+			k !== "sort" &&
+			v != null &&
+			!(Array.isArray(v) && v.length === 0) &&
+			v !== "",
+	);
+
+	const handleShareFilter = useCallback(async () => {
+		const clean = Object.fromEntries(
+			Object.entries(pruneHiddenFilters(draftFilters)).filter(
+				([, v]) =>
+					v != null && !(Array.isArray(v) && v.length === 0) && v !== "",
+			),
+		);
+		if (Object.keys(clean).length === 0) return;
+		setSharingFilter(true);
+		try {
+			const res = await createFilterLink(clean);
+			if (!res) throw new Error("link failed");
+			const appLink = `https://t.me/${BUYER_BOT_USERNAME}?startapp=filter_${res.id}`;
+			const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(appLink)}`;
+			if (webApp?.openTelegramLink) webApp.openTelegramLink(shareUrl);
+			else window.open(shareUrl, "_blank");
+		} catch {
+			notifications.show({
+				message: t("home.shareFilterError"),
+				color: "red",
+				autoClose: 3000,
+			});
+		} finally {
+			setSharingFilter(false);
+		}
+	}, [draftFilters, webApp, t]);
 
 	const handleApplyDraft = () => {
 		// Replace (not merge) so a reset draft actually clears applied filters.
@@ -1113,7 +1194,13 @@ function Page() {
 				</Box>
 
 				{/* Header */}
-				<Box px="md" pb="sm" style={{ flexShrink: 0 }}>
+				<Group
+					px="md"
+					pb="sm"
+					justify="space-between"
+					wrap="nowrap"
+					style={{ flexShrink: 0 }}
+				>
 					<Text
 						fw={700}
 						size="lg"
@@ -1121,7 +1208,20 @@ function Page() {
 					>
 						{t("home.filters")}
 					</Text>
-				</Box>
+					<ActionIcon
+						variant="subtle"
+						color="blue"
+						size="lg"
+						radius="xl"
+						onClick={handleShareFilter}
+						loading={sharingFilter}
+						disabled={!hasShareableFilters}
+						aria-label={t("home.shareFilter")}
+						title={t("home.shareFilter")}
+					>
+						<IconShare size={20} />
+					</ActionIcon>
+				</Group>
 
 				{/* Scrollable content */}
 				<Box

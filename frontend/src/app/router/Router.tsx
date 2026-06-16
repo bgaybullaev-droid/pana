@@ -21,44 +21,95 @@ const AdminRouter = lazy(() =>
 
 // Map a resolved filter payload onto the buyer-feed URL params the home
 // page hydrates from on mount (see home/ui/page/Page.tsx "Initialize from
-// URL params"). The payload comes either from a stored short-id row or
-// from a synthesised marketing slug (FU6) — both share the bot's key
-// shape (district / rooms_min / rooms_max / deal_type / price_*). Unknown
-// or malformed fields are skipped; an empty result lands the user on the
-// plain (unfiltered) home rather than crashing.
+// URL params"). The payload can come from three sources with two key
+// vocabularies, all handled here:
+//   • bot search / marketing slug — scalar `deal_type`, `rooms_min/max`,
+//     scalar `district` (legacy, kept for already-shared links);
+//   • the in-app "Share filter" action — the full `HomeFilters` shape
+//     (arrays + every advanced filter).
+// Unknown/malformed fields are skipped; an empty result lands the user on
+// the plain (unfiltered) home rather than crashing.
 function buildFilterSearch(raw: Record<string, unknown>): string {
 	const params = new URLSearchParams();
 
-	if (typeof raw.district === "string" && raw.district) {
-		params.set("district", raw.district);
-	}
-	if (raw.deal_type === "sell" || raw.deal_type === "rent") {
+	const setStr = (key: string, v: unknown) => {
+		if (typeof v === "string" && v) params.set(key, v);
+	};
+	const setNum = (key: string, v: unknown) => {
+		const n = Number(v);
+		if (Number.isFinite(n) && n > 0) params.set(key, String(n));
+	};
+	const setBool = (key: string, v: unknown) => {
+		if (v === true || v === "true") params.set(key, "true");
+	};
+	const setList = (key: string, v: unknown) => {
+		if (Array.isArray(v)) {
+			const items = v.filter((x) => x != null && x !== "");
+			if (items.length) params.set(key, items.join(","));
+		} else if (typeof v === "string" && v) {
+			params.set(key, v);
+		} else if (typeof v === "number" && Number.isFinite(v)) {
+			params.set(key, String(v));
+		}
+	};
+
+	setStr("q", raw.q);
+
+	// Deal type: HomeFilters `type` (array) or the bot/slug `deal_type` (scalar).
+	if (raw.type != null) setList("type", raw.type);
+	else if (raw.deal_type === "sell" || raw.deal_type === "rent") {
 		params.set("type", raw.deal_type);
 	}
-	if (typeof raw.property_type === "string" && raw.property_type) {
-		params.set("property_type", raw.property_type);
+
+	setList("property_type", raw.property_type);
+	setList("region", raw.region);
+	setList("district", raw.district);
+
+	// Rooms: HomeFilters `rooms` array, or the bot's rooms_min..rooms_max
+	// range. Capped at 5 (the feed bins "5+" into a single 5 chip).
+	const rooms = new Set<number>();
+	if (Array.isArray(raw.rooms)) {
+		for (const r of raw.rooms) {
+			const n = Number(r);
+			if (Number.isFinite(n) && n > 0) rooms.add(Math.min(n, 5));
+		}
+	} else {
+		const min = Number(raw.rooms_min);
+		const max = Number(raw.rooms_max ?? raw.rooms_min);
+		if (Number.isFinite(min) && min > 0) {
+			const ceiling = Math.min(Number.isFinite(max) && max >= min ? max : min, 5);
+			for (let r = Math.max(1, min); r <= ceiling; r++) rooms.add(r);
+		}
+	}
+	if (rooms.size) {
+		params.set("rooms", [...rooms].sort((a, b) => a - b).join(","));
 	}
 
-	// rooms_min..rooms_max → discrete multiselect chips, capped at 5
-	// (the feed bins "5+" into a single 5 chip).
-	const min = Number(raw.rooms_min);
-	const rawMax = raw.rooms_max ?? raw.rooms_min;
-	const max = Number(rawMax);
-	if (Number.isFinite(min) && min > 0) {
-		const ceiling = Math.min(Number.isFinite(max) && max >= min ? max : min, 5);
-		const rooms: number[] = [];
-		for (let r = Math.max(1, min); r <= ceiling; r++) rooms.push(r);
-		if (rooms.length) params.set("rooms", rooms.join(","));
-	}
+	setNum("price_min", raw.price_min);
+	setNum("price_max", raw.price_max);
+	setNum("area_min", raw.area_min);
+	setNum("area_max", raw.area_max);
+	setNum("floor_min", raw.floor_min);
+	setNum("floor_max", raw.floor_max);
+	setNum("total_floors_min", raw.total_floors_min);
+	setNum("total_floors_max", raw.total_floors_max);
+	setNum("posted_within", raw.posted_within);
 
-	const priceMin = Number(raw.price_min);
-	if (Number.isFinite(priceMin) && priceMin > 0) {
-		params.set("price_min", String(priceMin));
-	}
-	const priceMax = Number(raw.price_max);
-	if (Number.isFinite(priceMax) && priceMax > 0) {
-		params.set("price_max", String(priceMax));
-	}
+	setBool("not_first_floor", raw.not_first_floor);
+	setBool("not_last_floor", raw.not_last_floor);
+	setBool("has_photo", raw.has_photo);
+	setBool("mortgage_ok", raw.mortgage_ok);
+	setBool("installment_ok", raw.installment_ok);
+	setBool("halol_ok", raw.halol_ok);
+	setBool("furnished", raw.furnished);
+	setBool("allowed_pets", raw.allowed_pets);
+	setBool("allowed_students", raw.allowed_students);
+	setBool("utilities_incl", raw.utilities_incl);
+
+	setStr("building_type", raw.building_type);
+	setList("condition", raw.condition);
+	setStr("rent_period", raw.rent_period);
+	setStr("sort", raw.sort);
 
 	return params.toString();
 }

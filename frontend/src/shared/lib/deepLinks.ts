@@ -53,3 +53,31 @@ export async function fetchDeepLinkPayload(
 		return null;
 	}
 }
+
+export interface FilterLinkResult {
+	id: string;
+	/** Ready-to-open `t.me/<bot>?startapp=filter_<id>` URL. */
+	url: string;
+}
+
+/**
+ * Persist the given filter set server-side and return a share link.
+ *
+ * Powers the in-app "Share filter" action — the full filter set is stored
+ * behind an opaque short id (Telegram's 64-char start_param can't hold it
+ * inline) and the returned URL re-opens the Mini App with those filters.
+ * Returns `null` on auth/network error so the caller can show a soft toast.
+ */
+export async function createFilterLink(
+	filters: Record<string, unknown>,
+): Promise<FilterLinkResult | null> {
+	try {
+		const res = await apiClient.post<FilterLinkResult>(
+			"/deep-links/filter",
+			filters,
+		);
+		return res.data;
+	} catch {
+		return null;
+	}
+}

@@ -108,6 +108,8 @@
   "home.searchPlaceholder": "Кўчмас мулк қидириш...",
   "home.found": "Топилди: {{total}}",
   "home.filters": "Фильтрлар",
+  "home.shareFilter": "Филтрни улашиш",
+  "home.shareFilterError": "Ҳавола яратиб бўлмади",
   "home.propertyType": "Кўчмас мулк тури",
   "home.allTypes": "Барча турлар",
   "home.roomsCount": "Хоналар сони",

@@ -125,3 +125,57 @@ class TestResolveFilterSlug:
         resp = await client.get("/api/v1/deep-links/yunusobod")
         assert resp.status_code == 200
         assert resp.json()["payload"] == {"district": "stored"}
+
+
+class TestCreateFilterLink:
+    """In-app "Share filter" — POST /deep-links/filter mints a rich link."""
+
+    async def test_create_and_round_trip(
+        self, client: AsyncClient, user_headers: dict
+    ):
+        rich = {
+            "district": ["chilonzor"],
+            "type": ["rent"],
+            "rooms": [2, 3],
+            "price_max": 5000,
+            "has_photo": True,
+            "not_first_floor": True,
+        }
+        resp = await client.post(
+            "/api/v1/deep-links/filter", json=rich, headers=user_headers
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body["id"]) == 12
+        assert body["url"].endswith(f"?startapp=filter_{body['id']}")
+
+        # The stored link resolves back to exactly the filters we sent.
+        resolved = await client.get(f"/api/v1/deep-links/{body['id']}")
+        assert resolved.status_code == 200
+        assert resolved.json()["payload"] == rich
+
+    async def test_unset_fields_are_dropped(
+        self, client: AsyncClient, user_headers: dict
+    ):
+        resp = await client.post(
+            "/api/v1/deep-links/filter",
+            json={"district": ["yunusobod"], "type": None},
+            headers=user_headers,
+        )
+        assert resp.status_code == 200
+        resolved = await client.get(f"/api/v1/deep-links/{resp.json()['id']}")
+        assert resolved.json()["payload"] == {"district": ["yunusobod"]}
+
+    async def test_empty_payload_rejected(
+        self, client: AsyncClient, user_headers: dict
+    ):
+        resp = await client.post(
+            "/api/v1/deep-links/filter", json={}, headers=user_headers
+        )
+        assert resp.status_code == 400
+
+    async def test_requires_auth(self, client: AsyncClient):
+        resp = await client.post(
+            "/api/v1/deep-links/filter", json={"district": ["chilonzor"]}
+        )
+        assert resp.status_code in (401, 403)
