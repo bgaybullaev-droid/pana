@@ -8,6 +8,7 @@ from app.api.v1 import (
     admin_ai,
     admin_bot_limits,
     admin_export_templates,
+    admin_search_telemetry,
     admin_sources,
     admin_suspicions,
     admin_synonyms,
@@ -110,6 +111,8 @@ router.include_router(admin_ai.router)  # /admin/ai/*
 router.include_router(admin_synonyms.router)  # /admin/synonyms
 # Block D FU3 — admin-managed bot rate-limit settings.
 router.include_router(admin_bot_limits.router)  # /admin/bot-rate-limits
+# Block D FU5 — admin read-only bot search-query telemetry.
+router.include_router(admin_search_telemetry.router)  # /admin/search-telemetry
 # Block F V2.0 F4a — cabinet text exports.
 router.include_router(seller_exports.router)
 router.include_router(admin_export_templates.router)

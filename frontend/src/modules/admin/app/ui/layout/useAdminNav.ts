@@ -16,6 +16,7 @@ import {
 	IconPhoto,
 	IconShieldExclamation,
 	IconGauge,
+	IconReportSearch,
 } from "@tabler/icons-react";
 import { $dashboardStats } from "@modules/admin/shared/state";
 
@@ -88,6 +89,11 @@ export const NAV_ITEMS: NavItem[] = [
 		icon: IconGauge,
 		labelKey: "nav.botLimits",
 		path: "/admin/bot-limits",
+	},
+	{
+		icon: IconReportSearch,
+		labelKey: "nav.searchTelemetry",
+		path: "/admin/search-telemetry",
 	},
 	{
 		icon: IconServerCog,

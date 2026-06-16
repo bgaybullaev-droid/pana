@@ -89,6 +89,11 @@ const BotLimitsPage = lazy(() =>
 		default: m.AdminBotLimits.Page,
 	})),
 );
+const SearchTelemetryPage = lazy(() =>
+	import("../../pages/search-telemetry").then((m) => ({
+		default: m.AdminSearchTelemetry.Page,
+	})),
+);
 
 export function AdminRouter() {
 	return (
@@ -112,6 +117,10 @@ export function AdminRouter() {
 					<Route path="banners" element={<BannersPage />} />
 					<Route path="suspicions" element={<SuspicionsPage />} />
 					<Route path="bot-limits" element={<BotLimitsPage />} />
+					<Route
+						path="search-telemetry"
+						element={<SearchTelemetryPage />}
+					/>
 					<Route path="ops/meili" element={<MeiliOpsPage />} />
 					<Route path="audit" element={<AuditLogPage />} />
 				</Route>

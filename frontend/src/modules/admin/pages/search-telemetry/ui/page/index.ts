@@ -1,0 +1,1 @@
+export { AdminSearchTelemetry } from "./Page";
