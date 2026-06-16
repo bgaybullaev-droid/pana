@@ -261,6 +261,21 @@ async def handle_inline_query(query: InlineQuery) -> None:
             results = await bot_search.search(
                 parsed, limit=_PAGE_SIZE, offset=offset, lang=lang
             )
+            # FU5 telemetry: record only the first page of a non-empty
+            # inline query (inline fires on every keystroke + on scroll;
+            # offset==0 keeps it one row per query, not per scroll page).
+            # Unrecognized inline queries (extracted_fields == []) are the
+            # headline "parser miss" signal, so they are captured here too.
+            if offset == 0:
+                from app.workers.tasks import telemetry as _telemetry
+
+                _telemetry.enqueue_search_query(
+                    user_telegram_id=query.from_user.id if query.from_user else None,
+                    source="inline",
+                    raw_text=raw,
+                    extracted_fields=list(parsed.extracted_fields),
+                    results_count=len(results),
+                )
 
         articles = [_to_inline_result(r, lang) for r in results]
         if not articles:

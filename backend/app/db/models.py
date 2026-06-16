@@ -2273,6 +2273,59 @@ class BotChannelPost(Base):
 
 
 # =============================================================================
+# Block D V2.0 (FU5) — bot search-query telemetry
+# =============================================================================
+
+
+class BotSearchQuery(Base):
+    """One row per executed bot / Inline-Mode search.
+
+    Append-only telemetry that feeds two decisions: iterating the
+    rule-based query parser's dictionaries (top unrecognized
+    ``raw_text``) and whether to switch rule-based → LLM
+    (DECISION_MATRIX revisit threshold: >10% miss rate over a month).
+
+    ``extracted_fields`` is the list of :class:`ParsedQuery` field names
+    the parser populated for this query; an empty list means "nothing
+    recognized" — the headline miss signal. No FK on
+    ``user_telegram_id``: bot/inline usage is often anonymous (the
+    sender may have no ``User`` row), and the id stays readable even if
+    the user is later deleted.
+
+    Retention: 90 days. Pruning is the ``prune_bot_search_queries`` cron
+    (D2-style), not enforced by the model. Writes funnel through
+    ``workers.tasks.telemetry.record_bot_search_query`` (Celery,
+    fire-and-forget) because the inline handlers run without a DB
+    session (see FU3) — a direct DB write there is impossible and
+    telemetry must never block the user's reply.
+    """
+
+    __tablename__ = "bot_search_queries"
+
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, nullable=True
+    )
+    source: Mapped[str] = mapped_column(String(8), nullable=False)
+    raw_text: Mapped[str] = mapped_column(String(200), nullable=False)
+    extracted_fields: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    results_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_bot_search_queries_created_at", "created_at"),
+    )
+
+
+# =============================================================================
 # Block F V2.0 (F1 + F5) — AI generation foundation
 # =============================================================================
 

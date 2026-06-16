@@ -23,7 +23,7 @@
 | FU2 | D4 «последняя миля»: publish_to_channel + stale в «Моих объявлениях» | 2 д | ✅ выполнено (сверено с кодом 2026-06-15) |
 | FU3 | Rate limits бот-поиска и inline (+ админ-страница настроек) | 1 д | ✅ смержен (#109) |
 | FU4 | Тесты Блока D (golden-корпус парсера и др.) | 1.5 д | ✅ выполнено |
-| FU5 | Телеметрия парсера запросов | 1 д | ⬜ не начат |
+| FU5 | Телеметрия парсера запросов | 1 д | ✅ выполнено |
 | FU6 | Filter-дип-линки: фикс гидрации + маркетинговые слаги | 1 д | ⬜ не начат |
 | FU7 | Дайджест push-уведомлений по сохранённым поискам | 1.5 д | ⬜ не начат |
 | FU8 | Доки/ops: BotFather-док, e2e чек-лист, 48h-spike | 0.5 д | ⬜ не начат |
@@ -292,6 +292,17 @@ round-trip конфига.
 ---
 
 ## PR-FU5 — Телеметрия парсера запросов (1 день)
+
+> **Статус: ✅ выполнено.** Реализованы пп. 1–3: модель + миграция
+> `BotSearchQuery` (`bot_search_queries`, JSONB `extracted_fields`, индекс по
+> `created_at`); Celery-таск `record_bot_search_query` +
+> fail-soft хелпер `enqueue_search_query` (`workers/tasks/telemetry.py`),
+> вызовы из `_run_bot_search_reply` (после `search()`) и `handle_inline_query`
+> (непустой raw, только `offset==0` — чтобы скролл не плодил дубли); beat-prune
+> 90 дней `prune_bot_search_queries` (`maintenance.py`, daily 04:50). Unit-тест
+> `tests/unit/test_bot_search_telemetry.py` (forwarding + fail-soft). **Пункт 4
+> (примеры SQL для продакт-анализа) намеренно отложен в FU8-док.** Следующий
+> незакрытый PR — FU6.
 
 **Цель:** данные для итерации словаря и для решения rule-based → LLM из
 DECISION_MATRIX (порог пересмотра: >10% промахов за месяц).

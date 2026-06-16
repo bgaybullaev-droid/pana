@@ -2254,6 +2254,7 @@ async def _run_bot_search_reply(
     from app.services import bot_search as _search
     from app.services import deeplink as _deeplink
     from app.services import query_parser as _parser
+    from app.workers.tasks import telemetry as _telemetry
 
     # D5 spam guard (FU3): cap bot search per user (admin-configurable). This is
     # the single choke point for both /search and free text. On the limit we
@@ -2273,6 +2274,18 @@ async def _run_bot_search_reply(
         return False
 
     results = await _search.search(parsed, limit=_search.DEFAULT_BOT_LIMIT, lang=lang)
+
+    # FU5 telemetry: record the executed search (fire-and-forget). Placed
+    # right after search() so both the empty- and non-empty-result paths
+    # below are captured with the right results_count.
+    _telemetry.enqueue_search_query(
+        user_telegram_id=message.from_user.id if message.from_user else None,
+        source="bot",
+        raw_text=raw_query,
+        extracted_fields=list(parsed.extracted_fields),
+        results_count=len(results),
+    )
+
     if not results:
         # Parsed something but the search returned nothing — give the
         # user a helpful next step rather than dead air.

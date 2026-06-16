@@ -92,6 +92,65 @@ async def _prune_behavioral_signals() -> Dict[str, Any]:
 
 
 # =============================================================================
+# Block D V2.0 (FU5) — bot_search_queries 90-day retention
+# =============================================================================
+
+
+_BOT_SEARCH_QUERIES_RETENTION_DAYS = 90
+
+
+@celery_app.task
+def prune_bot_search_queries() -> Dict[str, Any]:
+    """Block D FU5 — delete ``bot_search_queries`` rows older than 90 days.
+
+    Append-only telemetry; trimming by ``created_at`` keeps the table
+    bounded while preserving the recent window product analysis reads.
+    Idempotent; safe to run repeatedly. Returns ``{"deleted_rows": N,
+    "cutoff": "..."}`` for log scraping.
+    """
+    return asyncio.run(_prune_bot_search_queries())
+
+
+async def _prune_bot_search_queries() -> Dict[str, Any]:
+    from app.db.models import BotSearchQuery
+
+    cutoff = datetime.utcnow() - timedelta(days=_BOT_SEARCH_QUERIES_RETENTION_DAYS)
+
+    async def _run(db: AsyncSession) -> Dict[str, Any]:
+        before_q = await db.execute(
+            select(func.count())
+            .select_from(BotSearchQuery)
+            .where(BotSearchQuery.created_at < cutoff)
+        )
+        candidate_count = int(before_q.scalar_one() or 0)
+        if candidate_count == 0:
+            logger.info(
+                "maintenance.prune_bot_search_queries: nothing to prune (cutoff=%s)",
+                cutoff.isoformat(),
+            )
+            return {"deleted_rows": 0, "cutoff": cutoff.isoformat()}
+
+        await db.execute(
+            delete(BotSearchQuery).where(BotSearchQuery.created_at < cutoff)
+        )
+        await db.commit()
+        logger.info(
+            "maintenance.prune_bot_search_queries: deleted=%d cutoff=%s",
+            candidate_count,
+            cutoff.isoformat(),
+        )
+        return {"deleted_rows": candidate_count, "cutoff": cutoff.isoformat()}
+
+    try:
+        return await _with_session(_run)
+    except Exception as exc:
+        logger.warning(
+            "maintenance.prune_bot_search_queries_failed: %s", exc, exc_info=True
+        )
+        return {"deleted_rows": 0, "error": str(exc)}
+
+
+# =============================================================================
 # Block F F1 — abandoned-draft purge
 # =============================================================================
 

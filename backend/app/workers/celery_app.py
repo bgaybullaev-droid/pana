@@ -23,6 +23,8 @@ celery_app = Celery(
         "app.workers.tasks.autopost",
         # Block D V2.0 — periodic maintenance (D2 pruning)
         "app.workers.tasks.maintenance",
+        # Block D V2.0 (FU5) — bot search-query telemetry
+        "app.workers.tasks.telemetry",
         # Phase-2 — duplicate-account suspicion signals (daily 02:30)
         "app.workers.tasks.suspicions",
     ],
@@ -114,6 +116,13 @@ celery_app.conf.beat_schedule = {
     "prune-ai-generations": {
         "task": "app.workers.tasks.maintenance.prune_ai_generations",
         "schedule": crontab(minute=45, hour=4),
+    },
+    # Block D FU5 — 90-day retention on the bot_search_queries telemetry.
+    # Daily 04:50, in the gap between prune-ai-generations (04:45) and
+    # purge-abandoned-drafts (05:00).
+    "prune-bot-search-queries": {
+        "task": "app.workers.tasks.maintenance.prune_bot_search_queries",
+        "schedule": crontab(minute=50, hour=4),
     },
     # Block F F5b — hourly evaluation of bad-feedback rate / p95 duration /
     # daily cost. Emits exactly one Telegram alert per healthy→tripped
