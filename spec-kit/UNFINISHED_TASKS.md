@@ -119,12 +119,16 @@ the Cabinet autoposting page with the 48h modal exists
 (`frontend/src/modules/seller/pages/autoposting/`), and `User.language` →
 i18next sync happens on auth (`frontend/src/app/providers/AuthProvider.tsx:121-132`).
 
-Remaining follow-up work (8 small PRs, ~8–9 days: quick fixes incl. the inline
-`is_personal` cache bug, per-listing autopost opt-out + stale badge on My
-Listings, bot rate limits, Block D test coverage, parser telemetry, filter
-deep-link hydration fix + marketing slugs, saved-search digest, docs/ops) is
-specified in **`spec-kit/block-d/FOLLOWUP_PLAN.md`** — the live status
-checklist lives there; do not duplicate statuses here.
+Follow-up work (8 small PRs) is specified in
+**`spec-kit/block-d/FOLLOWUP_PLAN.md`** — the live status checklist lives there,
+do not duplicate statuses here. **As of 2026-06-17 all eight are done:** FU1–FU7
+merged (quick fixes incl. the inline `is_personal` cache bug, per-listing
+autopost opt-out + stale badge, bot rate limits, Block D test coverage, parser
+telemetry, filter deep-link hydration fix + marketing slugs, saved-search
+digest) and **FU8 (docs/ops)** shipped as
+[`docs/telegram-bot-setup.md`](../docs/telegram-bot-setup.md) — BotFather setup,
+the pre-launch D1–D5 e2e checklist, the manual 48h media spike, telemetry SQL,
+and marketing deep-link examples.
 
 ---
 
@@ -152,7 +156,7 @@ checklist lives there; do not duplicate statuses here.
 | `partial/easy/seller-dashboard-counters.md` | **PARTIAL** | No `POST /listings/{id}/contact` endpoint → `contacts_count` frozen at 0. No self-view guard. No `GET /sellers/me/dashboard` aggregate. No favorites-count chip. |
 | `partial/medium/pre-launch-fixes.md` | **MIXED** | Mockup filter badges still need flag gating or backend wiring. Hardcoded RU strings across seller module need sweep. `/search` legacy-route redirect to `/?<params>` missing. |
 | `partial/hard/F077-personalization.md` | **PARTIAL — Phase 1 data only** | Frontend never calls `POST /listings/{id}/view`. Phase 2 scoring pipeline + Recommended feed not started. Anonymous session attribution deferred. |
-| `not-started/easy/deep-links-filter-prefill.md` | **PARTIAL** | Filter-shortcut parsing (e.g. `chilanzar_2rooms`) not implemented; only opaque `filter_<id>` payloads work today. |
+| `not-started/easy/deep-links-filter-prefill.md` | **DONE (FU6, #113)** | `parse_filter_slug` ships `chilanzar_2rooms_rent`-style slugs + the `filter_<id>` hydration fix; examples in `docs/telegram-bot-setup.md` §7. |
 | `not-started/medium/F048-krutilka-three-tabs.md` | **NOT STARTED** | No tab UI on home page. No `$activeTab` store. No Subscriptions feed endpoint. |
 | `not-started/medium/deal-status-and-final-price.md` | **NOT STARTED** | No `ListingSale` table. No `sold_price`, `sold_at`, `sold_currency` columns. `Listing.status=SOLD` exists but carries no sale metadata. |
 | `not-started/medium/promotion-services.md` | **PARTIAL — only `is_boosted` exists** | No `has_urgent_badge` or `notify_priority_until` columns. No purchase endpoints (`POST /listings/{id}/promotions/*`). No wallet integration on the purchase path. |
@@ -193,11 +197,11 @@ These can be moved to `spec-kit/done/` to keep the boards honest.
 | **C2** "My Listings" chip + third-listing toast + dashboard aggregate | 1 day | Pre-launch UX |
 | **C4** phone-picker on listing forms + delete-with-active-listings modal | 1.5 days | Pre-launch UX |
 | **C5** multi-account detection — five signals, tables, admin queue + UI | 6 days | Post-launch |
-| **Block D follow-up** — FU1–FU8 per `spec-kit/block-d/FOLLOWUP_PLAN.md` (D1/D4/cross-cut rows from the 2026-05-13 audit are DONE) | ~8–9 days | Pre-launch UX / quality |
+| ~~**Block D follow-up** — FU1–FU8 per `spec-kit/block-d/FOLLOWUP_PLAN.md`~~ **DONE 2026-06-17** (all eight PRs merged/shipped) | — | Pre-launch UX / quality |
 | **F3c ops** DNS / cert / sitemap submission / Rich Results / Lighthouse | 1 day + propagation | Launch |
 | **seller-dashboard-counters** `/contact` endpoint + self-view guard + dashboard aggregate | 1 day | Pre-launch UX |
 | **F077-personalization** Phase 2 scoring + Recommended feed | 5 days | Post-launch |
-| **deep-links-filter-prefill** filter-shortcut parser — planned as FOLLOWUP_PLAN **FU6** | 1 day | Marketing |
+| ~~**deep-links-filter-prefill** filter-shortcut parser — FOLLOWUP_PLAN **FU6**~~ **DONE (#113)** | — | Marketing |
 | **F048-krutilka-three-tabs** home tab UI + subscriptions feed | 3 days | Post-launch |
 | **deal-status-and-final-price** `ListingSale` table + sale metadata capture | 2 days | Post-launch |
 | **promotion-services** urgent badge, notify-priority, purchase endpoints | 4 days | Post-launch (gated on wallet flip) |
