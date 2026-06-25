@@ -152,8 +152,8 @@ def _common_labels(lang: str) -> dict[str, str]:
     if lang == "ru":
         return {
             "params": "Параметры",
-            "cta": "Открыть в UcharMarket",
-            "open_app": "Открыть в UcharMarket",
+            "cta": "Открыть в PANA",
+            "open_app": "Открыть в PANA",
             "empty": "Сейчас нет объявлений",
             "empty_body": "Сейчас по этим параметрам объявлений нет. Попробуйте расширить поиск в приложении.",
             "prev": "Назад",
@@ -165,8 +165,8 @@ def _common_labels(lang: str) -> dict[str, str]:
     if lang == "uz-latn":
         return {
             "params": "Parametrlar",
-            "cta": "UcharMarket'da ochish",
-            "open_app": "UcharMarket'da ochish",
+            "cta": "PANA'da ochish",
+            "open_app": "PANA'da ochish",
             "empty": "Hozircha e'lonlar yo'q",
             "empty_body": "Hozircha bu parametrlar bo'yicha e'lonlar yo'q. Ilovada izlovni kengaytiring.",
             "prev": "Orqaga",
@@ -178,8 +178,8 @@ def _common_labels(lang: str) -> dict[str, str]:
     # uz (Cyrillic)
     return {
         "params": "Параметрлар",
-        "cta": "UcharMarket'да очиш",
-        "open_app": "UcharMarket'да очиш",
+        "cta": "PANA'да очиш",
+        "open_app": "PANA'да очиш",
         "empty": "Ҳозирча эълонлар йўқ",
         "empty_body": "Ҳозирча бу параметрлар бўйича эълонлар йўқ. Иловада изловни кенгайтиринг.",
         "prev": "Орқага",

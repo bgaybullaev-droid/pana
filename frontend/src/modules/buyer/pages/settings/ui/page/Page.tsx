@@ -139,9 +139,9 @@ function Page() {
 
 	const handleShare = async () => {
 		const shareData = {
-			title: "UcharMarket",
+			title: "PANA",
 			text: t("settings.shareText"),
-			url: "https://ucharmarket.uz",
+			url: "https://pana.uz",
 		};
 		try {
 			if (navigator.share) {

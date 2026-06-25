@@ -165,7 +165,7 @@ def _public_listing_url(listing: Listing, url_lang: str) -> str:
         from app.services.seo_meta import _public_host, slug_for_listing
 
         host = _public_host()
-        if not host or "ucharmarket.uz" not in host and "localhost" in host:
+        if not host or "pana.uz" not in host and "localhost" in host:
             # Local-dev fallback — use the bot deep link as a stable target.
             return build_listing_link(listing.id)
         slug = slug_for_listing(listing)

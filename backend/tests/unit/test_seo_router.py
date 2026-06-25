@@ -156,7 +156,7 @@ class TestListingDetail:
         assert 'name="description"' in body
         # canonical
         canonical_re = re.compile(
-            r'<link rel="canonical" href="https://ucharmarket\.uz/ru/listing/'
+            r'<link rel="canonical" href="https://pana\.uz/ru/listing/'
             + str(listing.id)
             + r'/3-rooms-chilonzor"',
         )

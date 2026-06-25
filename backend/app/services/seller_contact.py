@@ -39,15 +39,15 @@ _MAX_INTRO_CHARS = 200
 # structured-params snippet (district / rooms / area / price).
 _INTRO_TEMPLATES = {
     "ru": (
-        "Здравствуйте! Увидел в UcharMarket ваше объявление: {summary}. "
+        "Здравствуйте! Увидел в PANA ваше объявление: {summary}. "
         "Хочу узнать подробнее."
     ),
     "uz": (
-        "Salom! UcharMarket'da e'loningizni ko'rdim: {summary}. "
+        "Salom! PANA'da e'loningizni ko'rdim: {summary}. "
         "Batafsil bilmoqchiman."
     ),
     "uz_cyrl": (
-        "Салом! UcharMarket'да эълонингизни кўрдим: {summary}. "
+        "Салом! PANA'да эълонингизни кўрдим: {summary}. "
         "Батафсил билмоқчиман."
     ),
 }

@@ -116,7 +116,7 @@ export function AuthPage() {
 						gradient={{ from: "#1971c2", to: "#40A7E3", deg: 135 }}
 						style={{ letterSpacing: "-0.5px" }}
 					>
-						UcharMarket
+						PANA
 					</Text>
 					<Text size="sm" c="dimmed" mt={4} fw={500} px="xl">
 						{t("auth.subtitle")}

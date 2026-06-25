@@ -16,9 +16,9 @@ export function AdminLayout() {
 	const { t } = useTranslation("admin");
 
 	useEffect(() => {
-		document.title = "Uchar Admin";
+		document.title = "PANA Admin";
 		return () => {
-			document.title = "Ucharmarket - Вся недвижимость Узбекистана";
+			document.title = "PANA - Вся недвижимость Узбекистана";
 		};
 	}, []);
 

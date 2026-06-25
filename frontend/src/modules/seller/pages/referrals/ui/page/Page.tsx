@@ -103,7 +103,7 @@ function Page() {
 			try {
 				await navigator.share({
 					title: t("referrals.title", "Реферальная программа"),
-					text: t("referrals.shareCta", "Присоединяйся к UcharMarket!"),
+					text: t("referrals.shareCta", "Присоединяйся к PANA!"),
 					url: shareUrl,
 				});
 			} catch {
@@ -114,12 +114,12 @@ function Page() {
 
 	const telegramShareUrl = shareUrl
 		? `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(
-				t("referrals.shareCta", "Присоединяйся к UcharMarket!"),
+				t("referrals.shareCta", "Присоединяйся к PANA!"),
 			)}`
 		: "";
 	const whatsappShareUrl = shareUrl
 		? `https://wa.me/?text=${encodeURIComponent(
-				`${t("referrals.shareCta", "Присоединяйся к UcharMarket!")} ${shareUrl}`,
+				`${t("referrals.shareCta", "Присоединяйся к PANA!")} ${shareUrl}`,
 			)}`
 		: "";
 
@@ -155,7 +155,7 @@ function Page() {
 									<Text size="xs" c="#92400e" mt={2}>
 										{t(
 											"referrals.shareCta",
-											"Присоединяйся к UcharMarket!",
+											"Присоединяйся к PANA!",
 										)}
 									</Text>
 								</Box>

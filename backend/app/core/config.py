@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     telegram_bot_username: str = ""
     telegram_webhook_secret: str = ""
     # Block D D1: Mini App URL that the Menu Button opens (e.g.
-    # "https://ucharmarket.uz"). When empty the Menu Button setup is
+    # "https://pana.uz"). When empty the Menu Button setup is
     # skipped silently — useful for dev environments without a TWA host.
     telegram_webapp_url: str = ""
 
@@ -138,7 +138,7 @@ class Settings(BaseSettings):
     # Block F F3 — public SEO host. Used for canonical URLs in HTML
     # rendering + sitemap absolute URLs. Empty in dev = SEO routes
     # return relative URLs (harmless for testing).
-    f3_public_web_host: str = "https://ucharmarket.uz"
+    f3_public_web_host: str = "https://pana.uz"
 
     # Admin notification chat IDs (comma-separated Telegram chat IDs)
     admin_chat_ids_str: str = Field("", alias="ADMIN_CHAT_IDS")

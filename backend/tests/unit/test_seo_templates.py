@@ -157,8 +157,8 @@ def test_filter_template_renders_listing_links(jinja_env):
         meta=meta,
         intro=None,
         listings=[
-            {"url": "https://ucharmarket.uz/ru/listing/abc/3-rooms-chilonzor", "title": "3-комн в Чиланзаре", "price_display": "35 000 у.е."},
-            {"url": "https://ucharmarket.uz/ru/listing/def/2-rooms-chilonzor", "title": "2-комн в Чиланзаре", "price_display": "28 000 у.е."},
+            {"url": "https://pana.uz/ru/listing/abc/3-rooms-chilonzor", "title": "3-комн в Чиланзаре", "price_display": "35 000 у.е."},
+            {"url": "https://pana.uz/ru/listing/def/2-rooms-chilonzor", "title": "2-комн в Чиланзаре", "price_display": "28 000 у.е."},
         ],
         pagination=None,
         labels={"empty": "Пусто", "prev": "Назад", "next": "Вперёд", "open_app": "Открыть"},
@@ -166,7 +166,7 @@ def test_filter_template_renders_listing_links(jinja_env):
         year=2026,
     )
     assert "3-комн в Чиланзаре" in html
-    assert "ucharmarket.uz/ru/listing/abc" in html
+    assert "pana.uz/ru/listing/abc" in html
 
 
 def test_empty_template_emits_noindex(jinja_env):
@@ -189,7 +189,7 @@ def test_gone_template_renders(jinja_env):
             "gone_body": "Это объявление больше не актуально.",
             "gone_cta": "На главную",
         },
-        home_url="https://ucharmarket.uz/ru/",
+        home_url="https://pana.uz/ru/",
     )
     assert 'name="robots" content="noindex,follow"' in html
     assert "Объявление снято" in html
@@ -202,20 +202,20 @@ def test_gone_template_renders(jinja_env):
 
 def test_robots_allows_lang_paths(jinja_env):
     body = jinja_env.get_template("seo/robots.txt").render(
-        public_host="https://ucharmarket.uz"
+        public_host="https://pana.uz"
     )
     for line in ("Allow: /ru/", "Allow: /uz/", "Allow: /uz-latn/"):
         assert line in body
     for line in ("Disallow: /api/", "Disallow: /admin/", "Disallow: /seller/", "Disallow: /uploads/"):
         assert line in body
-    assert "Sitemap: https://ucharmarket.uz/sitemap.xml" in body
+    assert "Sitemap: https://pana.uz/sitemap.xml" in body
 
 
 def test_sitemap_listings_template_renders(jinja_env):
     body = jinja_env.get_template("seo/sitemap_listings.xml").render(
         entries=[
             SimpleNamespace(
-                loc="https://ucharmarket.uz/ru/listing/abc/3-rooms",
+                loc="https://pana.uz/ru/listing/abc/3-rooms",
                 lastmod="2026-05-01T12:00:00",
                 changefreq="daily",
                 priority="0.7",
@@ -230,7 +230,7 @@ def test_sitemap_index_template_renders(jinja_env):
     body = jinja_env.get_template("seo/sitemap_index.xml").render(
         sitemaps=[
             SimpleNamespace(
-                loc="https://ucharmarket.uz/sitemap-ru-listings-1.xml",
+                loc="https://pana.uz/sitemap-ru-listings-1.xml",
                 lastmod="2026-05-01T12:00:00",
             )
         ]

@@ -26,8 +26,8 @@ function Page() {
 		{
 			icon: IconMail,
 			label: t("support.email"),
-			subtitle: "support@ucharmarket.uz",
-			href: "mailto:support@ucharmarket.uz",
+			subtitle: "support@pana.uz",
+			href: "mailto:support@pana.uz",
 			color: "#1A73E8",
 			bg: "#E8F0FE",
 		},

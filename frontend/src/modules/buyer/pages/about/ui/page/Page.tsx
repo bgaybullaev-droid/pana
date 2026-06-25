@@ -42,7 +42,7 @@ function Page() {
 						marginBottom: 4,
 					}}
 				>
-					UcharMarket
+					PANA
 				</Text>
 				<Text
 					style={{

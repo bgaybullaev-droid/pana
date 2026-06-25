@@ -119,7 +119,7 @@ _DISTRICT_LABELS_UZ_CYRL: dict[str, str] = {
 }
 
 # Per-locale fixed strings.
-_BRAND_NAME = "UcharMarket"
+_BRAND_NAME = "PANA"
 _DEAL_LABELS: dict[tuple[str, str], str] = {
     # (deal_type, lang) → display fragment used in titles
     ("sell", "ru"): "Продажа",
@@ -343,8 +343,8 @@ def _listing_title(listing: Listing, lang: str) -> str:
     """Compose a structured human title for the listing page.
 
     Examples (ru):
-        "3-комн в Чиланзаре, 65 м², 35 000 у.е. — UcharMarket"
-        "Дом в Самарканде, 120 м², 80 000 у.е. — UcharMarket"
+        "3-комн в Чиланзаре, 65 м², 35 000 у.е. — PANA"
+        "Дом в Самарканде, 120 м², 80 000 у.е. — PANA"
     """
     bits: list[str] = []
     rooms = getattr(listing, "rooms", None)
@@ -495,17 +495,17 @@ def build_filter_meta(filters: Mapping[str, Any], lang: str = "ru") -> SEOMeta:
 
     if lang == "ru":
         description = _truncate(
-            f"Все объявления: {head} на UcharMarket. Свежие предложения от собственников и агентств.",
+            f"Все объявления: {head} на PANA. Свежие предложения от собственников и агентств.",
             _MAX_DESCRIPTION_LEN,
         )
     elif lang == "uz-latn":
         description = _truncate(
-            f"Barcha e'lonlar: {head} UcharMarket'da. Egalari va agentliklardan yangi takliflar.",
+            f"Barcha e'lonlar: {head} PANA'da. Egalari va agentliklardan yangi takliflar.",
             _MAX_DESCRIPTION_LEN,
         )
     else:
         description = _truncate(
-            f"Барча эълонлар: {head} UcharMarket'да. Эгалари ва агентликлардан янги таклифлар.",
+            f"Барча эълонлар: {head} PANA'да. Эгалари ва агентликлардан янги таклифлар.",
             _MAX_DESCRIPTION_LEN,
         )
 

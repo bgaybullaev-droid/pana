@@ -32,7 +32,7 @@ class TestUrlToKey:
     def test_absolute_https_url(self):
         assert (
             uploads_gc._url_to_key(
-                "https://ucharmarket.uz/uploads/listings/abc/photo.jpg"
+                "https://pana.uz/uploads/listings/abc/photo.jpg"
             )
             == "listings/abc/photo.jpg"
         )

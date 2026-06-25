@@ -1,6 +1,6 @@
 # ucharmarket-frontend
 
-Frontend for UcharMarket — a real estate marketplace web application.
+Frontend for PANA — a real estate marketplace web application.
 
 Built with React, TypeScript and Vite, using Mantine for the UI and Effector
 for state management.

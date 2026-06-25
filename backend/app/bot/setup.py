@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Per DECISION_MATRIX D1-Q1: a single neutral wordmark, since Telegram
 # does not accept localised menu-button labels.
-MENU_BUTTON_TEXT = "UcharMarket"
+MENU_BUTTON_TEXT = "PANA"
 
 # The six slash commands the bot answers, in the order they should
 # appear in Telegram's "/" autocomplete menu. Each tuple is
