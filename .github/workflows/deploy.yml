@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     # Deploy faqat asosiy repoda (hasanoff507) ishlaydi. Mirror (bgaybullaev)
     # da bu job skip bo'ladi, shuning uchun u yerda VPS secretlar kerak emas.
-    if: github.repository == 'hasanoff507/ucharmarket-frontend'
+    if: github.repository == 'hasanoff507/pana'
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3

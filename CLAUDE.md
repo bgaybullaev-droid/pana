@@ -9,7 +9,7 @@
 
 2. **Add the deploy repo to this session's scope.**
    Call `mcp__claude-code-remote__list_repos` to see available repos, then call
-   `mcp__claude-code-remote__add_repo` with `hasanoff507/ucharmarket-frontend`.
+   `mcp__claude-code-remote__add_repo` with `hasanoff507/pana`.
    This is required so that GitHub Actions deploy can be triggered directly from
    this session (see Deploy section below).
 
@@ -22,7 +22,7 @@
 ## Deploy Pipeline
 
 Production VPS deploys are triggered by pushing to **`main`** on
-`hasanoff507/ucharmarket-frontend` via GitHub Actions (`.github/workflows/deploy.yml`).
+`hasanoff507/pana` via GitHub Actions (`.github/workflows/deploy.yml`).
 
 `bgaybullaev-droid/ucharmarket-frontend` настроен как **автоматическое зеркало**:
 пуш в `main` здесь → автоматически синхронизируется в `hasanoff507/main` → триггерит деплой на VPS.
@@ -40,7 +40,7 @@ Production VPS deploys are triggered by pushing to **`main`** on
    коммит в `hasanoff507/main`.
 4. В `hasanoff507` срабатывает `deploy.yml` (триггер: push в `main` по путям
    `frontend/** | backend/** | db/** | .github/workflows/deploy.yml`; job идёт
-   только при `github.repository == 'hasanoff507/ucharmarket-frontend'`).
+   только при `github.repository == 'hasanoff507/pana'`).
 5. На VPS `deploy.yml` синкает код **и сам применяет миграции БД** — шаг
    `docker compose run --rm api alembic upgrade head`.
 
