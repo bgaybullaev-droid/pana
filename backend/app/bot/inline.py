@@ -3,7 +3,7 @@
 When a user types ``@ucharmarket_bot <query>`` in any Telegram chat,
 this handler runs. It parses the query, hits Meilisearch, formats up
 to 20 result cards, and returns them with a per-card "Open in
-UcharMarket" button that deep-links into the Mini App.
+PANA" button that deep-links into the Mini App.
 
 Per Block D guardrails:
 

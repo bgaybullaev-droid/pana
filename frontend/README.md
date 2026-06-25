@@ -1,4 +1,4 @@
-# ucharmarket-frontend
+# pana-frontend
 
 Frontend for PANA — a real estate marketplace web application.
 

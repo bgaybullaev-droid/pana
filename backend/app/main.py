@@ -1,4 +1,4 @@
-"""Real Estate API - Main Application."""
+"""PANA API - Main Application."""
 
 import asyncio
 import json
@@ -93,8 +93,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="Real Estate API",
-    description="PropTech Aggregator API for Uzbekistan's Real Estate Market",
+    title="PANA API",
+    description="PropTech Aggregator API for PANA (Uzbekistan)",
     version="1.0.0",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
@@ -116,7 +116,7 @@ app.add_middleware(
 # Exception handlers
 @app.exception_handler(RealEstateException)
 async def realestate_exception_handler(request: Request, exc: RealEstateException):
-    """Handle custom Real Estate exceptions."""
+    """Handle custom PANA exceptions."""
     return JSONResponse(
         status_code=exc.status_code,
         content=exc.detail,
@@ -209,7 +209,7 @@ app.include_router(seo.router)
 async def root():
     """Root endpoint with API information."""
     return {
-        "name": "Real Estate API",
+        "name": "PANA API",
         "version": "1.0.0",
         "description": "PropTech Aggregator for Uzbekistan",
         "docs_url": "/docs" if settings.debug else None,

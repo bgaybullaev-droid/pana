@@ -1,1 +1,1 @@
-"""Real Estate Backend Application."""
+"""PANA Backend Application."""

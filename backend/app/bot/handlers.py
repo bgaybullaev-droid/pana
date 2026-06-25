@@ -2069,7 +2069,7 @@ async def _handle_fav_toggle(call: CallbackQuery, *, intent: str) -> None:
     async with async_session_maker() as db:
         user = await _find_user_by_telegram_id(db, telegram_id)
         if user is None:
-            # Push reached a Telegram account with no linked UcharMarket
+            # Push reached a Telegram account with no linked PANA
             # user (account deleted, identity changed). Rare; no
             # behavioral signal recorded — no consumer for it.
             logger.info(

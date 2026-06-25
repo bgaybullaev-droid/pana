@@ -160,7 +160,7 @@ async def validate_integrations(bot: Bot) -> bool:
 
 async def main():
     """Main entry point for the bot."""
-    logger.info("Starting Real Estate Bot...")
+    logger.info("Starting PANA Bot...")
 
     # Load translations
     load_translations()

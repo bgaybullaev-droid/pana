@@ -1,4 +1,4 @@
-# Ucharmarket Frontend — Claude Code Instructions
+# PANA Frontend — Claude Code Instructions
 
 ## Session Setup (run at the start of EVERY new session)
 
