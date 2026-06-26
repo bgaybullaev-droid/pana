@@ -1,9 +1,16 @@
 name: Deploy to VPS
 
+# Two environments, routed by branch (both deploy from the hasanoff507/pana repo):
+#   main      -> PROD server  (secrets: VPS_HOST / VPS_USER / VPS_SSH_KEY)
+#   dev-pana  -> DEV  server  (secrets: DEV_VPS_HOST / DEV_VPS_USER / DEV_VPS_SSH_KEY)
+# Flow: push to dev-pana -> auto-deploy to DEV -> user verifies ->
+#       merge dev-pana into main -> auto-deploy to PROD.
+
 on:
   push:
     branches:
       - main
+      - dev-pana
     paths:
       - 'frontend/**'
       - 'backend/**'
@@ -14,7 +21,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Deploy faqat asosiy repoda (hasanoff507) ishlaydi. Mirror (bgaybullaev)
+    # Deploy faqat asosiy repoda (hasanoff507/pana) ishlaydi. Mirror (bgaybullaev)
     # da bu job skip bo'ladi, shuning uchun u yerda VPS secretlar kerak emas.
     if: github.repository == 'hasanoff507/pana'
     steps:
@@ -22,21 +29,29 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Branch being deployed — used on the server to checkout the right ref.
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+          # Project directory differs per server.
+          PROJECT_DIR: ${{ github.ref_name == 'main' && '/home/kvm/project/ucharmarket' || '/home/pana/ucharmarket' }}
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          envs: OPENAI_API_KEY
+          # main -> PROD secrets, any other branch (dev-pana) -> DEV secrets.
+          host: ${{ github.ref_name == 'main' && secrets.VPS_HOST || secrets.DEV_VPS_HOST }}
+          username: ${{ github.ref_name == 'main' && secrets.VPS_USER || secrets.DEV_VPS_USER }}
+          key: ${{ github.ref_name == 'main' && secrets.VPS_SSH_KEY || secrets.DEV_VPS_SSH_KEY }}
+          envs: OPENAI_API_KEY,DEPLOY_BRANCH,PROJECT_DIR
           command_timeout: 30m
           script: |
             set -e
-            cd /home/kvm/project/ucharmarket/_repo
-            git fetch origin main
-            git reset --hard origin/main
-            cd /home/kvm/project/ucharmarket
+            cd "$PROJECT_DIR/_repo"
+            git fetch origin "$DEPLOY_BRANCH"
+            git reset --hard "origin/$DEPLOY_BRANCH"
+            cd "$PROJECT_DIR"
 
-            # Sync frontend (full overwrite)
-            rsync -av --delete _repo/frontend/ frontend/
+            # Sync frontend (full overwrite) — but KEEP each server's own
+            # nginx.conf. Prod serves pana.uz, dev serves pnpntest.pana.uz, so
+            # server_name + TLS cert paths differ per environment and must not be
+            # clobbered by the deploy. nginx.conf is therefore managed per-server.
+            rsync -av --delete --exclude='nginx.conf' _repo/frontend/ frontend/
 
             # Sync backend (preserve .env, uploads, caches)
             rsync -av --delete \

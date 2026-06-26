@@ -2,10 +2,14 @@
 
 ## Session Setup (run at the start of EVERY new session)
 
-1. **Switch to main branch immediately.**
-   Run `git checkout main && git pull origin main` before doing anything else.
-   All commits and pushes go directly to `main` — never work on a `claude/...`
-   feature branch unless the user explicitly asks for it.
+1. **Two environments — work on `dev-pana`, NOT `main`.**
+   - `dev-pana` branch → **DEV** server (https://pnpntest.pana.uz)
+   - `main` branch → **PROD** server (https://pana.uz)
+
+   Default flow: do all work on **`dev-pana`**, push → auto-deploy to DEV →
+   user verifies on DEV → then merge `dev-pana` into `main` → auto-deploy to PROD.
+   At session start run `git checkout dev-pana && git pull origin dev-pana`.
+   Never work on a `claude/...` feature branch unless the user explicitly asks.
 
 2. **Add the deploy repo to this session's scope.**
    Call `mcp__claude-code-remote__list_repos` to see available repos, then call
@@ -21,13 +25,23 @@
 
 ## Deploy Pipeline
 
-Production VPS deploys are triggered by pushing to **`main`** on
-`hasanoff507/pana` via GitHub Actions (`.github/workflows/deploy.yml`).
+Деплой — **бранч-асосли, иккита муҳит** (битта `deploy.yml`, `hasanoff507/pana`да ишлайди):
 
-`bgaybullaev-droid/ucharmarket-frontend` настроен как **автоматическое зеркало**:
-пуш в `main` здесь → автоматически синхронизируется в `hasanoff507/main` → триггерит деплой на VPS.
+| Бранч | Муҳит | Сервер | Секретлар |
+|-------|-------|--------|-----------|
+| `dev-pana` | DEV | `pnpntest.pana.uz` (vps3461923, `/home/pana/ucharmarket`) | `DEV_VPS_HOST` / `DEV_VPS_USER` / `DEV_VPS_SSH_KEY` |
+| `main` | PROD | `pana.uz` (`/home/kvm/project/ucharmarket`) | `VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY` |
 
-**Ручная синхронизация не нужна.** Достаточно запушить изменения в `main` этого репо.
+**Оқим:** `dev-pana`га пуш → DEV'га авто-деплой → юзер DEV'да текширади →
+`dev-pana`ни `main`га merge → PROD'га авто-деплой.
+
+`bgaybullaev-droid/ucharmarket-frontend` — **автоматическое зеркало**: ҳар қандай
+бранчга пуш (`dev-pana` ёки `main`) → `hasanoff507/pana`га зеркалланади → ўша бранч
+учун `deploy.yml` керакли серверга деплой қилади. Ручная синхронизация не нужна.
+
+**`nginx.conf` ҳар серверда ўзиники** (DEV: `pnpntest.pana.uz`, PROD: `pana.uz`) —
+деплой уни алмаштирмайди (`rsync --exclude='nginx.conf'`). Доменни ўзгартириш керак
+бўлса — ўша сервернинг `frontend/nginx.conf`ини қўлда таҳрирлаш керак.
 
 ### Что делает слово «пуш» — полный цикл (запомнить, чтобы не путаться)
 
