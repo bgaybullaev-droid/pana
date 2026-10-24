@@ -12,10 +12,7 @@
    Never work on a `claude/...` feature branch unless the user explicitly asks.
 
 2. **Add the deploy repo to this session's scope.**
-   Call `mcp__claude-code-remote__list_repos` to see available repos, then call
-   `mcp__claude-code-remote__add_repo` with `hasanoff507/pana`.
-   This is required so that GitHub Actions deploy can be triggered directly from
-   this session (see Deploy section below).
+   Deploy workflow runs directly from `bgaybullaev-droid/pana`.
 
 ## Project Structure
 
@@ -25,7 +22,7 @@
 
 ## Deploy Pipeline
 
-Деплой — **бранч-асосли, иккита муҳит** (битта `deploy.yml`, `hasanoff507/pana`да ишлайди):
+Деплой — **бранч-асосли, иккита муҳит** (битта `deploy.yml`, `bgaybullaev-droid/pana`да ишлайди):
 
 | Бранч | Муҳит | Сервер | Секретлар |
 |-------|-------|--------|-----------|
@@ -35,9 +32,9 @@
 **Оқим:** `dev-pana`га пуш → DEV'га авто-деплой → юзер DEV'да текширади →
 `dev-pana`ни `main`га merge → PROD'га авто-деплой.
 
-`bgaybullaev-droid/ucharmarket-frontend` — **автоматическое зеркало**: ҳар қандай
-бранчга пуш (`dev-pana` ёки `main`) → `hasanoff507/pana`га зеркалланади → ўша бранч
-учун `deploy.yml` керакли серверга деплой қилади. Ручная синхронизация не нужна.
+Зеркала больше нет: `bgaybullaev-droid/pana` — единственный репозиторий. Пуш в
+`dev-pana` ёки `main` → `deploy.yml` шу репонинг ўзида ишлайди ва керакли серверга
+деплой қилади. PROD: `163.245.217.223` (root), DEV ҳали созланмаган (SSH порт 2246).
 
 **`nginx.conf` ҳар серверда ўзиники** (DEV: `pnpntest.pana.uz`, PROD: `pana.uz`) —
 деплой уни алмаштирмайди (`rsync --exclude='nginx.conf'`). Доменни ўзгартириш керак
@@ -50,11 +47,10 @@
 2. Смержить PR в `main` (`merge_pull_request`, обычно `squash`).
 
 Дальше всё происходит **АВТОМАТИЧЕСКИ — вручную запускать НИЧЕГО не нужно**:
-3. Push в `main` (bgaybullaev-droid) → workflow «Mirror to hasanoff507» зеркалит
-   коммит в `hasanoff507/main`.
-4. В `hasanoff507` срабатывает `deploy.yml` (триггер: push в `main` по путям
+3. Push в `main` (`bgaybullaev-droid/pana`).
+4. В этом же репо срабатывает `deploy.yml` (триггер: push в `main` по путям
    `frontend/** | backend/** | db/** | .github/workflows/deploy.yml`; job идёт
-   только при `github.repository == 'hasanoff507/pana'`).
+   только при `github.repository == 'bgaybullaev-droid/pana'`).
 5. На VPS `deploy.yml` синкает код **и сам применяет миграции БД** — шаг
    `docker compose run --rm api alembic upgrade head`.
 
@@ -64,9 +60,7 @@
 - Продакшен-БД сидит на LAN VPS (`192.168.0.187:5432`) и **из контейнера Claude
   недоступна** (нет ни сети, ни кред) — миграции гоняются только на VPS через
   `deploy.yml`. Не пытаться подключаться к БД из сессии.
-- Сам job деплоя крутится в репозитории `hasanoff507`, который **вне скоупа**
-  сессии bgaybullaev-droid, поэтому финальный статус деплоя из сессии не виден.
-  Проверка при необходимости: Actions в hasanoff507 (job «Deploy to VPS» → шаг
+- Статус деплоя: Actions в `bgaybullaev-droid/pana` (job «Deploy to VPS» → шаг
   «Apply database migrations») либо на VPS команда `alembic current`.
 - Деплой запускается **только** при изменениях `frontend/** | backend/** | db/**
   | deploy.yml`. Правки только в `CLAUDE.md`/доках деплой НЕ триггерят.
@@ -79,7 +73,7 @@
 | `frontend/src/modules/admin/app/ui/layout/AdminLayout.tsx` | Admin panel layout |
 | `frontend/index.html` | Browser tab title, meta description |
 | `frontend/src/shared/i18n/locales/ru/seller.json` | Seller namespace translations |
-| `.github/workflows/deploy.yml` | VPS deploy (only runs on hasanoff507 repo) |
+| `.github/workflows/deploy.yml` | VPS deploy (only runs on bgaybullaev-droid repo) |
 | `BACKLOG.md` | Бэклог отложенных задач — показывать по запросу «покажи бэклог» |
 | `spec-kit/block-d/SOURCE_SPEC_V2.md` | Исходная функциональная спецификация Блока D (Telegram-механики Фазы 1, V2.0) — канонический референс |
 | `spec-kit/block-d/FOLLOWUP_PLAN.md` | План доводки Блока D (8 PR: FU1–FU8) с живым чек-листом статусов — в новой сессии брать первый незакрытый PR |
@@ -179,7 +173,7 @@ desktop app, GitHub Action, т.е. managed remote execution environment. В
 2. **Тест-гейт (обязателен всегда):** `npm run type-check` → `npm run lint` →
    `npm run build`.
 3. Если **все** проверки зелёные → перевести PR из draft в ready +
-   `squash`-merge в `main` → дальше авто-зеркало в `hasanoff507/main` →
+   `squash`-merge в `main` → дальше в `bgaybullaev-droid/pana` →
    авто-деплой на VPS (+ миграции). Полный цикл описан в **Deploy Pipeline**.
 4. Если **хоть одна** проверка упала → **деплой НЕ делать**, остановиться,
    починить и сообщить пользователю об ошибке. Сломанный код в прод не уезжает.
